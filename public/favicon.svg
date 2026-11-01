@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="shieldLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0B0F19" />
+    </linearGradient>
+    <linearGradient id="shieldRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="40%" stop-color="#EA580C" />
+      <stop offset="75%" stop-color="#E11D48" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="35%" stop-color="#F97316" />
+      <stop offset="70%" stop-color="#E11D48" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="radarArc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0" />
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base Shield Glow -->
+  <path d="M64 12 L106 28 C106 72 64 116 64 116 C64 116 22 72 22 28 Z"
+        fill="#020617" />
+
+  <!-- Shield Left Facet -->
+  <path d="M64 14 L24 29 C24 71 64 113 64 113 V14 Z"
+        fill="url(#shieldLeft)" />
+
+  <!-- Shield Right Facet -->
+  <path d="M64 14 L104 29 C104 71 64 113 64 113 V14 Z"
+        fill="url(#shieldRight)" />
+
+  <!-- Outer Precision Contour -->
+  <path d="M64 12 L106 28 C106 72 64 116 64 116 C64 116 22 72 22 28 Z"
+        stroke="url(#shieldBorder)"
+        stroke-width="4.5"
+        stroke-linejoin="round" />
+
+  <!-- Internal Geometric Meridian Line -->
+  <line x1="64" y1="14" x2="64" y2="112" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 3" />
+
+  <!-- Radar Concentric Deflection Rings -->
+  <path d="M38 46 C45 40 54 37 64 37 C74 37 83 40 90 46" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
+  <path d="M46 54 C51 50 57 48 64 48 C71 48 77 50 82 54" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+
+  <!-- Central Dynamic Thermal Wave / AI Shield Core -->
+  <path d="M64 40 C67 50 76 56 76 68 C76 77 69.5 84 64 86 C58.5 84 52 77 52 68 C52 56 61 50 64 40 Z"
+        fill="url(#flameGrad)"
+        filter="url(#softGlow)" />
+
+  <!-- Core White Hot Apex -->
+  <circle cx="64" cy="69" r="4.5" fill="#FFFFFF" />
+
+  <!-- Protective Deflection Sparks / AI Nodes -->
+  <circle cx="64" cy="22" r="3" fill="#38BDF8" />
+  <circle cx="36" cy="74" r="2.5" fill="#F59E0B" />
+  <circle cx="92" cy="74" r="2.5" fill="#F59E0B" />
+</svg>
