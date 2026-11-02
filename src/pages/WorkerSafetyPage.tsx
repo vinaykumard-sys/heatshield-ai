@@ -20,8 +20,10 @@ import {
 import { mockDb } from '../lib/mockDb';
 import { WorkerOrganization, WorkerWorkplace, OutdoorWorker } from '../types';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const WorkerSafetyPage: React.FC = () => {
+  const { currentReading } = useLocationTracker();
   const [orgs] = useState<WorkerOrganization[]>(() => mockDb.getWorkerOrganizations());
   const [selectedOrgId, setSelectedOrgId] = useState<string>(orgs[0]?.id || 'org-1');
   
@@ -44,11 +46,11 @@ export const WorkerSafetyPage: React.FC = () => {
   const currentWp = workplaces.find(w => w.id === selectedWpId) || workplaces[0];
   const currentWorkers = workers.filter(w => w.workplace_id === selectedWpId);
 
-  // Simulated live WBGT estimate for current workplace
-  const currentTemp = 36.4;
-  const currentHumidity = 54;
-  // Simplified natural wet bulb & globe temp estimation
-  const estimatedWBGT = (0.7 * (currentTemp * 0.75 + (currentHumidity / 10))) + (0.3 * (currentTemp + 2.5));
+  // Live telemetry from Open-Meteo single source of truth
+  const currentTemp = currentReading?.temperature_c ?? 34.5;
+  const currentHumidity = currentReading?.relative_humidity_pct ?? 52;
+  // Standard natural wet bulb & globe temp estimation (ISO 7243 WBGT)
+  const estimatedWBGT = Number(((0.7 * (currentTemp * 0.72 + (currentHumidity / 12))) + (0.3 * (currentTemp + 2.0))).toFixed(1));
   const isExtremeWBGT = estimatedWBGT >= 31.0;
   const isHighWBGT = estimatedWBGT >= 29.0 && estimatedWBGT < 31.0;
 

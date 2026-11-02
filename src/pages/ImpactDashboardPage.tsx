@@ -19,21 +19,24 @@ import {
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { computeDynamicImpactMetrics } from '../lib/unifiedDataService';
 
 export const ImpactDashboardPage: React.FC = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<'30d' | '90d' | 'ytd'>('30d');
 
-  // Core Impact Metrics
+  // Dynamically computed Impact Metrics from registered residents, check-ins, stations, and requests
+  const dynamicMetrics = computeDynamicImpactMetrics();
+
   const metrics = {
-    wardsMonitored: 198,
-    residentsProtected: '42,850',
-    volunteersActive: 312,
-    welfareCheckinsDone: 1420,
-    checkinSuccessRate: '98.4%',
-    emergencyRequestsResolved: 89,
-    waterDispensedLiters: '185,400',
-    workerRestCyclesEnforced: 680,
-    academyCertificationsIssued: 415
+    wardsMonitored: dynamicMetrics.wardsMonitored,
+    residentsProtected: dynamicMetrics.residentsProtected,
+    volunteersActive: dynamicMetrics.volunteersActive,
+    welfareCheckinsDone: dynamicMetrics.welfareCheckinsDone,
+    checkinSuccessRate: dynamicMetrics.checkinSuccessRate,
+    emergencyRequestsResolved: dynamicMetrics.emergencyRequestsResolved,
+    waterDispensedLiters: dynamicMetrics.waterDispensedLiters,
+    workerRestCyclesEnforced: dynamicMetrics.workerRestCyclesEnforced,
+    academyCertificationsIssued: dynamicMetrics.academyCertificationsIssued
   };
 
   // Ward performance table

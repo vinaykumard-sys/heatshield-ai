@@ -19,8 +19,10 @@ import {
 import { mockDb } from '../lib/mockDb';
 import { SchoolRegistration, SchoolActivityGuidance } from '../types';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const SchoolSafetyPage: React.FC = () => {
+  const { currentReading } = useLocationTracker();
   const [schools, setSchools] = useState<SchoolRegistration[]>(() => mockDb.getSchools());
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>(schools[0]?.id || 'sch-1');
 
@@ -32,8 +34,8 @@ export const SchoolSafetyPage: React.FC = () => {
 
   const currentSchool = schools.find(s => s.id === selectedSchoolId) || schools[0];
 
-  // Campus microclimate simulation
-  const campusTemp = 35.8;
+  // Dynamic temperature from live Open-Meteo telemetry
+  const campusTemp = currentReading?.temperature_c ?? 33.5;
   const isCurfewActive = campusTemp >= currentSchool.outdoor_activity_curfew_temp;
 
   const activityGuidance: SchoolActivityGuidance = isCurfewActive

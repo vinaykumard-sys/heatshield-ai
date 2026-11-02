@@ -38,7 +38,7 @@ interface ResidentProfile {
 }
 
 export const PersonalizedResidentDashboardPage: React.FC = () => {
-  const { currentLocation } = useLocationTracker();
+  const { currentLocation, currentReading, currentRisk, forecastHourly, isLiveWeather } = useLocationTracker();
 
   // Resident Profile state
   const [profile, setProfile] = useState<ResidentProfile>({
@@ -53,10 +53,15 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
 
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // Live weather readings from LocationContext
+  const currentTemp = currentReading?.temperature_c ?? 32.5;
+  const feelsLike = currentReading?.feels_like_c ?? 35.0;
+  const currentUv = currentReading?.uv_index ?? 7.5;
+  const currentRiskScore = currentRisk?.risk_score ?? 60;
+  const currentRiskCategory = currentRisk?.risk_category ?? 'moderate';
+
   // Hydration Tracker State
   const [waterGlasses, setWaterGlasses] = useState(5); // 250ml each = 1250ml
-  const currentTemp = 34.4;
-  const feelsLike = 38.2;
 
   // Recommended hydration based on weight and heat
   const dailyTargetMl = useMemo(() => {
@@ -144,7 +149,7 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <Thermometer className="w-4 h-4 text-orange-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">{currentTemp}°C</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Station: Hebbal North</div>
+            <div className="text-[11px] text-slate-400 mt-0.5 truncate">{currentLocation.localityName || 'Monitored Sector'}</div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
@@ -153,7 +158,9 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <Flame className="w-4 h-4 text-red-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-red-300 mt-1">{feelsLike}°C</div>
-            <div className="text-[11px] text-red-400/90 font-medium mt-0.5">Severe Thermal Index</div>
+            <div className="text-[11px] text-red-400/90 font-medium mt-0.5">
+              {feelsLike >= 40 ? 'Severe Heat Index' : feelsLike >= 35 ? 'Elevated Heat Index' : 'Moderate Heat Index'}
+            </div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
@@ -161,8 +168,12 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <span className="text-[11px] font-mono text-slate-400 uppercase">UV Radiation</span>
               <Sun className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">8.6 (Very High)</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Burn time: ~15 mins</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+              {currentUv} ({currentUv >= 8 ? 'Very High' : currentUv >= 6 ? 'High' : 'Moderate'})
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              {currentUv >= 8 ? 'Burn time: ~15 mins' : 'Wear sunscreen outdoors'}
+            </div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
@@ -170,8 +181,12 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <span className="text-[11px] font-mono text-slate-400 uppercase">Personal Risk</span>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-orange-400 mt-1">High Risk</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">AC available at home</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-orange-400 mt-1 capitalize">
+              {currentRiskCategory} ({currentRiskScore}/100)
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              {profile.has_ac_at_home ? 'AC active at residence' : 'Natural cross-ventilation'}
+            </div>
           </div>
         </div>
       </div>

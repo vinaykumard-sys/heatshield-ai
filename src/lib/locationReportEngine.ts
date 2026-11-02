@@ -46,10 +46,33 @@ export async function generateLocationHeatReport(
   const pred48h_temp = daily[2]?.max_temp_c ?? Number((temp + 1.4).toFixed(1));
   const pred72h_temp = daily[3]?.max_temp_c ?? Number((temp + 0.4).toFixed(1));
 
-  // Compute forecast risk scores
-  const pred24h_risk = Math.min(100, Math.max(10, Math.round(pred24h_temp * 1.8 + humidity * 0.25)));
-  const pred48h_risk = Math.min(100, Math.max(10, Math.round(pred48h_temp * 1.85 + (humidity - 4) * 0.25)));
-  const pred72h_risk = Math.min(100, Math.max(10, Math.round(pred72h_temp * 1.75 + humidity * 0.25)));
+  // Compute forecast risk scores using authoritative mathematical model
+  const eval24h = evaluateHeatRisk({
+    temperatureC: pred24h_temp,
+    relativeHumidityPct: humidity,
+    baselineVulnerabilityScore: baselineVulnerability,
+    urbanHeatIslandFactor,
+    hourOfDay: 14
+  }, place.id, 'en');
+  const pred24h_risk = eval24h.risk_score;
+
+  const eval48h = evaluateHeatRisk({
+    temperatureC: pred48h_temp,
+    relativeHumidityPct: Math.max(25, humidity - 2),
+    baselineVulnerabilityScore: baselineVulnerability,
+    urbanHeatIslandFactor,
+    hourOfDay: 14
+  }, place.id, 'en');
+  const pred48h_risk = eval48h.risk_score;
+
+  const eval72h = evaluateHeatRisk({
+    temperatureC: pred72h_temp,
+    relativeHumidityPct: Math.max(25, humidity - 4),
+    baselineVulnerabilityScore: baselineVulnerability,
+    urbanHeatIslandFactor,
+    hourOfDay: 14
+  }, place.id, 'en');
+  const pred72h_risk = eval72h.risk_score;
 
   // 5. Construct Explainable AI Assessment
   const factors = riskAssessment.contributing_factors;
