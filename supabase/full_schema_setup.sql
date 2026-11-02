@@ -690,3 +690,38 @@ CREATE POLICY "Staff can manage cooling centres"
 CREATE POLICY "Admins can manage heat simulations"
     ON public.heat_simulations FOR ALL
     USING (public.current_user_role() = 'admin');
+
+
+-- ------------------------------------------------------------------------------
+-- 7. LOCATION HEAT REPORTS TABLE (Geospatial Intelligence & Location Search)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.location_heat_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    location_name TEXT NOT NULL,
+    city TEXT,
+    state TEXT,
+    pincode TEXT,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    temperature NUMERIC(4,1) NOT NULL,
+    humidity NUMERIC(4,1) NOT NULL,
+    feels_like NUMERIC(4,1) NOT NULL,
+    risk_score NUMERIC(5,2) NOT NULL CHECK (risk_score BETWEEN 0 AND 100),
+    risk_category TEXT NOT NULL CHECK (risk_category IN ('low', 'moderate', 'high', 'critical')),
+    forecast_data JSONB DEFAULT '{}'::jsonb,
+    ai_explanation TEXT NOT NULL,
+    data_source TEXT DEFAULT 'open_meteo',
+    data_timestamp TIMESTAMPTZ DEFAULT TIMEZONE('utc', NOW()),
+    created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
+ALTER TABLE public.location_heat_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can view location heat reports"
+    ON public.location_heat_reports FOR SELECT
+    USING (true);
+
+CREATE POLICY "Users can insert location heat reports"
+    ON public.location_heat_reports FOR INSERT
+    WITH CHECK (auth.uid() = user_id OR user_id IS NULL);

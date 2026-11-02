@@ -93,3 +93,62 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
 }
+
+/* Futuristic Command Center Map Pin & Sonar Animations */
+@keyframes sonar-wave {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.heatshield-sonar-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heatshield-sonar-ring {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #38BDF8;
+  animation: sonar-wave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.heatshield-sonar-ring-2 {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #00F0FF;
+  animation: sonar-wave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+  animation-delay: 0.7s;
+}
+
+/* Dark Command Center Leaflet Popup */
+.heatshield-dark-popup .leaflet-popup-content-wrapper {
+  background: #0B132B !important;
+  color: #F8FAFC !important;
+  border-radius: 12px !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.2) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.heatshield-dark-popup .leaflet-popup-content {
+  margin: 14px 16px !important;
+  line-height: 1.4 !important;
+}
+
+.heatshield-dark-popup .leaflet-popup-tip {
+  background: #0B132B !important;
+}
+

@@ -43,7 +43,10 @@ const STORAGE_KEYS = {
   WATER_POINTS: 'heatshield_water_points',
   FORECASTS: 'heatshield_forecasts',
   ASSISTANT_MESSAGES: 'heatshield_assistant_messages',
-  SIMULATIONS: 'heatshield_simulations'
+  SIMULATIONS: 'heatshield_simulations',
+  LOCATION_REPORTS: 'heatshield_location_reports',
+  FAVORITE_PLACES: 'heatshield_favorite_places',
+  RECENT_PLACES: 'heatshield_recent_places'
 };
 
 function getStorage<T>(key: string, defaultValue: T): T {
@@ -437,6 +440,90 @@ export const mockDb = {
       target_id: simulation.id,
       details: { name: simulation.name, temp_delta: simulation.parameters.temperature_delta_c }
     });
+  },
+
+  // Location Heat Reports (Feature 7)
+  getLocationReports(): any[] {
+    return getStorage<any[]>(STORAGE_KEYS.LOCATION_REPORTS, []);
+  },
+
+  saveLocationReport(report: any): void {
+    const list = this.getLocationReports();
+    // Keep last 30 reports, newest first
+    const filtered = list.filter(r => r.id !== report.id);
+    setStorage(STORAGE_KEYS.LOCATION_REPORTS, [report, ...filtered].slice(0, 30));
+  },
+
+  getRecentPlaces(): any[] {
+    return getStorage<any[]>(STORAGE_KEYS.RECENT_PLACES, [
+      {
+        id: 'bengaluru-hebbal',
+        displayName: 'Hebbal, Bengaluru, Karnataka (560024)',
+        shortName: 'Hebbal',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560024',
+        latitude: 13.0358,
+        longitude: 77.5970,
+        type: 'locality'
+      },
+      {
+        id: 'bengaluru-whitefield',
+        displayName: 'Whitefield EPIP Zone, Bengaluru (560066)',
+        shortName: 'Whitefield',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560066',
+        latitude: 12.9698,
+        longitude: 77.7500,
+        type: 'locality'
+      },
+      {
+        id: 'bengaluru-indiranagar',
+        displayName: 'Indiranagar 100ft Rd, Bengaluru (560038)',
+        shortName: 'Indiranagar',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560038',
+        latitude: 12.9784,
+        longitude: 77.6408,
+        type: 'locality'
+      }
+    ]);
+  },
+
+  addRecentPlace(place: any): void {
+    const current = this.getRecentPlaces();
+    const updated = [place, ...current.filter(p => p.displayName !== place.displayName)].slice(0, 10);
+    setStorage(STORAGE_KEYS.RECENT_PLACES, updated);
+  },
+
+  getFavoritePlaces(): any[] {
+    return getStorage<any[]>(STORAGE_KEYS.FAVORITE_PLACES, []);
+  },
+
+  toggleFavoritePlace(place: any): boolean {
+    const favorites = this.getFavoritePlaces();
+    const exists = favorites.some(p => p.displayName === place.displayName || (p.latitude === place.latitude && p.longitude === place.longitude));
+    let next: any[];
+    let isFav: boolean;
+    if (exists) {
+      next = favorites.filter(p => p.displayName !== place.displayName);
+      isFav = false;
+    } else {
+      next = [place, ...favorites];
+      isFav = true;
+    }
+    setStorage(STORAGE_KEYS.FAVORITE_PLACES, next);
+    return isFav;
+  },
+
+  isFavoritePlace(placeOrName: any): boolean {
+    const favorites = this.getFavoritePlaces();
+    if (typeof placeOrName === 'string') {
+      return favorites.some(p => p.displayName === placeOrName || p.shortName === placeOrName);
+    }
+    return favorites.some(p => p.displayName === placeOrName.displayName || (p.latitude === placeOrName.latitude && p.longitude === placeOrName.longitude));
   },
 
   resetToDefaults(): void {

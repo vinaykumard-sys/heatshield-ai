@@ -7,16 +7,22 @@ import {
   Flame, 
   Thermometer, 
   Droplets, 
+  Wind, 
   Building2, 
-  HelpCircle,
-  Sparkles,
-  Navigation,
-  RefreshCw,
-  AlertTriangle,
-  Clock,
-  Compass,
-  ShieldCheck,
-  CheckCircle2
+  Sparkles, 
+  Navigation, 
+  RefreshCw, 
+  AlertTriangle, 
+  Clock, 
+  Compass, 
+  ShieldCheck, 
+  CheckCircle2,
+  Maximize2,
+  Minimize2,
+  SlidersHorizontal,
+  ChevronRight,
+  Heart,
+  X
 } from 'lucide-react';
 import { 
   LocationZone, 
@@ -24,18 +30,21 @@ import {
   HeatRiskAssessment, 
   CoolingCentre, 
   PublicWaterPoint, 
-  HeatForecast 
+  HeatForecast,
+  GeocodedPlace,
+  LocationHeatReport
 } from '../../types';
-import { RiskBadge } from '../common/RiskBadge';
-import { evaluateHeatRisk } from '../../lib/riskEngine';
-import { fetchLiveWeather } from '../../lib/weatherApi';
 import { useLanguage } from '../../context/LanguageContext';
 import { useLocationTracker } from '../../context/LocationContext';
 import { mockDb } from '../../lib/mockDb';
-import { generateLocationForecasts } from '../../lib/predictionEngine';
+import { fetchLiveWeather } from '../../lib/weatherApi';
+import { evaluateHeatRisk } from '../../lib/riskEngine';
+import { searchGeographicalLocations, reverseGeocodeCoordinates } from '../../lib/geocodingService';
+import { generateLocationHeatReport } from '../../lib/locationReportEngine';
+import { LocationIntelligencePanel } from './LocationIntelligencePanel';
 
 interface HeatRiskMapProps {
-  locations: LocationZone[];
+  locations?: LocationZone[];
   selectedLocationId?: string;
   onSelectLocation?: (location: LocationZone) => void;
   className?: string;
@@ -51,11 +60,11 @@ interface LocalityTelemetry {
   pred72?: number;
 }
 
-// Clean concise place name helper for map pill display
+// Helper for clean place pill labels
 const getPlaceShortName = (fullName: string): string => {
   const parts = fullName.split('&');
   let short = parts[0].trim();
-  short = short
+  return short
     .replace(' Satellite Town', '')
     .replace(' Aerodrome', '')
     .replace(' Flyover', '')
@@ -66,50 +75,59 @@ const getPlaceShortName = (fullName: string): string => {
     .replace(' Industrial Estate', ' Ind')
     .replace(' Rural-Urban Fringe', '')
     .replace(' Road', ' Rd');
-  return short;
 };
 
 export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
-  locations,
+  locations = mockDb.getLocations(),
   selectedLocationId,
   onSelectLocation,
-  className = 'h-[580px]'
+  className = 'h-[680px]'
 }) => {
   const { t, language } = useLanguage();
+  const { currentLocation } = useLocationTracker();
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const outerWrapperRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const currentTileLayerRef = useRef<L.TileLayer | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+
+  // Layer Groups
   const zonesLayerRef = useRef<L.LayerGroup | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const targetPinLayerRef = useRef<L.LayerGroup | null>(null);
   const coolingCentresLayerRef = useRef<L.LayerGroup | null>(null);
   const waterPointsLayerRef = useRef<L.LayerGroup | null>(null);
-  const markerMapRef = useRef<Record<string, L.Marker>>({});
 
-  const { currentLocation } = useLocationTracker();
-  const [mapStyle, setMapStyle] = useState<'osm' | 'satellite' | 'voyager'>('osm');
-  const [activeLoc, setActiveLoc] = useState<LocationZone | null>(null);
-  const [activeRisk, setActiveRisk] = useState<HeatRiskAssessment | null>(null);
-  const [activeReading, setActiveReading] = useState<EnvironmentalReading | null>(null);
-  const [activeForecasts, setActiveForecasts] = useState<HeatForecast[]>([]);
-  
+  // State
+  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'osm'>('dark');
+  const [activeReport, setActiveReport] = useState<LocationHeatReport | null>(null);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterRisk, setFilterRisk] = useState<string>('all');
+  const [searchSuggestions, setSearchSuggestions] = useState<GeocodedPlace[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  // Layer Controls
+  const [activeLayerMode, setActiveLayerMode] = useState<'heat' | 'temperature' | 'humidity' | 'forecast'>('heat');
   const [forecastHorizon, setForecastHorizon] = useState<'now' | 24 | 48 | 72>('now');
-  
-  // Layer toggles
   const [showCoolingCentres, setShowCoolingCentres] = useState(true);
   const [showWaterPoints, setShowWaterPoints] = useState(true);
-  const [showRequests, setShowRequests] = useState(true);
-  
-  const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false);
-  const [isLiveTelemetry, setIsLiveTelemetry] = useState(false);
+  const [showMonitoringStations, setShowMonitoringStations] = useState(true);
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
+
+  // 5-minute telemetry sync for base locations
+  const [localityTelemetry, setLocalityTelemetry] = useState<Record<string, LocalityTelemetry>>({});
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<Date>(new Date());
 
-  // Real-time temperature registry for each locality
-  const [localityTelemetry, setLocalityTelemetry] = useState<Record<string, LocalityTelemetry>>({});
+  // Recent searches and favorites
+  const [recentPlaces, setRecentPlaces] = useState<GeocodedPlace[]>(() => mockDb.getRecentPlaces());
 
-  // Sync real-time temperature across all monitored localities
+  // Real-time batch telemetry sync
   const syncAllLocalitiesTelemetry = useCallback(async (forceRefresh = false) => {
     setIsRefreshingAll(true);
     const updatedTelemetry: Record<string, LocalityTelemetry> = {};
@@ -150,23 +168,158 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     setIsRefreshingAll(false);
   }, [locations]);
 
-  // Automated 5-Minute Recurring Telemetry Polling Cycle
+  // Periodic 5-minute background refresh
   useEffect(() => {
     syncAllLocalitiesTelemetry(false);
-
     const refreshTimer = setInterval(() => {
-      console.log(`[HeatRiskMap] Executing 5-minute automated real-time temperature update at ${new Date().toLocaleTimeString()}`);
       syncAllLocalitiesTelemetry(true);
     }, 5 * 60 * 1000);
-
     return () => clearInterval(refreshTimer);
   }, [syncAllLocalitiesTelemetry]);
 
-  // Initialize Map
+  // Drop Sonar Pin Marker at Selected Coordinates
+  const dropSonarTargetMarker = useCallback((lat: number, lon: number, title: string, temp?: number) => {
+    const targetLayer = targetPinLayerRef.current;
+    if (!targetLayer) return;
+
+    targetLayer.clearLayers();
+
+    const isHot = (temp ?? 0) > 35.0;
+    const pinColor = isHot ? '#EF4444' : '#00F0FF';
+
+    const sonarIconHtml = `
+      <div class="heatshield-sonar-marker" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <div class="heatshield-sonar-ring" style="border-color: ${pinColor};"></div>
+        <div class="heatshield-sonar-ring-2" style="border-color: ${pinColor};"></div>
+        <div style="
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: ${pinColor};
+          box-shadow: 0 0 14px ${pinColor}, 0 0 28px ${pinColor};
+          border: 2px solid #FFFFFF;
+          position: relative;
+          z-index: 10;
+        "></div>
+        <div style="
+          position: absolute;
+          top: -30px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(11, 19, 43, 0.95);
+          backdrop-filter: blur(8px);
+          border: 1.5px solid ${pinColor};
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+          color: #FFFFFF;
+          padding: 3px 8px;
+          border-radius: 9999px;
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 10px;
+          font-weight: 800;
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        ">
+          <span style="color: ${pinColor};">●</span>
+          <span>${title}</span>
+          ${temp !== undefined ? `<span style="font-family: monospace; color: ${isHot ? '#EF4444' : '#38BDF8'};">${temp.toFixed(1)}°C</span>` : ''}
+        </div>
+      </div>
+    `;
+
+    const sonarIcon = L.divIcon({
+      html: sonarIconHtml,
+      className: 'heatshield-sonar-div-icon',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+    });
+
+    L.marker([lat, lon], { icon: sonarIcon, zIndexOffset: 1000 }).addTo(targetLayer);
+  }, []);
+
+  // Handle Location Selection (from Search or Map Click)
+  const handleSelectPlace = useCallback(async (place: GeocodedPlace) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setIsLoadingReport(true);
+
+    // 1. Move Map smoothly to chosen location
+    if (mapInstanceRef.current) {
+      const zoomLevel = place.type === 'city' ? 12 : place.type === 'postcode' ? 14 : 14;
+      mapInstanceRef.current.flyTo([place.latitude, place.longitude], zoomLevel, {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+    }
+
+    // 2. Drop animated sonar target pin
+    dropSonarTargetMarker(place.latitude, place.longitude, place.shortName);
+
+    // 3. Generate end-to-end AI Location Heat Report
+    try {
+      const { report, weatherResult } = await generateLocationHeatReport(place);
+      setActiveReport(report);
+      setRecentPlaces(mockDb.getRecentPlaces());
+
+      // Update sonar pin with live temp
+      dropSonarTargetMarker(
+        place.latitude,
+        place.longitude,
+        place.shortName,
+        weatherResult.reading.temperature_c
+      );
+
+      // Trigger external callback if location matches a registered zone
+      if (onSelectLocation) {
+        const matchedZone = locations.find(l => l.name.toLowerCase().includes(place.shortName.toLowerCase()));
+        if (matchedZone) onSelectLocation(matchedZone);
+      }
+    } catch (err) {
+      console.error('Error generating location heat report:', err);
+    } finally {
+      setIsLoadingReport(false);
+    }
+  }, [dropSonarTargetMarker, locations, onSelectLocation]);
+
+  // Handle Clicking Anywhere on the Map
+  const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
+    const lat = e.latlng.lat;
+    const lon = e.latlng.lng;
+
+    // Drop instant sonar marker at clicked coordinates
+    dropSonarTargetMarker(lat, lon, `Selected (${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E)`);
+    setIsLoadingReport(true);
+
+    try {
+      // 1. Reverse Geocode Coordinates
+      const geocoded = await reverseGeocodeCoordinates(lat, lon);
+
+      // 2. Generate AI Location Report
+      const { report, weatherResult } = await generateLocationHeatReport(geocoded);
+      setActiveReport(report);
+      setRecentPlaces(mockDb.getRecentPlaces());
+
+      // Update sonar pin with resolved place name & live temp
+      dropSonarTargetMarker(
+        lat, 
+        lon, 
+        geocoded.shortName, 
+        weatherResult.reading.temperature_c
+      );
+    } catch (err) {
+      console.error('Error handling map click report:', err);
+    } finally {
+      setIsLoadingReport(false);
+    }
+  }, [dropSonarTargetMarker]);
+
+  // Initialize Leaflet Map (Command Center Theme)
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Center on Bangalore or current detected location
     const initialLat = currentLocation.latitude || 12.9716;
     const initialLon = currentLocation.longitude || 77.5946;
 
@@ -174,34 +327,39 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       center: [initialLat, initialLon],
       zoom: 12,
       zoomControl: false,
+      attributionControl: false
     });
 
-    // Standard OpenStreetMap Tile Layer - The original, high-contrast, fully labeled map
-    const standardOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      subdomains: ['a', 'b', 'c'],
+    // Default: CartoDB Dark Matter (Futuristic Navy/Dark Command)
+    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
       maxZoom: 19,
     });
 
-    standardOsm.addTo(map);
-    currentTileLayerRef.current = standardOsm;
+    darkTiles.addTo(map);
+    currentTileLayerRef.current = darkTiles;
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
+    // Layer Groups
     zonesLayerRef.current = L.layerGroup().addTo(map);
-    markersLayerRef.current = L.layerGroup().addTo(map);
     coolingCentresLayerRef.current = L.layerGroup().addTo(map);
     waterPointsLayerRef.current = L.layerGroup().addTo(map);
+    markersLayerRef.current = L.layerGroup().addTo(map);
+    targetPinLayerRef.current = L.layerGroup().addTo(map);
+
+    // Click anywhere listener
+    map.on('click', handleMapClick);
 
     mapInstanceRef.current = map;
 
     return () => {
+      map.off('click', handleMapClick);
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, []);
+  }, [currentLocation.latitude, currentLocation.longitude, handleMapClick]);
 
-  // Handle Map Style Switcher (Original OSM vs Satellite vs Clean Voyager)
+  // Map Style Switcher
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -213,20 +371,20 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     let newLayer: L.TileLayer;
     if (mapStyle === 'satellite') {
       newLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        attribution: 'Esri World Imagery',
         maxZoom: 18,
       });
-    } else if (mapStyle === 'voyager') {
-      newLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+    } else if (mapStyle === 'osm') {
+      newLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
       });
     } else {
-      // Standard Original OpenStreetMap
-      newLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        subdomains: ['a', 'b', 'c'],
+      // Dark Command (CartoDB Dark Matter)
+      newLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CARTO &copy; OpenStreetMap',
+        subdomains: 'abcd',
         maxZoom: 19,
       });
     }
@@ -235,7 +393,40 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     currentTileLayerRef.current = newLayer;
   }, [mapStyle]);
 
-  // Update Markers, Zones, Cooling Centres, and Water Points
+  // Live Debounced Geocoding Search
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchSuggestions([]);
+      setIsSearching(false);
+      return;
+    }
+
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+
+    setIsSearching(true);
+    const delayTimer = setTimeout(async () => {
+      try {
+        const results = await searchGeographicalLocations(searchQuery, controller.signal);
+        setSearchSuggestions(results);
+        setIsSearchOpen(true);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') console.warn('Search error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 280);
+
+    return () => {
+      clearTimeout(delayTimer);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
+  // Render Base Monitoring Markers & Red Danger Circles
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersLayer = markersLayerRef.current;
@@ -249,25 +440,24 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     zonesLayer.clearLayers();
     coolingLayer.clearLayers();
     waterLayer.clearLayers();
-    markerMapRef.current = {};
 
-    // 1. Render User Current GPS Location Marker with Place Name Pill
+    // 1. Current GPS Location Marker with glowing cyan pill
     if (currentLocation.latitude && currentLocation.longitude) {
       const userLocName = currentLocation.localityName || 'Your Location';
       const userMarkerHtml = `
-        <div class="heatshield-user-pin-wrapper" style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+        <div style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
           <div style="
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #2563EB;
-            border: 2px solid #FFFFFF;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            background: #0B132B;
+            border: 1.5px solid #00F0FF;
+            box-shadow: 0 4px 16px rgba(0, 240, 255, 0.4);
             padding: 4px 10px;
             border-radius: 9999px;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800;
             color: #FFFFFF;
             white-space: nowrap;
           ">
@@ -275,730 +465,554 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               width: 8px;
               height: 8px;
               border-radius: 50%;
-              background-color: #FFFFFF;
-              box-shadow: 0 0 6px #FFFFFF;
+              background-color: #00F0FF;
+              box-shadow: 0 0 8px #00F0FF;
               display: inline-block;
-              flex-shrink: 0;
             "></span>
-            <span>📍 You: ${userLocName}</span>
+            <span>📍 YOU: ${userLocName}</span>
           </div>
-          <div style="
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid #2563EB;
-          "></div>
         </div>
       `;
 
       const userIcon = L.divIcon({
         html: userMarkerHtml,
-        className: 'heatshield-user-pin-icon',
+        className: 'heatshield-user-pin',
         iconSize: [160, 32],
-        iconAnchor: [80, 32],
-        popupAnchor: [0, -32],
+        iconAnchor: [80, 16],
       });
 
-      const userMarker = L.marker([currentLocation.latitude, currentLocation.longitude], { icon: userIcon })
-        .addTo(markersLayer);
-
-      const userPopupHtml = `
-        <div style="min-width: 250px; font-family: 'Inter', system-ui, sans-serif; color: #0F172A;">
-          <div style="font-size: 10px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">
-            📍 Live User Position
-          </div>
-          <div style="font-size: 14px; font-weight: 800; color: #0F172A; margin-bottom: 4px;">
-            ${userLocName}, ${currentLocation.city}
-          </div>
-          <div style="font-size: 11px; color: #64748B; font-family: monospace; margin-bottom: 8px;">
-            Lat: ${currentLocation.latitude.toFixed(4)}°N • Lon: ${currentLocation.longitude.toFixed(4)}°E
-          </div>
-          <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 8px; font-size: 11px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span style="color: #64748B;">Device Tracking:</span>
-              <span style="font-weight: 700; color: #2563EB;">● ACTIVE (${(currentLocation.locationSource || 'gps').toUpperCase()})</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color: #64748B;">Monitored City:</span>
-              <span style="font-weight: 700; color: #0F172A;">${currentLocation.city}, ${currentLocation.state}</span>
-            </div>
-          </div>
-        </div>
-      `;
-
-      userMarker.bindPopup(userPopupHtml, {
-        maxWidth: 290,
-        className: 'heatshield-climate-popup',
-        autoPan: true
-      });
+      L.marker([currentLocation.latitude, currentLocation.longitude], { icon: userIcon }).addTo(markersLayer);
     }
 
-    // 2. Render Cooling Centres Layer if Enabled
+    // 2. Cooling Centres Layer
     if (showCoolingCentres) {
       const coolingCentres = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
       coolingCentres.forEach(centre => {
         const coolIcon = L.divIcon({
           html: `
-            <div class="cursor-pointer group" style="display: inline-flex; align-items: center; justify-content: center;">
-              <div style="
-                background: #FFFFFF;
-                border: 2px solid #2563EB;
-                color: #2563EB;
-                border-radius: 9999px;
-                padding: 3px 8px;
-                font-size: 10px;
-                font-weight: 700;
-                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                white-space: nowrap;
-              ">
-                <span>❄️</span>
-                <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]} Shelter</span>
-              </div>
+            <div style="
+              background: #0F172A;
+              border: 1.5px solid #38BDF8;
+              color: #38BDF8;
+              border-radius: 9999px;
+              padding: 3px 8px;
+              font-size: 10px;
+              font-weight: 700;
+              box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              white-space: nowrap;
+              cursor: pointer;
+            ">
+              <span>❄️</span>
+              <span style="max-width: 90px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]} Shelter</span>
             </div>
           `,
           className: 'cooling-map-pin',
           iconSize: [120, 26],
-          iconAnchor: [60, 13],
-          popupAnchor: [0, -15]
+          iconAnchor: [60, 13]
         });
 
         const coolMarker = L.marker([centre.latitude, centre.longitude], { icon: coolIcon }).addTo(coolingLayer);
-
         coolMarker.bindPopup(`
-          <div style="min-width: 260px; font-family: 'Inter', system-ui, sans-serif; color: #0F172A;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-size: 9px; font-weight: 700; color: #2563EB; text-transform: uppercase;">
-                ❄️ Verified Public Cooling Shelter
-              </span>
-              <span style="font-size: 9px; font-weight: 700; color: #16A34A; background: #DCFCE7; padding: 1px 6px; border-radius: 4px;">
-                OPEN NOW
-              </span>
+          <div style="min-width: 250px; font-family: 'Inter', system-ui, sans-serif; color: #F8FAFC;">
+            <div style="font-size: 9px; font-weight: 800; color: #38BDF8; text-transform: uppercase;">
+              ❄️ Verified Cooling Centre
             </div>
-            <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-bottom: 2px;">
+            <div style="font-size: 13px; font-weight: 800; color: #FFFFFF; margin: 2px 0;">
               ${centre.name}
             </div>
-            <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #94A3B8; margin-bottom: 6px;">
               ${centre.address}
             </div>
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 8px; font-size: 10px; margin-bottom: 8px;">
+            <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 6px; padding: 6px; font-size: 10px; margin-bottom: 6px;">
               <div>⏰ Hours: <b>${centre.operating_hours}</b></div>
               <div>👥 Capacity: <b>~${centre.capacity_estimate} persons</b></div>
-              <div>💧 Drinking Water: <b>${centre.drinking_water_available ? 'Yes' : 'No'}</b> • AC: <b>${centre.air_conditioned ? 'Yes' : 'Fans'}</b></div>
+              <div>💧 Drinking Water: <b>${centre.drinking_water_available ? 'Available' : 'No'}</b></div>
             </div>
             <a 
               href="https://www.google.com/maps/dir/?api=1&destination=${centre.latitude},${centre.longitude}" 
               target="_blank" 
               rel="noreferrer"
-              style="display: block; text-align: center; background: #2563EB; color: white; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;"
+              style="display: block; text-align: center; background: #0284C7; color: white; padding: 5px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;"
             >
-              Get Directions →
+              Directions →
             </a>
           </div>
-        `, { maxWidth: 290, className: 'heatshield-climate-popup' });
+        `, { className: 'heatshield-dark-popup' });
       });
     }
 
-    // 3. Render Public Water Points Layer if Enabled
+    // 3. Public Water Points Layer
     if (showWaterPoints) {
       const waterPoints = mockDb.getWaterPoints().filter(w => w.is_operational);
       waterPoints.forEach(wp => {
         const waterIcon = L.divIcon({
           html: `
-            <div class="cursor-pointer" style="display: inline-flex; align-items: center; justify-content: center;">
-              <div style="
-                background: #0284C7;
-                color: #FFFFFF;
-                border: 1.5px solid #FFFFFF;
-                border-radius: 9999px;
-                padding: 2px 6px;
-                font-size: 9px;
-                font-weight: 800;
-                box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
-                display: flex;
-                align-items: center;
-                gap: 2px;
-                white-space: nowrap;
-              ">
-                <span>💧 Water ATM</span>
-              </div>
+            <div style="
+              background: #0369A1;
+              color: #FFFFFF;
+              border: 1px solid #7DD3FC;
+              border-radius: 9999px;
+              padding: 2px 6px;
+              font-size: 9px;
+              font-weight: 800;
+              box-shadow: 0 2px 6px rgba(3, 105, 161, 0.4);
+              display: flex;
+              align-items: center;
+              gap: 2px;
+              white-space: nowrap;
+              cursor: pointer;
+            ">
+              <span>💧 Water ATM</span>
             </div>
           `,
           className: 'water-map-pin',
           iconSize: [80, 22],
-          iconAnchor: [40, 11],
-          popupAnchor: [0, -12]
+          iconAnchor: [40, 11]
         });
 
         const waterMarker = L.marker([wp.latitude, wp.longitude], { icon: waterIcon }).addTo(waterLayer);
         waterMarker.bindPopup(`
-          <div style="min-width: 200px; font-family: 'Inter', system-ui, sans-serif;">
-            <div style="font-size: 9px; font-weight: 700; color: #0284C7; text-transform: uppercase;">
-              💧 Verified Drinking Water Point
+          <div style="min-width: 200px; font-family: 'Inter', system-ui, sans-serif; color: #F8FAFC;">
+            <div style="font-size: 9px; font-weight: 800; color: #7DD3FC; text-transform: uppercase;">
+              💧 Verified Drinking Water ATM
             </div>
-            <div style="font-size: 12px; font-weight: 800; color: #0F172A; margin: 2px 0;">
+            <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin: 2px 0;">
               ${wp.name}
             </div>
-            <div style="font-size: 10px; color: #64748B;">
-              Locality: ${wp.locality_name} • Status: <b style="color: #16A34A;">Operational</b>
+            <div style="font-size: 10px; color: #94A3B8;">
+              Locality: ${wp.locality_name} • Status: <b style="color: #4ADE80;">Operational</b>
             </div>
           </div>
-        `, { maxWidth: 240, className: 'heatshield-climate-popup' });
+        `, { className: 'heatshield-dark-popup' });
       });
     }
 
-    // 4. Render Monitored Neighbourhood Heat Risk Zones & Place Markers
-    const openRequests = mockDb.getRequests().filter(r => r.status === 'open' || r.status === 'assigned');
+    // 4. Monitored Municipal Zones & >35°C Red Danger Circles
+    if (showMonitoringStations) {
+      locations.forEach(loc => {
+        const telemetry = localityTelemetry[loc.id];
+        const isNorth = loc.latitude > 25.0;
+        const defaultTemp = isNorth ? 39.5 : 33.8;
+        
+        let activeTemp = telemetry?.tempC ?? defaultTemp;
+        if (forecastHorizon === 24) activeTemp = telemetry?.pred24 ?? (activeTemp + 1.2);
+        else if (forecastHorizon === 48) activeTemp = telemetry?.pred48 ?? (activeTemp + 1.8);
+        else if (forecastHorizon === 72) activeTemp = telemetry?.pred72 ?? (activeTemp + 0.6);
 
-    locations.forEach((loc) => {
-      const telemetry = localityTelemetry[loc.id];
-      const isNorth = loc.latitude > 25.0;
-      const defaultTemp = isNorth ? 39.5 : 33.8;
-      
-      // Select temperature based on chosen forecast horizon
-      let activeHorizonTemp = telemetry?.tempC ?? defaultTemp;
-      if (forecastHorizon === 24) activeHorizonTemp = telemetry?.pred24 ?? (activeHorizonTemp + 1.2);
-      else if (forecastHorizon === 48) activeHorizonTemp = telemetry?.pred48 ?? (activeHorizonTemp + 1.8);
-      else if (forecastHorizon === 72) activeHorizonTemp = telemetry?.pred72 ?? (activeHorizonTemp + 0.6);
+        // USER RULE: Red circle ONLY when temp > 35°C! (If <=35, normal, NO green circle)
+        const isAbove35 = activeTemp > 35.0;
 
-      const currentHumidity = telemetry?.humidityPct ?? 52;
-      const currentFeelsLike = activeHorizonTemp + 2.8;
-
-      // STRICT USER RULE: RED CIRCLE APPEARS ONLY WHEN TEMPERATURE > 35°C!
-      const isAbove35 = activeHorizonTemp > 35.0;
-
-      // Filter handling
-      if (filterRisk === 'above35' && !isAbove35) return;
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matches = loc.name.toLowerCase().includes(q) || loc.city.toLowerCase().includes(q);
-        if (!matches) return;
-      }
-
-      // Draw Neighborhood Heat Risk Zone Circle:
-      // STRICT REQUIREMENT: RED CIRCLE APPEARS ONLY WHEN TEMPERATURE > 35°C.
-      // IF <= 35°C, NO CIRCLE APPEARS (NORMAL). NO GREEN CIRCLES!
-      let zoneCircle: L.Circle | null = null;
-      if (isAbove35) {
-        const radiusMeters = 2400 + (loc.estimated_population / 25);
-        zoneCircle = L.circle([loc.latitude, loc.longitude], {
-          radius: radiusMeters,
-          color: '#DC2626', // Red
-          weight: 2.0,
-          opacity: 0.85,
-          fillColor: '#DC2626',
-          fillOpacity: 0.22,
-          dashArray: '5, 5',
-        }).addTo(zonesLayer);
-      }
-
-      // Custom Place Name Pill Marker
-      const isSelected = activeLoc?.id === loc.id;
-      const placeShortName = getPlaceShortName(loc.name);
-
-      const markerHtml = `
-        <div class="heatshield-place-pill-wrapper" style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-          <div style="
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: ${isAbove35 ? '#FEF2F2' : '#FFFFFF'};
-            border: 2px solid ${isAbove35 ? '#DC2626' : (isSelected ? '#2563EB' : '#CBD5E1')};
-            box-shadow: 0 4px 12px ${isAbove35 ? 'rgba(220, 38, 38, 0.35)' : (isSelected ? 'rgba(15, 23, 42, 0.25)' : 'rgba(15, 23, 42, 0.10)')};
-            padding: 4px 10px;
-            border-radius: 9999px;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            color: ${isAbove35 ? '#991B1B' : '#0F172A'};
-            white-space: nowrap;
-            transition: all 0.15s ease;
-            transform: ${isSelected ? 'scale(1.10)' : 'scale(1)'};
-          ">
-            <span style="
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background-color: ${isAbove35 ? '#DC2626' : '#64748B'};
-              box-shadow: ${isAbove35 ? '0 0 6px #DC2626' : 'none'};
-              display: inline-block;
-              flex-shrink: 0;
-            " class="${isAbove35 ? 'animate-ping' : ''}"></span>
-            <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em;">${placeShortName}</span>
-            <span style="
-              font-size: 10px;
-              font-family: monospace;
-              font-weight: 800;
-              color: ${isAbove35 ? '#FFFFFF' : '#334155'};
-              background: ${isAbove35 ? '#DC2626' : '#F1F5F9'};
-              padding: 1px 6px;
-              border-radius: 4px;
-            ">${activeHorizonTemp.toFixed(1)}°C ${isAbove35 ? '⚠️ >35°C' : ''}</span>
-          </div>
-          <div style="
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid ${isAbove35 ? '#DC2626' : (isSelected ? '#2563EB' : '#94A3B8')};
-          "></div>
-        </div>
-      `;
-
-      const customIcon = L.divIcon({
-        html: markerHtml,
-        className: 'heatshield-place-pill-icon',
-        iconSize: [160, 32],
-        iconAnchor: [80, 32],
-        popupAnchor: [0, -32],
-      });
-
-      const marker = L.marker([loc.latitude, loc.longitude], { icon: customIcon }).addTo(markersLayer);
-      markerMapRef.current[loc.id] = marker;
-
-      // Popup on click
-      const popupHtml = `
-        <div style="min-width: 270px; max-width: 310px; font-family: 'Inter', system-ui, sans-serif; color: #0F172A; line-height: 1.4;">
-          <div style="border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 8px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 4px;">
-              <span style="font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase;">
-                📍 ${loc.city}, ${loc.state}
-              </span>
-              <span style="
-                display: inline-block;
-                padding: 2px 7px;
-                border-radius: 9999px;
-                font-size: 9px;
-                font-weight: 800;
-                color: ${isAbove35 ? '#ffffff' : '#334155'};
-                background-color: ${isAbove35 ? '#DC2626' : '#E2E8F0'};
-                text-transform: uppercase;
-              ">
-                ${isAbove35 ? '⚠️ RED HEAT ZONE (>35°C)' : 'NORMAL (≤35°C)'}
-              </span>
-            </div>
-            <div style="font-size: 14px; font-weight: 800; color: #0F172A; line-height: 1.3;">
-              ${loc.name}
-            </div>
-            <div style="font-size: 10px; color: #64748B; font-family: monospace; margin-top: 2px;">
-              Horizon: <b>${forecastHorizon === 'now' ? 'Live Reading' : `+${forecastHorizon} Hours Projection`}</b>
-            </div>
-          </div>
-
-          ${isAbove35 ? `
-            <div style="background: #FEF2F2; border: 1.5px solid #DC2626; border-radius: 8px; padding: 7px 9px; margin-bottom: 8px; display: flex; align-items: start; gap: 6px;">
-              <span style="font-size: 14px; line-height: 1;">⚠️</span>
-              <div>
-                <div style="font-size: 11px; font-weight: 800; color: #DC2626;">RED HEAT ZONE (ABOVE 35°C)</div>
-                <div style="font-size: 10px; color: #991B1B; line-height: 1.3;">Temperature exceeds 35°C. Red circle rendered on map. Maintain hydration and seek shade.</div>
-              </div>
-            </div>
-          ` : `
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px 8px; margin-bottom: 8px; font-size: 10px; color: #475569;">
-              ✅ <b>Normal Temperature:</b> Current reading is ≤ 35°C. No red circle overlay.
-            </div>
-          `}
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px;">
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 5px 8px; border-radius: 6px;">
-              <div style="color: #64748B; font-size: 9px; font-weight: 600;">🌡️ ${forecastHorizon === 'now' ? 'Current Temp' : 'Projected Temp'}</div>
-              <div style="font-weight: 900; font-size: 15px; color: ${isAbove35 ? '#DC2626' : '#0F172A'}; font-family: monospace;">
-                ${activeHorizonTemp.toFixed(1)}°C
-              </div>
-            </div>
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 5px 8px; border-radius: 6px;">
-              <div style="color: #64748B; font-size: 9px; font-weight: 600;">🔥 Feels Like</div>
-              <div style="font-weight: 800; font-size: 14px; color: ${isAbove35 ? '#DC2626' : '#EA580C'}; font-family: monospace;">
-                ${currentFeelsLike.toFixed(1)}°C
-              </div>
-            </div>
-          </div>
-
-          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 8px; font-size: 10px; color: #475569;">
-            <div>🏥 Verified Cooling Centres: <b>${loc.cooling_centers_count} Nearby</b></div>
-            <div>🏢 Urban Heat Island Multiplier: <b>${loc.urban_heat_island_factor}x</b></div>
-          </div>
-        </div>
-      `;
-
-      marker.bindPopup(popupHtml, {
-        maxWidth: 330,
-        minWidth: 270,
-        className: 'heatshield-climate-popup',
-        autoPan: true,
-        autoPanPadding: L.point(40, 40),
-      });
-
-      marker.on('click', () => {
-        handleSelectLocation(loc);
-        marker.openPopup();
-      });
-
-      if (zoneCircle) {
-        zoneCircle.on('click', () => {
-          handleSelectLocation(loc);
-          marker.openPopup();
-        });
-      }
-
-      // Assistance request markers if enabled
-      if (showRequests) {
-        const locRequests = openRequests.filter(r => r.locality_id === loc.id);
-        if (locRequests.length > 0) {
-          const reqIcon = L.divIcon({
-            html: `
-              <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm border border-white" title="${locRequests.length} Active Requests">
-                ${locRequests.length}
-              </div>
-            `,
-            className: 'request-map-pin',
-            iconSize: [20, 20],
-            iconAnchor: [0, 20]
-          });
-
-          L.marker([loc.latitude + 0.012, loc.longitude + 0.012], { icon: reqIcon })
-            .addTo(markersLayer)
-            .bindTooltip(`${locRequests.length} Open Assistance Requests in ${loc.name}`);
+        if (isAbove35) {
+          L.circle([loc.latitude, loc.longitude], {
+            radius: 2600 + (loc.estimated_population / 25),
+            color: '#EF4444',
+            weight: 2,
+            opacity: 0.8,
+            fillColor: '#DC2626',
+            fillOpacity: 0.22,
+            dashArray: '6, 6'
+          }).addTo(zonesLayer);
         }
-      }
-    });
+
+        // Futuristic Station Pill
+        const placeShort = getPlaceShortName(loc.name);
+        const markerHtml = `
+          <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+            <div style="
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              background: ${isAbove35 ? 'rgba(69, 10, 10, 0.95)' : 'rgba(15, 23, 42, 0.90)'};
+              border: 1.5px solid ${isAbove35 ? '#EF4444' : '#334155'};
+              box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
+              padding: 3px 9px;
+              border-radius: 9999px;
+              font-family: 'Inter', system-ui, sans-serif;
+              font-size: 11px;
+              font-weight: 700;
+              color: ${isAbove35 ? '#FCA5A5' : '#F8FAFC'};
+              white-space: nowrap;
+            ">
+              <span style="
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background-color: ${isAbove35 ? '#EF4444' : '#64748B'};
+                box-shadow: ${isAbove35 ? '0 0 8px #EF4444' : 'none'};
+                display: inline-block;
+              "></span>
+              <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
+              <span style="
+                font-size: 10px;
+                font-family: monospace;
+                font-weight: 800;
+                color: ${isAbove35 ? '#FFFFFF' : '#38BDF8'};
+                background: ${isAbove35 ? '#DC2626' : '#1E293B'};
+                padding: 1px 5px;
+                border-radius: 4px;
+              ">${activeTemp.toFixed(1)}°C</span>
+            </div>
+          </div>
+        `;
+
+        const stationIcon = L.divIcon({
+          html: markerHtml,
+          className: 'heatshield-station-pill',
+          iconSize: [150, 30],
+          iconAnchor: [75, 15]
+        });
+
+        const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
+        stnMarker.on('click', () => {
+          handleSelectPlace({
+            id: loc.id,
+            displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
+            shortName: loc.name,
+            subArea: loc.name,
+            city: loc.city,
+            state: loc.state,
+            pincode: loc.pincode,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            type: 'locality'
+          });
+        });
+      });
+    }
 
   }, [
     locations, 
-    filterRisk, 
-    searchQuery, 
     showCoolingCentres, 
     showWaterPoints, 
-    showRequests, 
-    activeLoc, 
-    language, 
-    localityTelemetry,
-    forecastHorizon
+    showMonitoringStations, 
+    localityTelemetry, 
+    forecastHorizon, 
+    currentLocation, 
+    handleSelectPlace
   ]);
 
-  // Handle Location Selection and fetch telemetry + 24/48/72h predictions
-  const handleSelectLocation = async (loc: LocationZone, initialRisk?: HeatRiskAssessment) => {
-    setActiveLoc(loc);
-    if (onSelectLocation) onSelectLocation(loc);
-
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([loc.latitude, loc.longitude], 13, { duration: 1.0 });
+  // Initial Load: Auto-generate report for current location or first location
+  useEffect(() => {
+    if (!activeReport && locations.length > 0) {
+      const initialPlace: GeocodedPlace = {
+        id: 'initial-loc',
+        displayName: currentLocation.localityName 
+          ? `${currentLocation.localityName}, ${currentLocation.city || 'Bengaluru'}` 
+          : 'Hebbal, Bengaluru, Karnataka (560024)',
+        shortName: currentLocation.localityName || 'Hebbal',
+        city: currentLocation.city || 'Bengaluru',
+        state: currentLocation.state || 'Karnataka',
+        pincode: currentLocation.pincode || '560024',
+        latitude: currentLocation.latitude || 13.0358,
+        longitude: currentLocation.longitude || 77.5970,
+        type: 'locality'
+      };
+      handleSelectPlace(initialPlace);
     }
+  }, [currentLocation, activeReport, locations, handleSelectPlace]);
 
-    setIsLoadingTelemetry(true);
-    try {
-      const weatherData = await fetchLiveWeather(loc.latitude, loc.longitude, loc.id);
-      setActiveReading(weatherData.reading);
-      setIsLiveTelemetry(weatherData.isLive);
-
-      const updatedRisk = evaluateHeatRisk({
-        temperatureC: weatherData.reading.temperature_c,
-        relativeHumidityPct: weatherData.reading.relative_humidity_pct,
-        baselineVulnerabilityScore: loc.baseline_vulnerability_score,
-        urbanHeatIslandFactor: loc.urban_heat_island_factor,
-      }, loc.id, language);
-
-      setActiveRisk(updatedRisk);
-
-      // Load horizon forecasts for sidebar
-      const fcList = await generateLocationForecasts(loc);
-      setActiveForecasts(fcList);
-    } catch (e) {
-      if (initialRisk) setActiveRisk(initialRisk);
-    } finally {
-      setIsLoadingTelemetry(false);
+  // Fullscreen Toggle
+  const toggleFullscreen = () => {
+    if (!outerWrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      outerWrapperRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
     }
   };
 
-  useEffect(() => {
-    if (locations.length > 0 && !activeLoc) {
-      const target = selectedLocationId 
-        ? locations.find(l => l.id === selectedLocationId) || locations[0]
-        : locations[0];
-      handleSelectLocation(target);
-    }
-  }, [locations, selectedLocationId]);
-
   return (
-    <div className={`relative isolate z-0 flex flex-col lg:flex-row rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm ${className}`}>
-      {/* Map Control Bar Overlay */}
-      <div className="absolute top-3 left-3 right-3 sm:right-auto sm:w-[530px] z-20 flex flex-col gap-2">
-        {/* Search Input */}
+    <div 
+      ref={outerWrapperRef}
+      className={`relative isolate z-0 flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-[#090D16] shadow-2xl text-white ${className}`}
+    >
+      {/* =========================================================================
+          TOP COMMAND BAR & UNIVERSAL SEARCH (FEATURE 2)
+          ========================================================================= */}
+      <div className="p-3 sm:p-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 z-30 space-y-2">
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={t('btnSearchLocation')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/95 backdrop-blur-md border border-slate-200 text-slate-900 text-xs sm:text-sm pl-9 pr-4 py-2 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 transition-colors"
-          />
-        </div>
-
-        {/* Forecast Horizon Selector & Layers */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-lg shadow-sm text-[11px]">
-          <span className="text-slate-400 px-1 font-medium flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-blue-600" />
-            <span className="font-semibold text-slate-700">Time:</span>
-          </span>
-
-          <button
-            onClick={() => setForecastHorizon('now')}
-            className={`px-2 py-0.5 rounded font-bold transition-colors ${
-              forecastHorizon === 'now' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            Live Now
-          </button>
-          <button
-            onClick={() => setForecastHorizon(24)}
-            className={`px-2 py-0.5 rounded font-bold transition-colors ${
-              forecastHorizon === 24 ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            +24h
-          </button>
-          <button
-            onClick={() => setForecastHorizon(48)}
-            className={`px-2 py-0.5 rounded font-bold transition-colors ${
-              forecastHorizon === 48 ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            +48h
-          </button>
-          <button
-            onClick={() => setForecastHorizon(72)}
-            className={`px-2 py-0.5 rounded font-bold transition-colors ${
-              forecastHorizon === 72 ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            +72h
-          </button>
-
-          <div className="h-3 w-px bg-slate-200 mx-0.5" />
-
-          {/* Layer Controls */}
-          <button
-            onClick={() => setShowCoolingCentres(!showCoolingCentres)}
-            className={`px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 ${
-              showCoolingCentres ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-400 hover:bg-slate-100'
-            }`}
-            title="Toggle Cooling Centres Layer"
-          >
-            <span>❄️ Shelters</span>
-          </button>
-
-          <button
-            onClick={() => setShowWaterPoints(!showWaterPoints)}
-            className={`px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 ${
-              showWaterPoints ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'text-slate-400 hover:bg-slate-100'
-            }`}
-            title="Toggle Public Water Points Layer"
-          >
-            <span>💧 Water</span>
-          </button>
-
-          {/* Quick Filter: >35°C Red Circles Only */}
-          <button
-            onClick={() => setFilterRisk(filterRisk === 'above35' ? 'all' : 'above35')}
-            className={`px-2 py-0.5 rounded font-bold transition-colors flex items-center gap-1 ${
-              filterRisk === 'above35' ? 'bg-red-600 text-white shadow-xs' : 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200'
-            }`}
-            title="Show only places where temperature goes above 35°C (Red Circles)"
-          >
-            <AlertTriangle className="w-2.5 h-2.5" />
-            <span>&gt;35°C Red Zones</span>
-          </button>
-
-          {/* 5-Min Telemetry Auto-Update Status Indicator */}
-          <button
-            onClick={() => syncAllLocalitiesTelemetry(true)}
-            disabled={isRefreshingAll}
-            className="px-2 py-0.5 rounded font-medium transition-colors flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 ml-auto"
-            title="Real-time temperature updates every 5 minutes across the whole website. Click to sync now."
-          >
-            <RefreshCw className={`w-2.5 h-2.5 text-blue-600 ${isRefreshingAll ? 'animate-spin' : ''}`} />
-            <span>5m</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Map Style Selector (Top Right) */}
-      <div className="absolute top-3 right-3 z-20 hidden sm:flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-lg shadow-sm text-xs">
-        <button
-          onClick={() => setMapStyle('osm')}
-          className={`px-2.5 py-1 rounded font-medium text-xs transition-colors flex items-center gap-1 ${
-            mapStyle === 'osm' ? 'bg-blue-600 text-white shadow-xs font-semibold' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-          title="Original Standard OpenStreetMap"
-        >
-          <span>🗺️ Original Map</span>
-        </button>
-        <button
-          onClick={() => setMapStyle('satellite')}
-          className={`px-2.5 py-1 rounded font-medium text-xs transition-colors flex items-center gap-1 ${
-            mapStyle === 'satellite' ? 'bg-blue-600 text-white shadow-xs font-semibold' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-          title="Satellite Imagery"
-        >
-          <span>🛰️ Satellite</span>
-        </button>
-      </div>
-
-      {/* Map Canvas */}
-      <div className="flex-1 w-full h-[400px] sm:h-[500px] lg:h-full relative min-h-[380px]">
-        <div ref={mapContainerRef} className="w-full h-full" />
-
-        {/* Legend */}
-        <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-lg p-2.5 shadow-sm text-xs hidden sm:block">
-          <p className="text-[10px] uppercase font-bold text-slate-700 tracking-wider mb-1 flex items-center justify-between gap-3">
-            <span>Thermal Alert System</span>
-            <span className="text-[9px] font-mono font-normal text-slate-400">
-              {forecastHorizon === 'now' ? 'Live Telemetry' : `+${forecastHorizon}h Projections`}
-            </span>
-          </p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-slate-400 bg-slate-100" />
-              <span className="text-slate-600">Normal (≤35°C): Clean Map</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-600 ring-2 ring-red-400/40 animate-pulse" />
-              <span className="font-bold text-red-700">Heat Alert (&gt;35°C): Red Circle</span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-600">
-              <span>❄️ Cooling Shelter</span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-600">
-              <span>💧 Water ATM</span>
+          <div className="relative flex items-center">
+            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-cyan-400 animate-spin' : 'text-slate-400'}`} />
+            <input
+              type="text"
+              placeholder="Search any city, locality, road, PIN code or landmark across India..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => { if (searchSuggestions.length > 0) setIsSearchOpen(true); }}
+              className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 focus:border-cyan-500 text-white placeholder-slate-400 text-xs sm:text-sm pl-10 pr-24 py-2.5 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+            />
+            
+            {/* Quick Actions inside search bar */}
+            <div className="absolute right-2.5 flex items-center gap-1.5 text-[10px] text-slate-400">
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchSuggestions([]); setIsSearchOpen(false); }}
+                  className="p-1 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono">
+                ⌘K
+              </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Selected Location Details Panel with 24/48/72h Horizon Overview */}
-      <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-200 bg-white flex flex-col p-4 sm:p-5 overflow-y-auto max-h-[500px] lg:max-h-none">
-        {activeLoc && activeRisk ? (
-          <div className="space-y-4">
-            {/* Header */}
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  {activeLoc.city}, {activeLoc.state}
-                </span>
-                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
-                  isLiveTelemetry ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
-                  {isLiveTelemetry ? '● LIVE METEO' : '● ESTIMATED MODEL'}
-                </span>
+          {/* Live Search Suggestions Dropdown */}
+          {isSearchOpen && searchSuggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 max-h-72 overflow-y-auto">
+              <div className="p-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-between border-b border-slate-800">
+                <span>Geographical Search Results</span>
+                <span className="font-mono text-cyan-400">{searchSuggestions.length} found</span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{activeLoc.name}</h3>
-              <p className="text-xs text-slate-500 font-mono">
-                PIN: {activeLoc.pincode} • Pop: ~{activeLoc.estimated_population.toLocaleString()}
-              </p>
-            </div>
-
-            {/* Red Zone Banner if > 35°C */}
-            {(activeReading?.temperature_c ?? 0) > 35.0 ? (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2.5 text-red-800 text-xs font-bold">
-                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                <span>RED HEAT ZONE: Current temperature exceeds 35°C ({activeReading?.temperature_c}°C). Red circle is displayed on the map.</span>
-              </div>
-            ) : (
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                <span>Normal Temperature ({activeReading?.temperature_c ?? 34}°C). No red circle overlay.</span>
-              </div>
-            )}
-
-            {/* Live Telemetry Readings Grid */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="flex items-center gap-1 text-slate-500 mb-0.5">
-                  <Thermometer className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Ambient Temp</span>
-                </div>
-                <span className="text-base font-bold text-slate-900 font-mono">
-                  {activeReading?.temperature_c ?? 34.5}°C
-                </span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="flex items-center gap-1 text-slate-500 mb-0.5">
-                  <Flame className="w-3.5 h-3.5 text-red-600" />
-                  <span>Feels Like</span>
-                </div>
-                <span className="text-base font-bold text-orange-600 font-mono">
-                  {activeReading?.feels_like_c ?? 37.2}°C
-                </span>
-              </div>
-            </div>
-
-            {/* Hyperlocal Predictive 24h / 48h / 72h Forecast Cards */}
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                Predicted Thermal Horizons
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                {activeForecasts.map(fc => (
-                  <div key={fc.forecast_horizon_hours} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                      +{fc.forecast_horizon_hours}h
+              {searchSuggestions.map((place) => (
+                <button
+                  key={place.id}
+                  onClick={() => handleSelectPlace(place)}
+                  className="w-full px-3.5 py-2.5 text-left hover:bg-slate-800/80 flex items-center justify-between gap-3 border-b border-slate-800/50 last:border-0 transition-colors group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="p-1.5 rounded-lg bg-slate-800 text-cyan-400 group-hover:bg-cyan-500/20 shrink-0 text-xs">
+                      {place.type === 'city' ? '🏙️' : place.type === 'postcode' ? '📮' : place.type === 'landmark' ? '🏛️' : '📍'}
                     </span>
-                    <span className={`text-sm font-extrabold block my-0.5 ${fc.predicted_temperature_c > 35 ? 'text-red-600' : 'text-slate-900'}`}>
-                      {fc.predicted_temperature_c}°C
-                    </span>
-                    <span className="text-[10px] text-slate-500 block">
-                      Risk: {fc.predicted_risk_score.toFixed(0)}
-                    </span>
+                    <div className="truncate">
+                      <div className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
+                        {place.displayName}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {place.latitude.toFixed(4)}°N, {place.longitude.toFixed(4)}°E • {place.city}, {place.state}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Access Location Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pb-0.5 no-scrollbar">
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+            <Compass className="w-3 h-3 text-cyan-400" />
+            <span>Quick:</span>
+          </span>
+          {[
+            { name: 'Hebbal, BLR', lat: 13.0358, lon: 77.5970 },
+            { name: 'Chokkanahalli, BLR', lat: 13.0850, lon: 77.6320 },
+            { name: 'Whitefield, BLR', lat: 12.9698, lon: 77.7500 },
+            { name: 'Indiranagar, BLR', lat: 12.9784, lon: 77.6408 },
+            { name: 'Mysuru, KA', lat: 12.2958, lon: 76.6394 },
+            { name: 'Hubballi, KA', lat: 15.3647, lon: 75.1240 },
+            { name: 'Mumbai, MH', lat: 19.0760, lon: 72.8777 },
+            { name: 'Delhi NCR', lat: 28.6139, lon: 77.2090 },
+            { name: 'Chennai, TN', lat: 13.0827, lon: 80.2707 }
+          ].map((chip) => (
+            <button
+              key={chip.name}
+              onClick={() => handleSelectPlace({
+                id: `chip-${chip.name}`,
+                displayName: chip.name,
+                shortName: chip.name.split(',')[0],
+                city: chip.name.includes('BLR') ? 'Bengaluru' : chip.name.includes('KA') ? 'Karnataka' : chip.name.split(',')[0],
+                state: 'India',
+                latitude: chip.lat,
+                longitude: chip.lon,
+                type: 'locality'
+              })}
+              className="px-2.5 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70 whitespace-nowrap text-[11px] font-medium transition-all shadow-xs"
+            >
+              {chip.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          MAIN MAP CANVAS & FLOATING CONTROLS (FEATURES 1, 6, 7)
+          ========================================================================= */}
+      <div className="flex-1 flex flex-col lg:flex-row relative min-h-[500px]">
+        {/* Map Viewport Container */}
+        <div className="flex-1 relative w-full h-[460px] sm:h-[540px] lg:h-auto min-h-[440px]">
+          <div ref={mapContainerRef} className="w-full h-full" />
+
+          {/* Floating Top Controls Bar (Layer & Time Horizon) */}
+          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
+            <span className="text-slate-400 px-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+              <Clock className="w-3 h-3 text-cyan-400" />
+              <span>Horizon:</span>
+            </span>
+
+            {(['now', 24, 48, 72] as const).map(h => (
+              <button
+                key={h}
+                onClick={() => setForecastHorizon(h)}
+                className={`px-2 py-0.5 rounded-lg font-mono font-bold transition-all ${
+                  forecastHorizon === h
+                    ? 'bg-cyan-500 text-slate-950 shadow-xs'
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                {h === 'now' ? 'Live' : `+${h}h`}
+              </button>
+            ))}
+
+            <div className="h-3 w-px bg-slate-700 mx-0.5" />
+
+            {/* Layer Filter Toggles */}
+            <button
+              onClick={() => setShowCoolingCentres(!showCoolingCentres)}
+              className={`px-2 py-0.5 rounded-lg font-medium text-[10px] transition-colors flex items-center gap-1 ${
+                showCoolingCentres ? 'bg-sky-950 text-sky-300 border border-sky-700' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+              title="Toggle Cooling Centres"
+            >
+              <span>❄️ Shelters</span>
+            </button>
+
+            <button
+              onClick={() => setShowWaterPoints(!showWaterPoints)}
+              className={`px-2 py-0.5 rounded-lg font-medium text-[10px] transition-colors flex items-center gap-1 ${
+                showWaterPoints ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+              title="Toggle Water Points"
+            >
+              <span>💧 Water</span>
+            </button>
+
+            <button
+              onClick={() => syncAllLocalitiesTelemetry(true)}
+              disabled={isRefreshingAll}
+              className="p-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+              title="Manual 5-Min Sync"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+          </div>
+
+          {/* Floating Map Actions (Right Side) */}
+          <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5">
+            {/* Style Selector */}
+            <div className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
+              <button
+                onClick={() => setMapStyle('dark')}
+                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
+                  mapStyle === 'dark' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                Dark Command
+              </button>
+              <button
+                onClick={() => setMapStyle('satellite')}
+                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
+                  mapStyle === 'satellite' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                Satellite
+              </button>
+              <button
+                onClick={() => setMapStyle('osm')}
+                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
+                  mapStyle === 'osm' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                Street
+              </button>
             </div>
 
-            {/* AI Risk Reasoning */}
-            <div className="p-3.5 rounded-lg bg-blue-50/70 border border-blue-100">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-800 mb-1.5">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>Hyperlocal AI Assessment</span>
-              </div>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                {activeRisk.ai_explanation}
-              </p>
+            {/* Action Tools Cluster */}
+            <div className="flex flex-col bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl overflow-hidden self-end">
+              <button
+                onClick={() => mapInstanceRef.current?.zoomIn()}
+                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                title="Zoom In"
+              >
+                +
+              </button>
+              <button
+                onClick={() => mapInstanceRef.current?.zoomOut()}
+                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                title="Zoom Out"
+              >
+                -
+              </button>
+              <button
+                onClick={() => {
+                  if (currentLocation.latitude && currentLocation.longitude && mapInstanceRef.current) {
+                    mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 14);
+                  }
+                }}
+                className="p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                title="My Location"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (mapInstanceRef.current) {
+                    mapInstanceRef.current.flyTo([12.9716, 77.5946], 12);
+                  }
+                }}
+                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                title="Reset View"
+              >
+                <Compass className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
             </div>
+          </div>
 
-            {/* Community Assets Nearby */}
-            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Community Heat Defense Assets
-              </p>
-              <div className="flex items-center justify-between text-slate-700">
-                <span>❄️ Verified Cooling Centres</span>
-                <span className="font-bold font-mono">{activeLoc.cooling_centers_count} Active</span>
+          {/* Bottom Floating Legend (Feature 7) */}
+          <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl p-2.5 shadow-2xl text-[11px] hidden sm:block">
+            <div className="flex items-center justify-between gap-4 mb-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cyan-400">
+                Heat Risk Radar Legend
+              </span>
+              <span className="text-[9px] font-mono text-slate-400">
+                Click map to analyze
+              </span>
+            </div>
+            <div className="flex items-center gap-3 font-mono text-[10px]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="text-slate-300">Low (0–24)</span>
               </div>
-              <div className="flex items-center justify-between text-slate-700">
-                <span>🏢 Urban Heat Island Multiplier</span>
-                <span className="font-bold font-mono">{activeLoc.urban_heat_island_factor}x</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="text-slate-300">Mod (25–49)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
+                <span className="text-slate-300">High (50–74)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="font-bold text-red-400">Critical (75–100)</span>
+              </div>
+              <div className="flex items-center gap-1 text-red-400 pl-2 border-l border-slate-700 font-bold">
+                <span>⚠️ &gt;35°C Red Circle</span>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="h-full flex items-center justify-center text-slate-400 text-xs text-center py-12">
-            Select any heat zone marker on the map to inspect hyperlocal environmental risk.
-          </div>
-        )}
+        </div>
+
+        {/* =========================================================================
+            RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
+            ========================================================================= */}
+        <LocationIntelligencePanel
+          report={activeReport}
+          isLoading={isLoadingReport}
+          onSelectPlace={handleSelectPlace}
+        />
       </div>
     </div>
   );

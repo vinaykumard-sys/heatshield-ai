@@ -380,3 +380,56 @@ export interface HeatSimulationResult {
   ai_impact_analysis: string;
 }
 
+// ==============================================================================
+// ADVANCED FEATURE 7: GEOSPATIAL INTELLIGENCE & LOCATION HEAT REPORTS
+// ==============================================================================
+export interface GeocodedPlace {
+  id: string;
+  displayName: string;
+  shortName: string;
+  subArea?: string;
+  city: string;
+  state: string;
+  pincode?: string;
+  latitude: number;
+  longitude: number;
+  type: 'city' | 'locality' | 'road' | 'postcode' | 'landmark' | 'coordinate';
+}
+
+export interface LocationHeatReport {
+  id: string;
+  user_id?: string;
+  location_name: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  latitude: number;
+  longitude: number;
+  temperature: number;
+  humidity: number;
+  feels_like: number;
+  wind_speed_kmh?: number;
+  weather_condition?: string;
+  risk_score: number;
+  risk_category: 'low' | 'moderate' | 'high' | 'critical';
+  contributing_factors?: {
+    temperature_factor: number;
+    humidity_factor: number;
+    solar_diurnal_factor: number;
+    urban_exposure_factor: number;
+  };
+  forecast_data: {
+    pred24h_temp: number;
+    pred24h_risk: number;
+    pred48h_temp: number;
+    pred48h_risk: number;
+    pred72h_temp: number;
+    pred72h_risk: number;
+  };
+  ai_explanation: string;
+  recommended_actions: string[];
+  data_source: string;
+  data_timestamp: string;
+  created_at: string;
+}
+
