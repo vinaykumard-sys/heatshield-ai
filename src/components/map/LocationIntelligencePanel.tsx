@@ -73,12 +73,12 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
 
   if (isLoading) {
     return (
-      <aside aria-label="Location Telemetry Loading" className={`w-full lg:w-[380px] bg-slate-900/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-slate-800 text-white p-5 flex flex-col justify-center items-center gap-3 animate-pulse ${className}`}>
+      <aside aria-label="Location Telemetry Loading" className={`w-full h-full min-h-[360px] bg-slate-900/95 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center gap-3 animate-pulse ${className}`}>
         <div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
         <span className="text-xs font-mono text-cyan-400 tracking-wider uppercase font-semibold">
           ANALYZING COORDINATES...
         </span>
-        <span className="text-[11px] text-slate-400 text-center max-w-[240px]">
+        <span className="text-[11px] text-slate-400 text-center max-w-[260px] leading-relaxed">
           Retrieving Open-Meteo atmospheric telemetry and evaluating hyperlocal heat risk...
         </span>
       </aside>
@@ -87,8 +87,8 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
 
   if (!report) {
     return (
-      <aside aria-label="Location Intelligence Panel" className={`w-full lg:w-[380px] bg-slate-900/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-slate-800 text-white p-6 flex flex-col justify-center items-center text-center gap-3 ${className}`}>
-        <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-cyan-400">
+      <aside aria-label="Location Intelligence Panel" className={`w-full h-full min-h-[360px] bg-slate-900/95 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center text-center gap-3 ${className}`}>
+        <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-cyan-400 shadow-lg">
           <Compass className="w-6 h-6 animate-pulse" />
         </div>
         <h4 className="text-sm font-bold text-white">Geospatial Intelligence Ready</h4>
@@ -103,15 +103,15 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
 
   return (
     <>
-      <aside aria-label="Location Intelligence Report" className={`w-full lg:w-[380px] bg-slate-900/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-slate-800 text-white flex flex-col p-4 sm:p-5 overflow-y-auto max-h-[540px] lg:max-h-none space-y-4 ${className}`}>
+      <aside aria-label="Location Intelligence Report" className={`w-full h-full bg-slate-900/95 backdrop-blur-xl text-white flex flex-col p-4 sm:p-5 overflow-y-auto space-y-4 ${className}`}>
         {/* Header: Location & Freshness Badge */}
         <div>
           <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{report.city || 'India'}, {report.state || ''}</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-1 truncate">
+              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="truncate">{report.city || 'India'}, {report.state || ''}</span>
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={handleToggleFavorite}
                 className="p-1 rounded text-slate-400 hover:text-rose-400 transition-colors"
@@ -125,15 +125,15 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
             </div>
           </div>
 
-          <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-snug">
+          <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-snug break-words">
             {report.location_name}
           </h3>
 
           <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1">
-            <span>
+            <span className="truncate">
               {report.latitude.toFixed(4)}°N, {report.longitude.toFixed(4)}°E
             </span>
-            {report.pincode && <span>PIN: {report.pincode}</span>}
+            {report.pincode && <span className="shrink-0 pl-1">PIN: {report.pincode}</span>}
           </div>
         </div>
 

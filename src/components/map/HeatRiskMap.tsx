@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import { 
   Search, 
-  Layers, 
   MapPin, 
   Flame, 
   Thermometer, 
@@ -19,18 +18,13 @@ import {
   CheckCircle2,
   Maximize2,
   Minimize2,
-  SlidersHorizontal,
   ChevronRight,
   Heart,
-  X
+  X,
+  Layers
 } from 'lucide-react';
 import { 
   LocationZone, 
-  EnvironmentalReading, 
-  HeatRiskAssessment, 
-  CoolingCentre, 
-  PublicWaterPoint, 
-  HeatForecast,
   GeocodedPlace,
   LocationHeatReport
 } from '../../types';
@@ -38,7 +32,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useLocationTracker } from '../../context/LocationContext';
 import { mockDb } from '../../lib/mockDb';
 import { fetchLiveWeather } from '../../lib/weatherApi';
-import { evaluateHeatRisk } from '../../lib/riskEngine';
 import { searchGeographicalLocations, reverseGeocodeCoordinates } from '../../lib/geocodingService';
 import { generateLocationHeatReport } from '../../lib/locationReportEngine';
 import { LocationIntelligencePanel } from './LocationIntelligencePanel';
@@ -63,7 +56,7 @@ interface LocalityTelemetry {
 // Helper for clean place pill labels
 const getPlaceShortName = (fullName: string): string => {
   const parts = fullName.split('&');
-  let short = parts[0].trim();
+  const short = parts[0].trim();
   return short
     .replace(' Satellite Town', '')
     .replace(' Aerodrome', '')
@@ -77,13 +70,20 @@ const getPlaceShortName = (fullName: string): string => {
     .replace(' Road', ' Rd');
 };
 
+// OpenStreetMap Raster Tiles (Keyless, verified high-reliability provider)
+const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
+
+const ESRI_SATELLITE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const ESRI_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics';
+
 export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   locations = mockDb.getLocations(),
   selectedLocationId,
   onSelectLocation,
-  className = 'h-[680px]'
+  className = 'h-[720px]'
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { currentLocation } = useLocationTracker();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +103,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const [activeReport, setActiveReport] = useState<LocationHeatReport | null>(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(12);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,21 +112,15 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchAbortRef = useRef<AbortController | null>(null);
 
-  // Layer Controls
-  const [activeLayerMode, setActiveLayerMode] = useState<'heat' | 'temperature' | 'humidity' | 'forecast'>('heat');
+  // Horizon Controls
   const [forecastHorizon, setForecastHorizon] = useState<'now' | 24 | 48 | 72>('now');
   const [showCoolingCentres, setShowCoolingCentres] = useState(true);
   const [showWaterPoints, setShowWaterPoints] = useState(true);
   const [showMonitoringStations, setShowMonitoringStations] = useState(true);
-  const [showLayerMenu, setShowLayerMenu] = useState(false);
 
-  // 5-minute telemetry sync for base locations
+  // Telemetry sync for base locations
   const [localityTelemetry, setLocalityTelemetry] = useState<Record<string, LocalityTelemetry>>({});
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
-  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<Date>(new Date());
-
-  // Recent searches and favorites
-  const [recentPlaces, setRecentPlaces] = useState<GeocodedPlace[]>(() => mockDb.getRecentPlaces());
 
   // Real-time batch telemetry sync
   const syncAllLocalitiesTelemetry = useCallback(async (forceRefresh = false) => {
@@ -164,7 +159,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
     await Promise.allSettled(fetchPromises);
     setLocalityTelemetry(updatedTelemetry);
-    setLastSyncTimestamp(new Date());
     setIsRefreshingAll(false);
   }, [locations]);
 
@@ -177,7 +171,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     return () => clearInterval(refreshTimer);
   }, [syncAllLocalitiesTelemetry]);
 
-  // Drop Sonar Pin Marker at Selected Coordinates
+  // Drop Sonar Pin Marker at Selected Coordinates (Target indicator with radar rings)
   const dropSonarTargetMarker = useCallback((lat: number, lon: number, title: string, temp?: number) => {
     const targetLayer = targetPinLayerRef.current;
     if (!targetLayer) return;
@@ -206,10 +200,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           top: -30px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(11, 19, 43, 0.95);
+          background: rgba(11, 19, 43, 0.96);
           backdrop-filter: blur(8px);
           border: 1.5px solid ${pinColor};
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
           color: #FFFFFF;
           padding: 3px 8px;
           border-radius: 9999px;
@@ -223,9 +217,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           align-items: center;
           gap: 4px;
         ">
-          <span style="color: ${pinColor};">●</span>
+          <span style="color: ${pinColor}; font-size: 11px;">●</span>
           <span>${title}</span>
-          ${temp !== undefined ? `<span style="font-family: monospace; color: ${isHot ? '#EF4444' : '#38BDF8'};">${temp.toFixed(1)}°C</span>` : ''}
+          ${temp !== undefined ? `<span style="font-family: monospace; font-weight: 900; color: ${isHot ? '#EF4444' : '#38BDF8'};">${temp.toFixed(1)}°C</span>` : ''}
         </div>
       </div>
     `;
@@ -248,23 +242,22 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
     // 1. Move Map smoothly to chosen location
     if (mapInstanceRef.current) {
-      const zoomLevel = place.type === 'city' ? 12 : place.type === 'postcode' ? 14 : 14;
-      mapInstanceRef.current.flyTo([place.latitude, place.longitude], zoomLevel, {
+      const targetZoom = place.type === 'city' ? 12 : 14;
+      mapInstanceRef.current.flyTo([place.latitude, place.longitude], targetZoom, {
         duration: 1.2,
         easeLinearity: 0.25
       });
     }
 
-    // 2. Drop animated sonar target pin
+    // 2. Drop instant animated sonar target pin
     dropSonarTargetMarker(place.latitude, place.longitude, place.shortName);
 
     // 3. Generate end-to-end AI Location Heat Report
     try {
       const { report, weatherResult } = await generateLocationHeatReport(place);
       setActiveReport(report);
-      setRecentPlaces(mockDb.getRecentPlaces());
 
-      // Update sonar pin with live temp
+      // Update sonar pin with live confirmed temperature
       dropSonarTargetMarker(
         place.latitude,
         place.longitude,
@@ -297,10 +290,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       // 1. Reverse Geocode Coordinates
       const geocoded = await reverseGeocodeCoordinates(lat, lon);
 
-      // 2. Generate AI Location Report
+      // 2. Generate AI Location Report with fresh weather
       const { report, weatherResult } = await generateLocationHeatReport(geocoded);
       setActiveReport(report);
-      setRecentPlaces(mockDb.getRecentPlaces());
 
       // Update sonar pin with resolved place name & live temp
       dropSonarTargetMarker(
@@ -316,7 +308,33 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   }, [dropSonarTargetMarker]);
 
-  // Initialize Leaflet Map (Command Center Theme)
+  // Helper to build tile layer
+  const createTileLayer = useCallback((style: 'dark' | 'satellite' | 'osm'): L.TileLayer => {
+    if (style === 'satellite') {
+      return L.tileLayer(ESRI_SATELLITE_URL, {
+        attribution: ESRI_ATTRIBUTION,
+        className: 'heatshield-satellite-tiles',
+        maxZoom: 18,
+      });
+    }
+
+    if (style === 'osm') {
+      return L.tileLayer(OSM_TILE_URL, {
+        attribution: OSM_ATTRIBUTION,
+        maxZoom: 19,
+      });
+    }
+
+    // Futuristic Dark Command: OpenStreetMap raster tiles with dark navy CSS shader filter
+    // Keyless, no watermarks, full global coverage, high resolution
+    return L.tileLayer(OSM_TILE_URL, {
+      attribution: OSM_ATTRIBUTION,
+      className: 'heatshield-dark-tiles',
+      maxZoom: 19,
+    });
+  }, []);
+
+  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -327,18 +345,13 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       center: [initialLat, initialLon],
       zoom: 12,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: true
     });
 
-    // Default: CartoDB Dark Matter (Futuristic Navy/Dark Command)
-    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19,
-    });
-
-    darkTiles.addTo(map);
-    currentTileLayerRef.current = darkTiles;
+    // Initial Tile Layer
+    const tileLayer = createTileLayer('dark');
+    tileLayer.addTo(map);
+    currentTileLayerRef.current = tileLayer;
 
     // Layer Groups
     zonesLayerRef.current = L.layerGroup().addTo(map);
@@ -347,7 +360,11 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     markersLayerRef.current = L.layerGroup().addTo(map);
     targetPinLayerRef.current = L.layerGroup().addTo(map);
 
-    // Click anywhere listener
+    // Zoom and click listeners
+    map.on('zoomend', () => {
+      setCurrentZoom(map.getZoom());
+    });
+
     map.on('click', handleMapClick);
 
     mapInstanceRef.current = map;
@@ -357,9 +374,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, [currentLocation.latitude, currentLocation.longitude, handleMapClick]);
+  }, [currentLocation.latitude, currentLocation.longitude, handleMapClick, createTileLayer]);
 
-  // Map Style Switcher
+  // Switch Tile Style on selection change
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -368,30 +385,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       map.removeLayer(currentTileLayerRef.current);
     }
 
-    let newLayer: L.TileLayer;
-    if (mapStyle === 'satellite') {
-      newLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Esri World Imagery',
-        maxZoom: 18,
-      });
-    } else if (mapStyle === 'osm') {
-      newLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        subdomains: ['a', 'b', 'c'],
-        maxZoom: 19,
-      });
-    } else {
-      // Dark Command (CartoDB Dark Matter)
-      newLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO &copy; OpenStreetMap',
-        subdomains: 'abcd',
-        maxZoom: 19,
-      });
-    }
-
+    const newLayer = createTileLayer(mapStyle);
     newLayer.addTo(map);
     currentTileLayerRef.current = newLayer;
-  }, [mapStyle]);
+  }, [mapStyle, createTileLayer]);
 
   // Live Debounced Geocoding Search
   useEffect(() => {
@@ -426,7 +423,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     };
   }, [searchQuery]);
 
-  // Render Base Monitoring Markers & Red Danger Circles
+  // Render Base Monitoring Markers with Smart Clustering & Anti-Overlap
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersLayer = markersLayerRef.current;
@@ -481,11 +478,11 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         iconAnchor: [80, 16],
       });
 
-      L.marker([currentLocation.latitude, currentLocation.longitude], { icon: userIcon }).addTo(markersLayer);
+      L.marker([currentLocation.latitude, currentLocation.longitude], { icon: userIcon, zIndexOffset: 800 }).addTo(markersLayer);
     }
 
-    // 2. Cooling Centres Layer
-    if (showCoolingCentres) {
+    // 2. Cooling Centres Layer (rendered at zoom >= 12 to avoid clutter)
+    if (showCoolingCentres && currentZoom >= 12) {
       const coolingCentres = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
       coolingCentres.forEach(centre => {
         const coolIcon = L.divIcon({
@@ -495,23 +492,23 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               border: 1.5px solid #38BDF8;
               color: #38BDF8;
               border-radius: 9999px;
-              padding: 3px 8px;
+              padding: 2px 7px;
               font-size: 10px;
               font-weight: 700;
               box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
               display: flex;
               align-items: center;
-              gap: 4px;
+              gap: 3px;
               white-space: nowrap;
               cursor: pointer;
             ">
               <span>❄️</span>
-              <span style="max-width: 90px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]} Shelter</span>
+              <span style="max-width: 85px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]}</span>
             </div>
           `,
           className: 'cooling-map-pin',
-          iconSize: [120, 26],
-          iconAnchor: [60, 13]
+          iconSize: [110, 24],
+          iconAnchor: [55, 12]
         });
 
         const coolMarker = L.marker([centre.latitude, centre.longitude], { icon: coolIcon }).addTo(coolingLayer);
@@ -544,8 +541,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       });
     }
 
-    // 3. Public Water Points Layer
-    if (showWaterPoints) {
+    // 3. Public Water Points Layer (rendered at zoom >= 13)
+    if (showWaterPoints && currentZoom >= 13) {
       const waterPoints = mockDb.getWaterPoints().filter(w => w.is_operational);
       waterPoints.forEach(wp => {
         const waterIcon = L.divIcon({
@@ -590,9 +587,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       });
     }
 
-    // 4. Monitored Municipal Zones & >35°C Red Danger Circles
+    // 4. Monitored Municipal Zones & Markers with Clustering & Collision Prevention
     if (showMonitoringStations) {
-      locations.forEach(loc => {
+      // Step A: Prepare station data with current telemetry
+      const stationData = locations.map(loc => {
         const telemetry = localityTelemetry[loc.id];
         const isNorth = loc.latitude > 25.0;
         const defaultTemp = isNorth ? 39.5 : 33.8;
@@ -602,87 +600,203 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         else if (forecastHorizon === 48) activeTemp = telemetry?.pred48 ?? (activeTemp + 1.8);
         else if (forecastHorizon === 72) activeTemp = telemetry?.pred72 ?? (activeTemp + 0.6);
 
-        // USER RULE: Red circle ONLY when temp > 35°C! (If <=35, normal, NO green circle)
+        // USER RULE: Red circle ONLY when temp > 35.0°C!
         const isAbove35 = activeTemp > 35.0;
 
+        return {
+          location: loc,
+          activeTemp,
+          isAbove35
+        };
+      });
+
+      // Step B: Render Red Danger Circles for >35°C zones
+      stationData.forEach(({ location: loc, activeTemp, isAbove35 }) => {
         if (isAbove35) {
           L.circle([loc.latitude, loc.longitude], {
-            radius: 2600 + (loc.estimated_population / 25),
+            radius: 2400 + (loc.estimated_population / 30),
             color: '#EF4444',
             weight: 2,
-            opacity: 0.8,
+            opacity: 0.85,
             fillColor: '#DC2626',
             fillOpacity: 0.22,
             dashArray: '6, 6'
           }).addTo(zonesLayer);
         }
+      });
 
-        // Futuristic Station Pill
-        const placeShort = getPlaceShortName(loc.name);
-        const markerHtml = `
-          <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-            <div style="
-              display: inline-flex;
-              align-items: center;
-              gap: 5px;
-              background: ${isAbove35 ? 'rgba(69, 10, 10, 0.95)' : 'rgba(15, 23, 42, 0.90)'};
-              border: 1.5px solid ${isAbove35 ? '#EF4444' : '#334155'};
-              box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
-              padding: 3px 9px;
-              border-radius: 9999px;
-              font-family: 'Inter', system-ui, sans-serif;
-              font-size: 11px;
-              font-weight: 700;
-              color: ${isAbove35 ? '#FCA5A5' : '#F8FAFC'};
-              white-space: nowrap;
-            ">
-              <span style="
-                width: 7px;
-                height: 7px;
-                border-radius: 50%;
-                background-color: ${isAbove35 ? '#EF4444' : '#64748B'};
-                box-shadow: ${isAbove35 ? '0 0 8px #EF4444' : 'none'};
-                display: inline-block;
-              "></span>
-              <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
-              <span style="
-                font-size: 10px;
-                font-family: monospace;
-                font-weight: 800;
-                color: ${isAbove35 ? '#FFFFFF' : '#38BDF8'};
-                background: ${isAbove35 ? '#DC2626' : '#1E293B'};
-                padding: 1px 5px;
-                border-radius: 4px;
-              ">${activeTemp.toFixed(1)}°C</span>
-            </div>
-          </div>
-        `;
+      // Step C: Proximity Clustering Algorithm (Prevent Overlapping!)
+      // At zoom < 13: Cluster markers closer than 55px to each other
+      const clusterThresholdPx = currentZoom < 11 ? 75 : currentZoom < 13 ? 55 : 0;
 
-        const stationIcon = L.divIcon({
-          html: markerHtml,
-          className: 'heatshield-station-pill',
-          iconSize: [150, 30],
-          iconAnchor: [75, 15]
+      if (clusterThresholdPx > 0) {
+        // Group into clusters based on screen distance
+        const clusters: Array<typeof stationData> = [];
+        const visited = new Set<string>();
+
+        stationData.forEach(item => {
+          if (visited.has(item.location.id)) return;
+          const currentPoint = map.latLngToLayerPoint([item.location.latitude, item.location.longitude]);
+          const currentCluster = [item];
+          visited.add(item.location.id);
+
+          stationData.forEach(candidate => {
+            if (visited.has(candidate.location.id)) return;
+            const candidatePoint = map.latLngToLayerPoint([candidate.location.latitude, candidate.location.longitude]);
+            const dist = Math.hypot(currentPoint.x - candidatePoint.x, currentPoint.y - candidatePoint.y);
+            if (dist < clusterThresholdPx) {
+              currentCluster.push(candidate);
+              visited.add(candidate.location.id);
+            }
+          });
+
+          clusters.push(currentCluster);
         });
 
-        const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
-        stnMarker.on('click', () => {
-          handleSelectPlace({
-            id: loc.id,
-            displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
-            shortName: loc.name,
-            subArea: loc.name,
-            city: loc.city,
-            state: loc.state,
-            pincode: loc.pincode,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            type: 'locality'
+        // Render each cluster
+        clusters.forEach(cluster => {
+          if (cluster.length > 1) {
+            // Multiple nearby markers grouped
+            const avgLat = cluster.reduce((sum, c) => sum + c.location.latitude, 0) / cluster.length;
+            const avgLon = cluster.reduce((sum, c) => sum + c.location.longitude, 0) / cluster.length;
+            const avgTemp = cluster.reduce((sum, c) => sum + c.activeTemp, 0) / cluster.length;
+            const hasCritical = cluster.some(c => c.isAbove35);
+
+            const clusterIcon = L.divIcon({
+              html: `
+                <div class="heatshield-cluster-pill" style="${hasCritical ? 'border-color: #EF4444; background: rgba(69, 10, 10, 0.95);' : ''}">
+                  <span class="heatshield-cluster-badge" style="${hasCritical ? 'background: #EF4444;' : ''}">
+                    ${cluster.length}
+                  </span>
+                  <span style="font-family: monospace; font-size: 11px; font-weight: 800; color: ${hasCritical ? '#FCA5A5' : '#38BDF8'};">
+                    ${avgTemp.toFixed(1)}°C
+                  </span>
+                </div>
+              `,
+              className: 'heatshield-cluster-icon',
+              iconSize: [90, 28],
+              iconAnchor: [45, 14]
+            });
+
+            const clusterMarker = L.marker([avgLat, avgLon], { icon: clusterIcon, zIndexOffset: 500 }).addTo(markersLayer);
+            clusterMarker.on('click', () => {
+              // Zoom in on cluster to resolve individual zones
+              map.flyTo([avgLat, avgLon], currentZoom + 2, { duration: 0.8 });
+            });
+          } else {
+            // Single marker at low zoom: compact circular badge
+            const { location: loc, activeTemp, isAbove35 } = cluster[0];
+            const compactIcon = L.divIcon({
+              html: `
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 50%;
+                  background: ${isAbove35 ? 'rgba(69, 10, 10, 0.95)' : 'rgba(15, 23, 42, 0.92)'};
+                  border: 2px solid ${isAbove35 ? '#EF4444' : '#38BDF8'};
+                  box-shadow: 0 4px 12px ${isAbove35 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  font-family: monospace;
+                  font-size: 10px;
+                  font-weight: 900;
+                  color: ${isAbove35 ? '#FCA5A5' : '#FFFFFF'};
+                " title="${loc.name} (${activeTemp.toFixed(1)}°C)">
+                  ${Math.round(activeTemp)}°
+                </div>
+              `,
+              className: 'heatshield-compact-station',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+            });
+
+            const singleMarker = L.marker([loc.latitude, loc.longitude], { icon: compactIcon }).addTo(markersLayer);
+            singleMarker.on('click', () => {
+              handleSelectPlace({
+                id: loc.id,
+                displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
+                shortName: loc.name,
+                subArea: loc.name,
+                city: loc.city,
+                state: loc.state,
+                pincode: loc.pincode,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                type: 'locality'
+              });
+            });
+          }
+        });
+      } else {
+        // Detailed zoom (>= 13): Render full, clear station pills with place names
+        stationData.forEach(({ location: loc, activeTemp, isAbove35 }) => {
+          const placeShort = getPlaceShortName(loc.name);
+          const markerHtml = `
+            <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+              <div style="
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                background: ${isAbove35 ? 'rgba(69, 10, 10, 0.96)' : 'rgba(15, 23, 42, 0.92)'};
+                border: 1.5px solid ${isAbove35 ? '#EF4444' : '#334155'};
+                box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
+                padding: 3px 8px;
+                border-radius: 9999px;
+                font-family: 'Inter', system-ui, sans-serif;
+                font-size: 11px;
+                font-weight: 700;
+                color: ${isAbove35 ? '#FCA5A5' : '#F8FAFC'};
+                white-space: nowrap;
+              ">
+                <span style="
+                  width: 7px;
+                  height: 7px;
+                  border-radius: 50%;
+                  background-color: ${isAbove35 ? '#EF4444' : '#38BDF8'};
+                  box-shadow: ${isAbove35 ? '0 0 8px #EF4444' : 'none'};
+                  display: inline-block;
+                "></span>
+                <span style="max-width: 105px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
+                <span style="
+                  font-size: 10px;
+                  font-family: monospace;
+                  font-weight: 800;
+                  color: ${isAbove35 ? '#FFFFFF' : '#38BDF8'};
+                  background: ${isAbove35 ? '#DC2626' : '#1E293B'};
+                  padding: 1px 4px;
+                  border-radius: 4px;
+                ">${activeTemp.toFixed(1)}°C</span>
+              </div>
+            </div>
+          `;
+
+          const stationIcon = L.divIcon({
+            html: markerHtml,
+            className: 'heatshield-station-pill',
+            iconSize: [135, 28],
+            iconAnchor: [67, 14]
+          });
+
+          const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
+          stnMarker.on('click', () => {
+            handleSelectPlace({
+              id: loc.id,
+              displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
+              shortName: loc.name,
+              subArea: loc.name,
+              city: loc.city,
+              state: loc.state,
+              pincode: loc.pincode,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              type: 'locality'
+            });
           });
         });
-      });
+      }
     }
-
   }, [
     locations, 
     showCoolingCentres, 
@@ -691,10 +805,11 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     localityTelemetry, 
     forecastHorizon, 
     currentLocation, 
+    currentZoom,
     handleSelectPlace
   ]);
 
-  // Initial Load: Auto-generate report for current location or first location
+  // Initial Load: Auto-generate report for current location or Hebbal, Bengaluru
   useEffect(() => {
     if (!activeReport && locations.length > 0) {
       const initialPlace: GeocodedPlace = {
@@ -714,15 +829,30 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   }, [currentLocation, activeReport, locations, handleSelectPlace]);
 
-  // Fullscreen Toggle
+  // Fullscreen Toggle with Map Size Invalidation
   const toggleFullscreen = () => {
     if (!outerWrapperRef.current) return;
     if (!document.fullscreenElement) {
-      outerWrapperRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      outerWrapperRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        setTimeout(() => mapInstanceRef.current?.invalidateSize(), 200);
+      }).catch(() => {});
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+        setTimeout(() => mapInstanceRef.current?.invalidateSize(), 200);
+      }).catch(() => {});
     }
   };
+
+  // Window resize observer to ensure Leaflet canvas stays crisp
+  useEffect(() => {
+    const handleResize = () => {
+      mapInstanceRef.current?.invalidateSize();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div 
@@ -751,6 +881,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                 <button
                   onClick={() => { setSearchQuery(''); setSearchSuggestions([]); setIsSearchOpen(false); }}
                   className="p-1 hover:text-white"
+                  title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -835,12 +966,12 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           MAIN MAP CANVAS & FLOATING CONTROLS (FEATURES 1, 6, 7)
           ========================================================================= */}
       <div className="flex-1 flex flex-col lg:flex-row relative min-h-[500px]">
-        {/* Map Viewport Container */}
-        <div className="flex-1 relative w-full h-[460px] sm:h-[540px] lg:h-auto min-h-[440px]">
+        {/* Map Viewport Container: ~70% width on desktop */}
+        <div className="w-full lg:w-[68%] xl:w-[70%] relative h-[480px] lg:h-full min-h-[460px]">
           <div ref={mapContainerRef} className="w-full h-full" />
 
-          {/* Floating Top Controls Bar (Layer & Time Horizon) */}
-          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
+          {/* Floating Top-Left Controls Bar (Horizon & Filter Toggles) */}
+          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
             <span className="text-slate-400 px-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
               <Clock className="w-3 h-3 text-cyan-400" />
               <span>Horizon:</span>
@@ -893,10 +1024,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </button>
           </div>
 
-          {/* Floating Map Actions (Right Side) */}
-          <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5">
+          {/* Floating Map Actions (Top-Right) */}
+          <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
             {/* Style Selector */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
+            <div className="flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
               <button
                 onClick={() => setMapStyle('dark')}
                 className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
@@ -924,7 +1055,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
 
             {/* Action Tools Cluster */}
-            <div className="flex flex-col bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl overflow-hidden self-end">
+            <div className="flex flex-col bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl overflow-hidden">
               <button
                 onClick={() => mapInstanceRef.current?.zoomIn()}
                 className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
@@ -971,8 +1102,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           </div>
 
-          {/* Bottom Floating Legend (Feature 7) */}
-          <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl p-2.5 shadow-2xl text-[11px] hidden sm:block">
+          {/* Bottom-Left Floating Legend (Positioned safely away from bottom-right assistant button) */}
+          <div className="absolute bottom-3 left-3 z-20 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl p-2.5 shadow-2xl text-[11px] hidden sm:block">
             <div className="flex items-center justify-between gap-4 mb-1">
               <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cyan-400">
                 Heat Risk Radar Legend
@@ -1008,11 +1139,14 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         {/* =========================================================================
             RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
             ========================================================================= */}
-        <LocationIntelligencePanel
-          report={activeReport}
-          isLoading={isLoadingReport}
-          onSelectPlace={handleSelectPlace}
-        />
+        <div className="w-full lg:w-[32%] xl:w-[30%] border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-auto lg:h-full">
+          <LocationIntelligencePanel
+            report={activeReport}
+            isLoading={isLoadingReport}
+            onSelectPlace={handleSelectPlace}
+            className="flex-1"
+          />
+        </div>
       </div>
     </div>
   );
