@@ -28,6 +28,37 @@ import {
   DEFAULT_RISK_CONFIG 
 } from './mockData';
 import { INITIAL_COOLING_CENTRES, INITIAL_WATER_POINTS } from './coolingCentresData';
+import {
+  INITIAL_WATER_STATIONS,
+  INITIAL_SMART_ALERTS,
+  INITIAL_WORKER_ORGS,
+  INITIAL_WORKPLACES,
+  INITIAL_OUTDOOR_WORKERS,
+  INITIAL_FAMILY_GROUPS,
+  INITIAL_SCHOOLS,
+  INITIAL_HOSPITALS,
+  INITIAL_DEVELOPER_KEYS,
+  INITIAL_SITUATION_REPORT,
+  INITIAL_ACADEMY_COURSES,
+  INITIAL_SAFE_ROUTES
+} from './platformExpansionData';
+import {
+  WaterStation,
+  WaterStationReport,
+  SmartHeatAlert,
+  HeatAlertSubscription,
+  WorkerOrganization,
+  WorkerWorkplace,
+  OutdoorWorker,
+  FamilyGroup,
+  FamilyMember,
+  SchoolRegistration,
+  HospitalResource,
+  DeveloperApiKey,
+  SituationReport,
+  AcademyCourse,
+  HeatSafeRoute
+} from '../types';
 
 const STORAGE_KEYS = {
   LOCATIONS: 'heatshield_locations',
@@ -46,7 +77,22 @@ const STORAGE_KEYS = {
   SIMULATIONS: 'heatshield_simulations',
   LOCATION_REPORTS: 'heatshield_location_reports',
   FAVORITE_PLACES: 'heatshield_favorite_places',
-  RECENT_PLACES: 'heatshield_recent_places'
+  RECENT_PLACES: 'heatshield_recent_places',
+  // Expansion storage keys
+  WATER_STATIONS: 'heatshield_water_stations',
+  WATER_STATION_REPORTS: 'heatshield_water_station_reports',
+  SMART_ALERTS: 'heatshield_smart_alerts',
+  ALERT_SUBSCRIPTIONS: 'heatshield_alert_subscriptions',
+  WORKER_ORGS: 'heatshield_worker_orgs',
+  WORKPLACES: 'heatshield_workplaces',
+  OUTDOOR_WORKERS: 'heatshield_outdoor_workers',
+  FAMILY_GROUPS: 'heatshield_family_groups',
+  SCHOOLS: 'heatshield_schools',
+  HOSPITALS: 'heatshield_hospitals',
+  DEVELOPER_KEYS: 'heatshield_developer_keys',
+  SITUATION_REPORT: 'heatshield_situation_report',
+  ACADEMY_PROGRESS: 'heatshield_academy_progress',
+  OFFLINE_QUEUE: 'heatshield_offline_queue'
 };
 
 function getStorage<T>(key: string, defaultValue: T): T {
@@ -524,6 +570,238 @@ export const mockDb = {
       return favorites.some(p => p.displayName === placeOrName || p.shortName === placeOrName);
     }
     return favorites.some(p => p.displayName === placeOrName.displayName || (p.latitude === placeOrName.latitude && p.longitude === placeOrName.longitude));
+  },
+
+  // --- WATER STATIONS (PART 4) ---
+  getWaterStations(): WaterStation[] {
+    return getStorage<WaterStation[]>(STORAGE_KEYS.WATER_STATIONS, INITIAL_WATER_STATIONS);
+  },
+
+  saveWaterStation(station: WaterStation): void {
+    const list = this.getWaterStations();
+    const idx = list.findIndex(s => s.id === station.id);
+    if (idx >= 0) list[idx] = station;
+    else list.unshift(station);
+    setStorage(STORAGE_KEYS.WATER_STATIONS, list);
+  },
+
+  reportWaterStation(stationId: string, issueType: 'empty' | 'broken' | 'unhygienic' | 'working_properly', comments?: string): void {
+    const list = this.getWaterStations();
+    const target = list.find(s => s.id === stationId);
+    if (target) {
+      if (issueType === 'empty') target.status = 'limited';
+      if (issueType === 'broken') target.status = 'unavailable';
+      if (issueType === 'working_properly') target.status = 'available';
+      target.reported_empty_count += (issueType === 'empty' ? 1 : 0);
+      setStorage(STORAGE_KEYS.WATER_STATIONS, list);
+    }
+  },
+
+  // --- SMART HEAT ALERTS (PART 3) ---
+  getSmartAlerts(): SmartHeatAlert[] {
+    return getStorage<SmartHeatAlert[]>(STORAGE_KEYS.SMART_ALERTS, INITIAL_SMART_ALERTS);
+  },
+
+  saveSmartAlert(alert: SmartHeatAlert): void {
+    const list = this.getSmartAlerts();
+    const idx = list.findIndex(a => a.id === alert.id);
+    if (idx >= 0) list[idx] = alert;
+    else list.unshift(alert);
+    setStorage(STORAGE_KEYS.SMART_ALERTS, list);
+  },
+
+  getAlertSubscriptions(): HeatAlertSubscription[] {
+    return getStorage<HeatAlertSubscription[]>(STORAGE_KEYS.ALERT_SUBSCRIPTIONS, [
+      {
+        id: 'sub-1',
+        user_id: 'default',
+        location_id: 'loc-1',
+        location_name: 'Hebbal, Bengaluru',
+        high_threshold: 50,
+        critical_threshold: 75,
+        channels: ['in_app', 'push', 'email'],
+        quiet_hours_enabled: true,
+        quiet_hours_start: '22:00',
+        quiet_hours_end: '06:00',
+        is_active: true,
+        created_at: new Date().toISOString()
+      }
+    ]);
+  },
+
+  saveAlertSubscription(sub: HeatAlertSubscription): void {
+    const list = this.getAlertSubscriptions();
+    const idx = list.findIndex(s => s.id === sub.id);
+    if (idx >= 0) list[idx] = sub;
+    else list.push(sub);
+    setStorage(STORAGE_KEYS.ALERT_SUBSCRIPTIONS, list);
+  },
+
+  // --- OUTDOOR WORKER SAFETY (PART 5) ---
+  getWorkerOrganizations(): WorkerOrganization[] {
+    return getStorage<WorkerOrganization[]>(STORAGE_KEYS.WORKER_ORGS, INITIAL_WORKER_ORGS);
+  },
+
+  getWorkerWorkplaces(): WorkerWorkplace[] {
+    return getStorage<WorkerWorkplace[]>(STORAGE_KEYS.WORKPLACES, INITIAL_WORKPLACES);
+  },
+
+  getOutdoorWorkers(): OutdoorWorker[] {
+    return getStorage<OutdoorWorker[]>(STORAGE_KEYS.OUTDOOR_WORKERS, INITIAL_OUTDOOR_WORKERS);
+  },
+
+  saveOutdoorWorker(worker: OutdoorWorker): void {
+    const list = this.getOutdoorWorkers();
+    const idx = list.findIndex(w => w.id === worker.id);
+    if (idx >= 0) list[idx] = worker;
+    else list.push(worker);
+    setStorage(STORAGE_KEYS.OUTDOOR_WORKERS, list);
+  },
+
+  checkinWorker(workerId: string, status: 'hydrated_safe' | 'needs_rest' | 'feeling_unwell'): void {
+    const list = this.getOutdoorWorkers();
+    const target = list.find(w => w.id === workerId);
+    if (target) {
+      target.last_checkin_status = status;
+      target.last_checkin_time = new Date().toISOString();
+      setStorage(STORAGE_KEYS.OUTDOOR_WORKERS, list);
+    }
+  },
+
+  // --- FAMILY SAFETY (PART 9) ---
+  getFamilyGroups(): FamilyGroup[] {
+    return getStorage<FamilyGroup[]>(STORAGE_KEYS.FAMILY_GROUPS, INITIAL_FAMILY_GROUPS);
+  },
+
+  saveFamilyGroup(group: FamilyGroup): void {
+    const list = this.getFamilyGroups();
+    const idx = list.findIndex(g => g.id === group.id);
+    if (idx >= 0) list[idx] = group;
+    else list.push(group);
+    setStorage(STORAGE_KEYS.FAMILY_GROUPS, list);
+  },
+
+  // --- SCHOOL SAFETY (PART 10) ---
+  getSchools(): SchoolRegistration[] {
+    return getStorage<SchoolRegistration[]>(STORAGE_KEYS.SCHOOLS, INITIAL_SCHOOLS);
+  },
+
+  saveSchool(school: SchoolRegistration): void {
+    const list = this.getSchools();
+    const idx = list.findIndex(s => s.id === school.id);
+    if (idx >= 0) list[idx] = school;
+    else list.push(school);
+    setStorage(STORAGE_KEYS.SCHOOLS, list);
+  },
+
+  // --- HOSPITAL DIRECTORY (PART 11) ---
+  getHospitals(): HospitalResource[] {
+    return getStorage<HospitalResource[]>(STORAGE_KEYS.HOSPITALS, INITIAL_HOSPITALS);
+  },
+
+  saveHospital(hospital: HospitalResource): void {
+    const list = this.getHospitals();
+    const idx = list.findIndex(h => h.id === hospital.id);
+    if (idx >= 0) list[idx] = hospital;
+    else list.push(hospital);
+    setStorage(STORAGE_KEYS.HOSPITALS, list);
+  },
+
+  // --- DEVELOPER API (PART 12) ---
+  getDeveloperApiKeys(): DeveloperApiKey[] {
+    return getStorage<DeveloperApiKey[]>(STORAGE_KEYS.DEVELOPER_KEYS, INITIAL_DEVELOPER_KEYS);
+  },
+
+  generateApiKey(name: string, orgName: string): DeveloperApiKey {
+    const prefix = `hs_live_${Math.random().toString(36).substring(2, 8)}`;
+    const newKey: DeveloperApiKey = {
+      id: `key-${Date.now()}`,
+      user_id: 'current-user',
+      organization_name: orgName,
+      key_name: name,
+      key_prefix: prefix,
+      key_hash: Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join(''),
+      rate_limit_per_minute: 60,
+      daily_quota: 5000,
+      used_today: 0,
+      is_active: true,
+      scopes: ['read:heat_risk', 'read:forecasts', 'read:cooling_centres', 'read:water_points', 'read:alerts'],
+      created_at: new Date().toISOString()
+    };
+    const list = this.getDeveloperApiKeys();
+    list.unshift(newKey);
+    setStorage(STORAGE_KEYS.DEVELOPER_KEYS, list);
+    return newKey;
+  },
+
+  revokeApiKey(keyId: string): void {
+    const list = this.getDeveloperApiKeys();
+    const target = list.find(k => k.id === keyId);
+    if (target) {
+      target.is_active = false;
+      setStorage(STORAGE_KEYS.DEVELOPER_KEYS, list);
+    }
+  },
+
+  // --- SITUATION REPORTS (PART 6) ---
+  getSituationReport(): SituationReport {
+    return getStorage<SituationReport>(STORAGE_KEYS.SITUATION_REPORT, INITIAL_SITUATION_REPORT);
+  },
+
+  saveSituationReport(report: SituationReport): void {
+    setStorage(STORAGE_KEYS.SITUATION_REPORT, report);
+  },
+
+  // --- HEAT AWARENESS ACADEMY (PART 15) ---
+  getAcademyCourses(): AcademyCourse[] {
+    return INITIAL_ACADEMY_COURSES;
+  },
+
+  getAcademyProgress(): Record<string, { completedLessons: string[]; quizScore?: number }> {
+    return getStorage<Record<string, { completedLessons: string[]; quizScore?: number }>>(STORAGE_KEYS.ACADEMY_PROGRESS, {
+      'course-residents': { completedLessons: ['res-l1'], quizScore: 100 }
+    });
+  },
+
+  recordLessonComplete(courseId: string, lessonId: string): void {
+    const prog = this.getAcademyProgress();
+    if (!prog[courseId]) prog[courseId] = { completedLessons: [] };
+    if (!prog[courseId].completedLessons.includes(lessonId)) {
+      prog[courseId].completedLessons.push(lessonId);
+    }
+    setStorage(STORAGE_KEYS.ACADEMY_PROGRESS, prog);
+  },
+
+  recordQuizScore(courseId: string, score: number): void {
+    const prog = this.getAcademyProgress();
+    if (!prog[courseId]) prog[courseId] = { completedLessons: [] };
+    prog[courseId].quizScore = score;
+    setStorage(STORAGE_KEYS.ACADEMY_PROGRESS, prog);
+  },
+
+  // --- SAFE ROUTES (PART 8) ---
+  getSafeRoutes(): HeatSafeRoute[] {
+    return INITIAL_SAFE_ROUTES;
+  },
+
+  // --- OFFLINE SYNC QUEUE (PART 7) ---
+  getOfflineQueue(): Array<{ id: string; type: string; payload: any; queuedAt: string }> {
+    return getStorage<Array<{ id: string; type: string; payload: any; queuedAt: string }>>(STORAGE_KEYS.OFFLINE_QUEUE, []);
+  },
+
+  queueOfflineAction(type: string, payload: any): void {
+    const queue = this.getOfflineQueue();
+    queue.push({
+      id: `offline-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type,
+      payload,
+      queuedAt: new Date().toISOString()
+    });
+    setStorage(STORAGE_KEYS.OFFLINE_QUEUE, queue);
+  },
+
+  clearOfflineQueue(): void {
+    setStorage(STORAGE_KEYS.OFFLINE_QUEUE, []);
   },
 
   resetToDefaults(): void {

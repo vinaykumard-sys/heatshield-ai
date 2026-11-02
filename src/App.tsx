@@ -30,6 +30,21 @@ import { AdminPanelPage } from './pages/AdminPanelPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AlertsPage } from './pages/AlertsPage';
 
+// Platform Expansion Pages
+import { HeatAlertsPage } from './pages/HeatAlertsPage';
+import { WaterStationsPage } from './pages/WaterStationsPage';
+import { WorkerSafetyPage } from './pages/WorkerSafetyPage';
+import { CommandCentrePage } from './pages/CommandCentrePage';
+import { SafeRoutesPage } from './pages/SafeRoutesPage';
+import { FamilySafetyPage } from './pages/FamilySafetyPage';
+import { SchoolSafetyPage } from './pages/SchoolSafetyPage';
+import { HospitalDirectoryPage } from './pages/HospitalDirectoryPage';
+import { DeveloperPortalPage } from './pages/DeveloperPortalPage';
+import { PersonalizedResidentDashboardPage } from './pages/PersonalizedResidentDashboardPage';
+import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
+import { HeatAcademyPage } from './pages/HeatAcademyPage';
+import { OfflineEmergencyPage } from './pages/OfflineEmergencyPage';
+
 import { useAuth } from './context/AuthContext';
 
 // Gatekeeper for root path: User MUST log in first before accessing the platform
@@ -228,6 +243,112 @@ export function App() {
                   element={
                     <ProtectedRoute>
                       <AdminPanelPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Platform Expansion Routes */}
+                <Route
+                  path="/heat-alerts"
+                  element={
+                    <ProtectedRoute>
+                      <HeatAlertsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/water-stations"
+                  element={
+                    <ProtectedRoute>
+                      <WaterStationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/worker-safety"
+                  element={
+                    <ProtectedRoute>
+                      <WorkerSafetyPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/command-centre"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <CommandCentrePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/safe-routes"
+                  element={
+                    <ProtectedRoute>
+                      <SafeRoutesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/family-safety"
+                  element={
+                    <ProtectedRoute>
+                      <FamilySafetyPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/school-safety"
+                  element={
+                    <ProtectedRoute>
+                      <SchoolSafetyPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hospital-directory"
+                  element={
+                    <ProtectedRoute>
+                      <HospitalDirectoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/developer"
+                  element={
+                    <ProtectedRoute>
+                      <DeveloperPortalPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/resident-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <PersonalizedResidentDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/impact-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <ImpactDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/academy"
+                  element={
+                    <ProtectedRoute>
+                      <HeatAcademyPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/offline-emergency"
+                  element={
+                    <ProtectedRoute>
+                      <OfflineEmergencyPage />
                     </ProtectedRoute>
                   }
                 />

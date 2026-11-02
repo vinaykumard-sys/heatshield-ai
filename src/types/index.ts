@@ -433,3 +433,343 @@ export interface LocationHeatReport {
   created_at: string;
 }
 
+
+
+// ==============================================================================
+// ADVANCED PLATFORM EXPANSION TYPES
+// ==============================================================================
+
+// --- PART 3: SMART HEAT ALERTS ---
+export type AlertSeverity = 'advisory' | 'high' | 'critical';
+export type NotificationChannel = 'in_app' | 'push' | 'email' | 'sms' | 'whatsapp';
+
+export interface HeatAlertSubscription {
+  id: string;
+  user_id: string;
+  location_id: string;
+  location_name: string;
+  high_threshold: number; // default 50
+  critical_threshold: number; // default 75
+  channels: NotificationChannel[];
+  quiet_hours_enabled: boolean;
+  quiet_hours_start?: string; // e.g. "22:00"
+  quiet_hours_end?: string;   // e.g. "06:00"
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface SmartHeatAlert {
+  id: string;
+  location_id: string;
+  location_name: string;
+  city: string;
+  severity: AlertSeverity;
+  headline: string;
+  description: string;
+  risk_score: number;
+  trigger_reason: string;
+  expected_duration_hours: number;
+  recommended_actions: string[];
+  issued_by: string; // e.g. "HeatShield Autonomous Engine" or "Admin"
+  is_active: boolean;
+  created_at: string;
+  delivery_stats?: {
+    in_app_count: number;
+    push_count: number;
+    email_count: number;
+    delivered_count: number;
+  };
+}
+
+// --- PART 4: WATER AVAILABILITY TRACKER ---
+export type WaterStationStatus = 'available' | 'limited' | 'unavailable' | 'maintenance' | 'unverified';
+export type WaterType = 'purified_chilled' | 'mineral_water_atm' | 'filtered_tap' | 'tanker_point';
+
+export interface WaterStation {
+  id: string;
+  name: string;
+  address: string;
+  locality_name: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  status: WaterStationStatus;
+  water_type: WaterType;
+  operating_hours: string;
+  free_access: boolean;
+  price_per_litre?: number;
+  wheelchair_accessible: boolean;
+  reported_empty_count: number;
+  last_verified_at: string;
+  verified_by?: string;
+  photo_url?: string;
+  created_at: string;
+}
+
+export interface WaterStationReport {
+  id: string;
+  station_id: string;
+  reporter_name?: string;
+  issue_type: 'empty' | 'broken' | 'unhygienic' | 'working_properly';
+  comments?: string;
+  photo_url?: string;
+  created_at: string;
+  is_resolved: boolean;
+}
+
+// --- PART 5: OUTDOOR WORKER SAFETY MANAGER ---
+export interface WorkerOrganization {
+  id: string;
+  name: string;
+  industry: 'construction' | 'delivery_logistics' | 'street_vending' | 'agriculture' | 'municipal';
+  contact_person: string;
+  contact_phone: string;
+  contact_email: string;
+  total_workers: number;
+  created_at: string;
+}
+
+export interface WorkerWorkplace {
+  id: string;
+  org_id: string;
+  org_name: string;
+  name: string;
+  address: string;
+  locality_name: string;
+  latitude: number;
+  longitude: number;
+  shift_start: string; // "07:00"
+  shift_end: string;   // "16:00"
+  wbgt_threshold: number; // Wet Bulb Globe Temp threshold e.g. 30.0°C
+  rest_interval_minutes: number; // e.g. 15 min per hour at high heat
+  drinking_water_nearby: boolean;
+  shaded_shelter_available: boolean;
+  created_at: string;
+}
+
+export interface OutdoorWorker {
+  id: string;
+  org_id: string;
+  workplace_id: string;
+  worker_id_code: string;
+  full_name: string;
+  role_title: string;
+  shift_name: 'morning' | 'afternoon' | 'full_day';
+  preferred_language: 'en' | 'hi' | 'kn';
+  emergency_contact?: string;
+  consent_agreed: boolean;
+  is_on_duty: boolean;
+  last_checkin_status?: 'hydrated_safe' | 'needs_rest' | 'feeling_unwell';
+  last_checkin_time?: string;
+  created_at: string;
+}
+
+export interface WorkerSafetyReport {
+  workplace_id: string;
+  workplace_name: string;
+  ambient_temp_c: number;
+  humidity_pct: number;
+  estimated_wbgt_c: number;
+  wbgt_risk_level: 'low' | 'moderate' | 'high' | 'extreme';
+  work_rest_cycle: string; // e.g. "45 min work / 15 min rest"
+  hydration_target_litres_per_hour: number; // e.g. 0.75 L/hr
+  active_workers_count: number;
+  pending_checkins_count: number;
+}
+
+// --- PART 6: COMMAND CENTRE & SITUATION REPORTS ---
+export interface SituationReport {
+  id: string;
+  title: string;
+  generated_at: string;
+  overall_status: 'normal' | 'heightened_vigilance' | 'severe_heat_emergency';
+  summary_text: string;
+  key_concerns: string[];
+  most_affected_localities: Array<{
+    name: string;
+    temperature: number;
+    risk_score: number;
+    pending_checkins: number;
+  }>;
+  resource_status: {
+    cooling_centres_open: number;
+    water_stations_operational: number;
+    active_volunteers: number;
+    emergency_dispatches: number;
+  };
+  recommended_administrative_actions: string[];
+  data_freshness_pct: number;
+}
+
+// --- PART 8: HEAT-SAFE ROUTE PLANNER ---
+export interface RouteWaypoint {
+  name: string;
+  latitude: number;
+  longitude: number;
+  type: 'start' | 'end' | 'shade_canopy' | 'cooling_centre' | 'water_atm';
+}
+
+export interface HeatSafeRoute {
+  id: string;
+  route_type: 'shortest' | 'low_heat_exposure' | 'respite_optimized';
+  label: string;
+  distance_km: number;
+  duration_minutes: number;
+  heat_exposure_score: number; // 0-100 (lower is better)
+  shade_coverage_pct: number;  // 0-100
+  water_points_count: number;
+  cooling_centres_count: number;
+  coordinates: Array<[number, number]>;
+  summary: string;
+  warnings?: string[];
+}
+
+// --- PART 9: FAMILY SAFETY DASHBOARD ---
+export interface FamilyMember {
+  id: string;
+  group_id: string;
+  name: string;
+  relationship: 'parent' | 'child' | 'spouse' | 'grandparent' | 'sibling' | 'relative';
+  phone?: string;
+  locality_name: string;
+  latitude?: number;
+  longitude?: number;
+  consent_given: boolean;
+  location_sharing_active: boolean;
+  last_status: 'safe' | 'cooling_down' | 'needs_water' | 'emergency';
+  last_checkin_at: string;
+  temperature_at_location?: number;
+  risk_at_location?: number;
+}
+
+export interface FamilyGroup {
+  id: string;
+  owner_id: string;
+  group_name: string;
+  invite_code: string;
+  members: FamilyMember[];
+  created_at: string;
+}
+
+// --- PART 10: SCHOOL SAFETY MODE ---
+export interface SchoolRegistration {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  contact_email: string;
+  contact_phone: string;
+  principal_name: string;
+  student_count: number;
+  operating_hours: string;
+  outdoor_activity_curfew_temp: number; // e.g. 36.0°C
+  has_shaded_playgrounds: boolean;
+  water_fountains_count: number;
+  ac_halls_count: number;
+  verification_status: 'verified' | 'pending';
+  created_at: string;
+}
+
+export interface SchoolActivityGuidance {
+  outdoor_status: 'permitted' | 'restricted_shade_only' | 'suspended_indoor_only';
+  status_headline: string;
+  status_explanation: string;
+  hydration_interval_minutes: number;
+  recess_recommendation: string;
+  sports_recommendation: string;
+}
+
+// --- PART 11: HOSPITAL RESOURCE DIRECTORY ---
+export interface HospitalResource {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  distance_km?: number;
+  emergency_phone: string;
+  general_phone: string;
+  operating_hours: string; // e.g. "24/7 Emergency"
+  emergency_department_open: boolean;
+  has_heatstroke_ward: boolean;
+  has_burn_icu: boolean;
+  has_pediatric_emergency: boolean;
+  ambulance_available: boolean;
+  verification_status: 'verified' | 'unverified';
+  last_verified_at: string;
+}
+
+// --- PART 12: DEVELOPER API ---
+export interface DeveloperApiKey {
+  id: string;
+  user_id: string;
+  organization_name: string;
+  key_name: string;
+  key_prefix: string; // e.g. "hs_live_..."
+  key_hash: string;
+  rate_limit_per_minute: number;
+  daily_quota: number;
+  used_today: number;
+  is_active: boolean;
+  scopes: Array<'read:heat_risk' | 'read:forecasts' | 'read:cooling_centres' | 'read:water_points' | 'read:alerts'>;
+  created_at: string;
+  last_used_at?: string;
+}
+
+// --- PART 14: IMPACT METRICS ---
+export interface ImpactStatistics {
+  total_neighbourhoods_monitored: number;
+  total_registered_residents: number;
+  total_active_volunteers: number;
+  welfare_checkins_completed: number;
+  welfare_checkins_pending: number;
+  assistance_requests_submitted: number;
+  assistance_requests_resolved: number;
+  verified_cooling_centres: number;
+  verified_water_stations: number;
+  participating_schools: number;
+  registered_workplace_orgs: number;
+  heat_alerts_delivered: number;
+  historical_trends: Array<{
+    date: string;
+    avg_temp: number;
+    max_temp: number;
+    alerts_count: number;
+    checkins_count: number;
+  }>;
+}
+
+// --- PART 15: HEAT AWARENESS ACADEMY ---
+export interface AcademyQuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+}
+
+export interface AcademyLesson {
+  id: string;
+  title: string;
+  reading_time_mins: number;
+  summary: string;
+  content: string[];
+  key_takeaways: string[];
+}
+
+export interface AcademyCourse {
+  id: string;
+  role_target: 'residents' | 'workers' | 'schools' | 'volunteers';
+  badge_title: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  lessons: AcademyLesson[];
+  quiz: AcademyQuizQuestion[];
+}

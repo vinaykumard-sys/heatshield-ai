@@ -21,7 +21,20 @@ import {
   TrendingUp,
   Building2,
   Bot,
-  Sliders
+  Sliders,
+  Droplets,
+  HardHat,
+  ShieldAlert,
+  Navigation,
+  Heart,
+  GraduationCap,
+  Stethoscope,
+  Code2,
+  Flame,
+  Wifi,
+  WifiOff,
+  Award,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -46,6 +59,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,27 +122,102 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         return 'System Settings & Models';
       case '/portal':
         return 'Resident Safety Portal';
+      case '/heat-alerts':
+        return 'Smart Heat Alert System';
+      case '/water-stations':
+        return 'Public Water Availability Tracker';
+      case '/worker-safety':
+        return 'Outdoor Worker Safety Manager';
+      case '/command-centre':
+        return 'Municipal Command Centre';
+      case '/safe-routes':
+        return 'Heat-Safe Route Planner';
+      case '/family-safety':
+        return 'Family Heat Safety Group';
+      case '/school-safety':
+        return 'School Heat Safety Protocol';
+      case '/hospital-directory':
+        return 'Hospital Resource Directory';
+      case '/developer':
+        return 'Developer Portal & Public APIs';
+      case '/resident-dashboard':
+        return 'Personalized Resident Dashboard';
+      case '/impact-dashboard':
+        return 'HeatShield Impact & Resilience';
+      case '/academy':
+        return 'Heat Awareness Academy';
+      case '/offline-emergency':
+        return 'Offline Emergency Mode';
       default:
         return 'Dashboard';
     }
   };
 
-  const navItems = [
-    { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-    { to: '/map', label: 'Heat Risk Map', icon: MapPin },
-    { to: '/predictions', label: 'Predictions', icon: TrendingUp },
-    { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
-    { to: '/residents', label: 'Residents', icon: Users, show: isVolunteer || isAdmin },
-    { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
-    { to: '/requests', label: 'Assistance Requests', icon: HelpCircle },
-    { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
-    { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders },
-    { to: '/alerts', label: 'Alerts', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
-    { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { to: isAdmin ? '/admin' : '/settings', label: 'Settings', icon: Settings },
-  ];
+  interface NavItem {
+    to: string;
+    label: string;
+    icon: any;
+    show?: boolean;
+    badge?: number | string;
+  }
 
-  const visibleNavItems = navItems.filter(item => item.show === undefined || item.show);
+  interface NavGroup {
+    title: string;
+    items: NavItem[];
+  }
+
+  const navGroups: NavGroup[] = [
+    {
+      title: 'Core Monitoring',
+      items: [
+        { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+        { to: '/map', label: 'Heat Risk Map', icon: MapPin },
+        { to: '/predictions', label: 'Predictions', icon: TrendingUp },
+        { to: '/heat-alerts', label: 'Smart Heat Alerts', icon: Flame, badge: 'Live' },
+      ]
+    },
+    {
+      title: 'Community Protection',
+      items: [
+        { to: '/resident-dashboard', label: 'Resident Dashboard', icon: Sparkles },
+        { to: '/water-stations', label: 'Water Availability', icon: Droplets },
+        { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
+        { to: '/safe-routes', label: 'Heat-Safe Routes', icon: Navigation },
+        { to: '/family-safety', label: 'Family Safety', icon: Heart },
+        { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
+        { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
+        { to: '/requests', label: 'Assistance Requests', icon: HelpCircle },
+      ]
+    },
+    {
+      title: 'Institutions & Workplace',
+      items: [
+        { to: '/worker-safety', label: 'Worker Safety', icon: HardHat },
+        { to: '/school-safety', label: 'School Safety', icon: GraduationCap },
+        { to: '/hospital-directory', label: 'Hospital Directory', icon: Stethoscope },
+      ]
+    },
+    {
+      title: 'Command & Intelligence',
+      items: [
+        { to: '/command-centre', label: 'Command Centre', icon: ShieldAlert, show: isAdmin },
+        { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders },
+        { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
+        { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award },
+        { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+      ]
+    },
+    {
+      title: 'Academy & Tools',
+      items: [
+        { to: '/academy', label: 'Heat Academy', icon: GraduationCap },
+        { to: '/developer', label: 'Developer Portal', icon: Code2 },
+        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
+        { to: '/alerts', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+        { to: isAdmin ? '/admin' : '/settings', label: 'Settings', icon: Settings },
+      ]
+    }
+  ];
 
   const isKarnataka = (currentLocation?.state || '').toLowerCase().includes('karnataka');
   const helplineNum = isKarnataka ? '1070' : '1077';
@@ -158,33 +258,44 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
 
         {/* Sidebar Navigation Links */}
-        <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
-            Navigation
-          </div>
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.to;
+        <div className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {navGroups.map((group) => {
+            const visibleItems = group.items.filter(item => item.show === undefined || item.show);
+            if (visibleItems.length === 0) return null;
+
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
+              <div key={group.title} className="space-y-1">
+                <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                  {group.title}
                 </div>
-                {item.badge !== undefined && (
-                  <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.to;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 font-semibold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge !== undefined && (
+                        <span className={`px-1.5 py-0.2 text-[10px] font-semibold rounded-full ${
+                          item.badge === 'Live' ? 'bg-red-100 text-red-700 font-mono' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -238,6 +349,29 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 className="w-full bg-slate-50 border border-[#E2E8F0] rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all"
               />
             </div>
+
+            {/* Online / Offline Sync Status Indicator */}
+            <Link
+              to="/offline-emergency"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors ${
+                isOnline 
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
+                  : 'border-amber-300 bg-amber-50 text-amber-800 animate-pulse'
+              }`}
+              title={isOnline ? 'Online - Database synchronized' : 'Offline - Emergency lifelines cached'}
+            >
+              {isOnline ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="hidden sm:inline">Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="hidden sm:inline">Offline Mode</span>
+                </>
+              )}
+            </Link>
 
             {/* Emergency Hotline SOS Button */}
             <button

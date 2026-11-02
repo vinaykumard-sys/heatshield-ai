@@ -1,0 +1,16 @@
+{
+  "short_name": "HeatShield AI",
+  "name": "HeatShield AI — Hyperlocal Heat Safety Ecosystem",
+  "description": "AI-Powered Hyperlocal Heat Safety, Prevention & Community Protection Platform",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "theme_color": "#0F172A",
+  "background_color": "#0B132B"
+}
