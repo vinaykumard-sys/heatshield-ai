@@ -170,6 +170,7 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* 1. Current Temperature */}
         <StatCard
+          className="animate-card-enter stagger-1"
           title="Current Temperature"
           value={`${currentReading?.temperature_c ?? 34.5}°C`}
           subtitle={`Feels like ${currentReading?.feels_like_c ?? 37.2}°C`}
@@ -180,6 +181,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* 2. Humidity */}
         <StatCard
+          className="animate-card-enter stagger-2"
           title="Humidity"
           value={`${currentReading?.relative_humidity_pct ?? 58}%`}
           subtitle="Relative moisture"
@@ -190,6 +192,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* 3. Heat Risk Score */}
         <StatCard
+          className="animate-card-enter stagger-3"
           title="Heat Risk Score"
           value={`${currentRisk?.risk_score.toFixed(0) ?? 68} / 100`}
           subtitle={currentRisk ? currentRisk.risk_category.toUpperCase() : 'MODERATE'}
@@ -200,6 +203,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* 4. High-risk Neighbourhoods */}
         <StatCard
+          className="animate-card-enter stagger-4"
           title="High-risk Zones"
           value={highRiskNeighborhoodsCount}
           subtitle={`${distribution.critical} critical, ${distribution.high} elevated`}
@@ -210,6 +214,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* 5. Registered Residents */}
         <StatCard
+          className="animate-card-enter stagger-5"
           title="Registered Residents"
           value={residents.length}
           subtitle="Vulnerable community roster"
@@ -220,6 +225,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* 6. Pending Welfare Check-ins */}
         <StatCard
+          className="animate-card-enter stagger-6"
           title="Pending Check-ins"
           value={pendingCheckinsCount}
           subtitle={`${checkins.length} scheduled today`}
@@ -271,7 +277,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-3 shrink-0">
             <Link
               to="/map"
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm btn-press"
             >
               <MapPin className="w-3.5 h-3.5" />
               <span>Inspect on Map</span>
@@ -283,7 +289,7 @@ export const DashboardPage: React.FC = () => {
       {/* Environmental Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Temperature & Heat Index Curve */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover-elevate space-y-3">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">12-Hour Temperature & Heat Index Curve</h3>
@@ -297,7 +303,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Relative Humidity & Wet-Bulb Load */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover-elevate space-y-3">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">Relative Humidity Trend</h3>
@@ -314,7 +320,7 @@ export const DashboardPage: React.FC = () => {
       {/* Seven-Day Trend & Risk Distribution Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 7-Day Environmental Forecast */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover-elevate space-y-3">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">7-Day Ward Heat Outlook</h3>
@@ -327,7 +333,7 @@ export const DashboardPage: React.FC = () => {
             {forecastDaily.map((day, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-center space-y-1.5"
+                className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-center space-y-1.5 hover-elevate"
               >
                 <span className="text-[11px] font-mono font-semibold text-slate-500 block truncate">{day.date}</span>
                 <div className="text-base font-bold text-slate-900 font-mono">{day.max_temp_c}°C</div>

@@ -56,6 +56,50 @@ export default {
         'card-hover': '0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04)',
         'dropdown': '0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04)',
         'modal': '0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05)',
+      },
+      keyframes: {
+        'page-enter': {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'card-enter': {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'scale-in': {
+          '0%': { opacity: '0', transform: 'scale(0.97)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.65' },
+        },
+        'waveform': {
+          '0%, 100%': { transform: 'scaleY(0.35)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        'typing': {
+          '0%, 100%': { transform: 'translateY(0)', opacity: '0.4' },
+          '50%': { transform: 'translateY(-3px)', opacity: '1' },
+        }
+      },
+      animation: {
+        'page-enter': 'page-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'card-enter': 'card-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fade-in 180ms ease-out forwards',
+        'scale-in': 'scale-in 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'pulse-subtle': 'pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'waveform-1': 'waveform 0.8s ease-in-out infinite',
+        'waveform-2': 'waveform 0.8s ease-in-out infinite 0.15s',
+        'waveform-3': 'waveform 0.8s ease-in-out infinite 0.3s',
+        'waveform-4': 'waveform 0.8s ease-in-out infinite 0.45s',
+        'typing-1': 'typing 1.2s infinite ease-in-out 0s',
+        'typing-2': 'typing 1.2s infinite ease-in-out 0.2s',
+        'typing-3': 'typing 1.2s infinite ease-in-out 0.4s',
       }
     },
   },

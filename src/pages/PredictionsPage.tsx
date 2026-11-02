@@ -156,7 +156,7 @@ export const PredictionsPage: React.FC = () => {
             <div
               key={fc.forecast_horizon_hours}
               onClick={() => setSelectedHorizon(fc.forecast_horizon_hours)}
-              className={`p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-4 ${
+              className={`p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-4 hover-elevate ${
                 isSelected 
                   ? 'border-blue-600 ring-2 ring-blue-600/10 shadow-md' 
                   : 'border-slate-200 hover:border-slate-300'

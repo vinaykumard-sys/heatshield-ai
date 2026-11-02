@@ -236,12 +236,12 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
             ========================================================================= */}
         <div className="grid grid-cols-2 gap-2.5 font-mono">
           {/* Card 1: Ambient Temperature */}
-          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1 hover-elevate transition-all duration-200">
             <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
               <Thermometer className="w-3.5 h-3.5 text-orange-400 shrink-0" />
               <span className="truncate">Ambient Temp</span>
             </div>
-            <div className={`text-xl font-black ${isAbove35 ? 'text-red-400' : 'text-white'}`}>
+            <div className={`text-xl font-black transition-colors duration-300 ${isAbove35 ? 'text-red-400' : 'text-white'}`}>
               {report.temperature.toFixed(1)}°C
             </div>
             <div className="text-[10px] text-slate-400 truncate">
@@ -250,12 +250,12 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           </div>
 
           {/* Card 2: Feels Like */}
-          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1 hover-elevate transition-all duration-200">
             <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
               <Flame className="w-3.5 h-3.5 text-red-400 shrink-0" />
               <span className="truncate">Feels Like</span>
             </div>
-            <div className="text-xl font-black text-orange-400">
+            <div className="text-xl font-black text-orange-400 transition-colors duration-300">
               {report.feels_like.toFixed(1)}°C
             </div>
             <div className="text-[10px] text-slate-400 truncate">
@@ -264,12 +264,12 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           </div>
 
           {/* Card 3: Humidity */}
-          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1 hover-elevate transition-all duration-200">
             <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
               <Droplets className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               <span className="truncate">Humidity</span>
             </div>
-            <div className="text-xl font-black text-cyan-400">
+            <div className="text-xl font-black text-cyan-400 transition-colors duration-300">
               {report.humidity}%
             </div>
             <div className="text-[10px] text-slate-400 truncate">
@@ -278,12 +278,12 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           </div>
 
           {/* Card 4: Wind / Sky */}
-          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1 hover-elevate transition-all duration-200">
             <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
               <Wind className="w-3.5 h-3.5 text-teal-400 shrink-0" />
               <span className="truncate">Wind / Sky</span>
             </div>
-            <div className="text-base font-black text-slate-100 truncate">
+            <div className="text-base font-black text-slate-100 truncate transition-colors duration-300">
               {report.wind_speed_kmh || 12} km/h
             </div>
             <div className="text-[10px] text-slate-400 truncate">
@@ -322,7 +322,7 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           {/* Progress bar gauge */}
           <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div 
-              className={`h-full transition-all duration-300 ${
+              className={`h-full transition-all duration-700 ease-out ${
                 report.risk_category === 'critical' ? 'bg-red-500' :
                 report.risk_category === 'high' ? 'bg-orange-500' :
                 report.risk_category === 'moderate' ? 'bg-amber-400' :
@@ -398,21 +398,21 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
             SECTION 9: 24/48/72-HOUR FORECAST CARDS
             ========================================================================= */}
         <div className="grid grid-cols-3 gap-1.5 font-mono text-[10px] text-center">
-          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5 hover-elevate transition-all duration-150">
             <span className="text-slate-400 block">+24h</span>
             <span className="font-bold text-white text-xs block">{report.forecast_data.pred24h_temp}°C</span>
             <span className={`text-[9px] block font-semibold ${report.forecast_data.pred24h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>
               Risk {report.forecast_data.pred24h_risk}
             </span>
           </div>
-          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5 hover-elevate transition-all duration-150">
             <span className="text-slate-400 block">+48h</span>
             <span className="font-bold text-white text-xs block">{report.forecast_data.pred48h_temp}°C</span>
             <span className={`text-[9px] block font-semibold ${report.forecast_data.pred48h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>
               Risk {report.forecast_data.pred48h_risk}
             </span>
           </div>
-          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5 hover-elevate transition-all duration-150">
             <span className="text-slate-400 block">+72h</span>
             <span className="font-bold text-white text-xs block">{report.forecast_data.pred72h_temp}°C</span>
             <span className={`text-[9px] block font-semibold ${report.forecast_data.pred72h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>

@@ -285,7 +285,7 @@ export const CoolingCentresPage: React.FC = () => {
                 <div
                   key={centre.id}
                   onClick={() => setSelectedCentre(centre)}
-                  className={`p-4 sm:p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-3 ${
+                  className={`p-4 sm:p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-3 hover-elevate ${
                     isSelected ? 'border-blue-600 ring-2 ring-blue-600/10' : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >

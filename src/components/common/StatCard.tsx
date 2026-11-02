@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { CountUp } from './CountUp';
 
 interface StatCardProps {
   title: string;
@@ -13,6 +14,7 @@ interface StatCardProps {
   };
   colorScheme?: 'orange' | 'amber' | 'emerald' | 'red' | 'blue' | 'purple' | 'slate';
   onClick?: () => void;
+  className?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -22,25 +24,26 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon: Icon,
   trend,
   colorScheme = 'blue',
-  onClick
+  onClick,
+  className = ''
 }) => {
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card transition-all flex flex-col justify-between ${
-        onClick ? 'cursor-pointer hover:border-slate-300 hover:shadow-card-hover' : ''
-      }`}
+      className={`bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card hover-elevate hover:border-slate-300 transition-all flex flex-col justify-between ${
+        onClick ? 'cursor-pointer' : ''
+      } ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-medium text-slate-500 tracking-normal">{title}</p>
           <div className="flex items-baseline gap-2">
             <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-mono">
-              {value}
+              <CountUp value={value} />
             </h3>
             {trend && (
               <span
-                className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
+                className={`text-[11px] font-medium px-1.5 py-0.5 rounded transition-colors ${
                   trend.isNeutral
                     ? 'bg-slate-100 text-slate-600'
                     : trend.isPositive
@@ -54,7 +57,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           </div>
         </div>
 
-        <div className="p-2 rounded-lg bg-slate-50 border border-[#E2E8F0] text-slate-600 shrink-0">
+        <div className="p-2 rounded-lg bg-slate-50 border border-[#E2E8F0] text-slate-600 shrink-0 transition-transform group-hover:scale-105">
           <Icon className="w-5 h-5 text-slate-600" />
         </div>
       </div>

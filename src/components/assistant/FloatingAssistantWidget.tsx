@@ -26,6 +26,7 @@ export const FloatingAssistantWidget: React.FC = () => {
   const { language, setLanguage } = useLanguage();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>(() => {
     const list = mockDb.getAssistantMessages();
     return list.slice(-10);
@@ -124,15 +125,20 @@ export const FloatingAssistantWidget: React.FC = () => {
       created_at: new Date().toISOString()
     };
 
-    const next = [...messages, userMsg, botMsg];
-    setMessages(next);
+    setMessages(prev => [...prev, userMsg]);
     mockDb.saveAssistantMessage(userMsg);
-    mockDb.saveAssistantMessage(botMsg);
     setInputText('');
+    setIsTyping(true);
 
-    if (reply.audioRecommended || isListening) {
-      setTimeout(() => speakText(botMsg.id, botMsg.text), 300);
-    }
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, botMsg]);
+      mockDb.saveAssistantMessage(botMsg);
+
+      if (reply.audioRecommended || isListening) {
+        setTimeout(() => speakText(botMsg.id, botMsg.text), 300);
+      }
+    }, 450);
   };
 
   return (
@@ -141,14 +147,14 @@ export const FloatingAssistantWidget: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+          className="group relative flex items-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 btn-press"
           title="Open HeatShield AI Assistant"
         >
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <Bot className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-105" />
           <span className="text-xs font-bold tracking-tight hidden sm:inline-block">AI Assistant</span>
         </button>
       )}
@@ -236,9 +242,9 @@ export const FloatingAssistantWidget: React.FC = () => {
               const isSpeaking = speakingId === m.id;
 
               return (
-                <div key={m.id} className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                <div key={m.id} className={`flex gap-2 animate-card-enter ${isUser ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[85%] rounded-xl p-3 text-xs leading-relaxed ${
+                    className={`max-w-[85%] rounded-xl p-3 text-xs leading-relaxed transition-all shadow-subtle ${
                       isUser
                         ? 'bg-blue-600 text-white rounded-br-none'
                         : m.intent === 'medical_emergency'
@@ -252,7 +258,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                       <div className="mt-2 pt-1.5 border-t border-slate-200/60 flex items-center justify-end">
                         <button
                           onClick={() => speakText(m.id, m.text)}
-                          className="text-[10px] font-medium text-slate-500 hover:text-blue-600 flex items-center gap-1"
+                          className="text-[10px] font-medium text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
                         >
                           {isSpeaking ? <VolumeX className="w-3 h-3 text-blue-600 animate-pulse" /> : <Volume2 className="w-3 h-3" />}
                           <span>{isSpeaking ? 'Stop' : 'Read'}</span>
@@ -263,6 +269,17 @@ export const FloatingAssistantWidget: React.FC = () => {
                 </div>
               );
             })}
+
+            {/* Subtle Apple-style typing indicator */}
+            {isTyping && (
+              <div className="flex gap-2 justify-start animate-fade-in">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl rounded-bl-none px-3.5 py-2.5 flex items-center gap-1.5 shadow-subtle">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-1" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-2" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-3" />
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -310,12 +327,13 @@ export const FloatingAssistantWidget: React.FC = () => {
             )}
 
             {isListening && (
-              <div className="flex items-center justify-between p-1.5 bg-red-50 border border-red-200 rounded text-[11px] text-red-700">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex items-end gap-0.5 h-3">
-                    <span className="w-0.5 bg-red-600 rounded-full animate-bounce [animation-delay:0ms] h-2.5" />
-                    <span className="w-0.5 bg-red-600 rounded-full animate-bounce [animation-delay:150ms] h-3" />
-                    <span className="w-0.5 bg-red-600 rounded-full animate-bounce [animation-delay:300ms] h-2" />
+              <div className="flex items-center justify-between p-1.5 bg-red-50 border border-red-200 rounded text-[11px] text-red-700 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5 h-3.5 px-0.5">
+                    <span className="w-1 bg-red-600 rounded-full h-2.5 animate-waveform-1" />
+                    <span className="w-1 bg-red-600 rounded-full h-3.5 animate-waveform-2" />
+                    <span className="w-1 bg-red-600 rounded-full h-2 animate-waveform-3" />
+                    <span className="w-1 bg-red-600 rounded-full h-3 animate-waveform-4" />
                   </div>
                   <span className="font-semibold">Listening... speak now</span>
                 </div>
@@ -325,7 +343,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     stopListening();
                     if (inputText.trim()) handleSend();
                   }}
-                  className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white font-bold text-[10px]"
+                  className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] btn-press shadow-xs"
                 >
                   Done → Send
                 </button>
@@ -349,7 +367,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     handleToggleVoice();
                   }
                 }}
-                className={`p-2 rounded-lg border transition-all ${
+                className={`p-2 rounded-lg border transition-all btn-press ${
                   isListening
                     ? 'bg-red-500 text-white border-red-600 animate-pulse ring-2 ring-red-200'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -374,7 +392,7 @@ export const FloatingAssistantWidget: React.FC = () => {
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white shadow-sm"
+                className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white shadow-sm btn-press"
               >
                 <Send className="w-4 h-4" />
               </button>

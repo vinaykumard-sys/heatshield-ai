@@ -128,7 +128,7 @@ export const HeatRiskMapPage: React.FC = () => {
                 <div 
                   key={rep.id}
                   onClick={() => setSelectedReport(rep)}
-                  className="p-3 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
+                  className="p-3 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all hover-elevate group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 ${

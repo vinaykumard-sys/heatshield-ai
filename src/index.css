@@ -199,3 +199,54 @@ h1, h2, h3, h4, h5, h6 {
   background: #0B132B !important;
 }
 
+/* Staggered Entrance Utilities */
+.stagger-1 { animation-delay: 35ms; }
+.stagger-2 { animation-delay: 70ms; }
+.stagger-3 { animation-delay: 105ms; }
+.stagger-4 { animation-delay: 140ms; }
+.stagger-5 { animation-delay: 175ms; }
+.stagger-6 { animation-delay: 210ms; }
+
+/* Subtle Apple-style Hover & Interaction Utilities */
+.hover-elevate {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease;
+}
+.hover-elevate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+}
+
+.btn-press {
+  transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+/* Selected Location Pulse Ring (Apple-grade subtle rhythm) */
+@keyframes pin-selected-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+  }
+}
+
+.heatshield-selected-pin {
+  animation: pin-selected-glow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Strict Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+

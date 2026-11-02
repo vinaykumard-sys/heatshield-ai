@@ -275,10 +275,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
                         isActive
                           ? 'bg-blue-50 text-blue-700 font-semibold'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 hover:translate-x-0.5'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -466,9 +466,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Page Main Content Body */}
+        {/* Page Main Content Body with Smooth Page Transitions */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
+          <div key={location.pathname} className="animate-page-enter">
+            {children}
+          </div>
         </main>
       </div>
 

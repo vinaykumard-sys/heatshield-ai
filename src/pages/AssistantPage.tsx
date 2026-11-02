@@ -48,6 +48,7 @@ export const AssistantPage: React.FC = () => {
   });
 
   const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [currentlySpeakingId, setCurrentlySpeakingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -163,19 +164,23 @@ export const AssistantPage: React.FC = () => {
       created_at: new Date().toISOString()
     };
 
-    const updated = [...messages, userMessage, botMessage];
-    setMessages(updated);
+    setMessages(prev => [...prev, userMessage]);
     mockDb.saveAssistantMessage(userMessage);
-    mockDb.saveAssistantMessage(botMessage);
-
     setInputText('');
+    setIsTyping(true);
 
-    // If audio is recommended (e.g. emergency) or user used voice input, read out response
-    if (reply.audioRecommended || isListening) {
-      setTimeout(() => {
-        handleSpeakText(botMessage.id, botMessage.text);
-      }, 300);
-    }
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, botMessage]);
+      mockDb.saveAssistantMessage(botMessage);
+
+      // If audio is recommended (e.g. emergency) or user used voice input, read out response
+      if (reply.audioRecommended || isListening) {
+        setTimeout(() => {
+          handleSpeakText(botMessage.id, botMessage.text);
+        }, 300);
+      }
+    }, 450);
   };
 
   const handleClearHistory = () => {
@@ -301,7 +306,7 @@ export const AssistantPage: React.FC = () => {
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-3 animate-card-enter ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
                   <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
@@ -363,6 +368,19 @@ export const AssistantPage: React.FC = () => {
               </div>
             );
           })}
+          {/* Subtle typing indicator */}
+          {isTyping && (
+            <div className="flex gap-3 justify-start animate-fade-in">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl rounded-bl-none p-4 flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-1" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-2" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-3" />
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -502,13 +520,13 @@ export const AssistantPage: React.FC = () => {
           {isListening && (
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 animate-in fade-in">
               <div className="flex items-center gap-2.5">
-                {/* Visualizer bars */}
-                <div className="flex items-end gap-1 h-5">
-                  <span className="w-1 bg-red-600 rounded-full animate-bounce [animation-delay:0ms] h-4" />
-                  <span className="w-1 bg-red-600 rounded-full animate-bounce [animation-delay:150ms] h-5" />
-                  <span className="w-1 bg-red-600 rounded-full animate-bounce [animation-delay:300ms] h-3" />
-                  <span className="w-1 bg-red-600 rounded-full animate-bounce [animation-delay:75ms] h-5" />
-                  <span className="w-1 bg-red-600 rounded-full animate-bounce [animation-delay:225ms] h-4" />
+                {/* Smooth visualizer waveform */}
+                <div className="flex items-center gap-1 h-5 px-1">
+                  <span className="w-1 bg-red-600 rounded-full h-3 animate-waveform-1" />
+                  <span className="w-1 bg-red-600 rounded-full h-5 animate-waveform-2" />
+                  <span className="w-1 bg-red-600 rounded-full h-2.5 animate-waveform-3" />
+                  <span className="w-1 bg-red-600 rounded-full h-4.5 animate-waveform-4" />
+                  <span className="w-1 bg-red-600 rounded-full h-3 animate-waveform-2" />
                 </div>
                 <div>
                   <span className="font-semibold block sm:inline">
