@@ -18,7 +18,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { BrandLogo } from '../components/common/BrandLogo';
 
 export const AuthPage: React.FC = () => {
-  const { isAuthenticated, login, loginWithGoogle, signup } = useAuth();
+  const { isAuthenticated, login, loginWithGoogle, signup, resetPassword, switchDemoUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,12 +61,19 @@ export const AuthPage: React.FC = () => {
         const res = await signup(email, password, fullName);
         if (!res.success) {
           setErrorMsg(res.error || 'Registration failed.');
+        } else if (res.requiresEmailConfirmation) {
+          setSuccessMsg(`Account created for ${email}! A verification email has been sent. Please check your inbox and verify your email before logging in, or use Google Sign-In below.`);
         } else {
           setSuccessMsg('Account registered successfully! Redirecting to dashboard...');
           setTimeout(() => navigate(from, { replace: true }), 800);
         }
       } else if (mode === 'forgot') {
-        setSuccessMsg('If an account exists with this email, password reset instructions have been sent.');
+        const res = await resetPassword(email);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Could not send reset link. Please check the email address.');
+        } else {
+          setSuccessMsg('Password reset instructions sent! Check your inbox for the recovery link.');
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred.');
@@ -332,6 +339,53 @@ export const AuthPage: React.FC = () => {
                     </button>
                   </p>
                 )}
+              </div>
+
+              {/* Quick Demo Evaluation Access */}
+              <div className="pt-2 border-t border-[#E2E8F0]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                    Fast Demo Role Access
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-mono font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Ready to Test
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchDemoUser('resident');
+                      navigate(from, { replace: true });
+                    }}
+                    className="p-2 rounded-xl border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/50 text-left transition-all btn-press"
+                  >
+                    <span className="font-bold text-slate-800 block text-[11px]">Resident</span>
+                    <span className="text-[10px] text-slate-500 block truncate">Priya Sharma</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchDemoUser('volunteer');
+                      navigate(from, { replace: true });
+                    }}
+                    className="p-2 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 text-left transition-all btn-press"
+                  >
+                    <span className="font-bold text-slate-800 block text-[11px]">Volunteer</span>
+                    <span className="text-[10px] text-slate-500 block truncate">Ramesh Kumar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchDemoUser('admin');
+                      navigate(from, { replace: true });
+                    }}
+                    className="p-2 rounded-xl border border-slate-200 hover:border-purple-400 bg-slate-50 hover:bg-purple-50/50 text-left transition-all btn-press"
+                  >
+                    <span className="font-bold text-slate-800 block text-[11px]">Officer</span>
+                    <span className="text-[10px] text-slate-500 block truncate">Dr. Anita Desai</span>
+                  </button>
+                </div>
               </div>
 
               {/* Collapsible Supabase Google OAuth Setup Guide */}

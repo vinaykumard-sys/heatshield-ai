@@ -12,7 +12,8 @@ interface AuthContextType {
   isResident: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   switchDemoUser: (role: UserRole) => void;
   isConfigured: boolean;
@@ -108,7 +109,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseConfigured && supabase && password) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        return { success: false, error: error.message };
+        let friendlyMsg = error.message;
+        if (error.message.toLowerCase().includes('invalid login credentials')) {
+          friendlyMsg = 'Invalid email or password. If you registered recently, please verify your email address or use Google Sign-In.';
+        } else if (error.message.toLowerCase().includes('email not confirmed')) {
+          friendlyMsg = 'Email address not yet confirmed. Please check your inbox for the verification link or use Google Sign-In.';
+        }
+        return { success: false, error: friendlyMsg };
       }
       return { success: true };
     }
@@ -158,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string, 
     password: string, 
     fullName: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }> => {
     // Default role is ALWAYS 'resident' per security requirements
     const defaultRole: UserRole = 'resident';
 
@@ -176,7 +183,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         return { success: false, error: error.message };
       }
-      return { success: true };
+
+      // Check if Supabase requires email confirmation before session is granted
+      const requiresEmailConfirmation = !data.session;
+      return { 
+        success: true, 
+        requiresEmailConfirmation 
+      };
     }
 
     const newUser: UserProfile = {
@@ -190,6 +203,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setUser(newUser);
+    return { success: true, requiresEmailConfirmation: false };
+  };
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    }
     return { success: true };
   };
 
@@ -223,6 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         loginWithGoogle,
         signup,
+        resetPassword,
         logout,
         switchDemoUser,
         isConfigured: isSupabaseConfigured

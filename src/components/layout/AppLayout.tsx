@@ -275,6 +275,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     <Link
                       key={item.to}
                       to={item.to}
+                      onClick={() => setMobileSidebarOpen(false)}
                       className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium nav-item-interactive ${
                         isActive
                           ? 'active-nav'

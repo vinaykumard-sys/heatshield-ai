@@ -66,12 +66,15 @@ export async function fetchLiveWeather(
 
     // Parse hourly forecast for next 12 hours
     const forecastHourly = [];
-    let currentUv = 7.5;
+    let currentUv = 5.0;
 
     if (data.hourly && data.hourly.time) {
-      const now = new Date();
-      const currentIsoHour = now.toISOString().slice(0, 13);
-      let startIndex = data.hourly.time.findIndex((t: string) => t.startsWith(currentIsoHour));
+      // Synchronize with API's Asia/Kolkata timezone timestamp from current.time (e.g. "2026-11-02T13:45")
+      const currentHourPrefix = current.time ? current.time.slice(0, 13) : '';
+      let startIndex = data.hourly.time.findIndex((t: string) => t.startsWith(currentHourPrefix));
+      if (startIndex === -1 && current.time) {
+        startIndex = data.hourly.time.findIndex((t: string) => t >= current.time);
+      }
       if (startIndex === -1) startIndex = 0;
 
       if (data.hourly.uv_index && data.hourly.uv_index[startIndex] !== undefined) {
@@ -86,8 +89,11 @@ export async function fetchLiveWeather(
         const hHum = Number(data.hourly.relative_humidity_2m[i].toFixed(1));
         const hUv = data.hourly.uv_index ? Number(data.hourly.uv_index[i]?.toFixed(1) || 0) : undefined;
         
+        // Use exact hour:minute from ISO string to guarantee consistent Asia/Kolkata local time
+        const timeDisplay = hTime.length >= 16 ? hTime.slice(11, 16) : hTime;
+        
         forecastHourly.push({
-          time: new Date(hTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: timeDisplay,
           temperature_c: hTemp,
           relative_humidity_pct: hHum,
           heat_index_c: calculateHeatIndex(hTemp, hHum),
@@ -110,7 +116,7 @@ export async function fetchLiveWeather(
         else if (maxT >= 33) risk_level = 'moderate';
 
         forecastDaily.push({
-          date: new Date(data.daily.time[d]).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+          date: new Date(data.daily.time[d] + 'T00:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
           max_temp_c: maxT,
           min_temp_c: minT,
           avg_humidity_pct: 55,

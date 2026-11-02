@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { LocationZone, EnvironmentalReading, HeatRiskAssessment } from '../types';
 import { fetchLiveWeather } from '../lib/weatherApi';
 import { evaluateHeatRisk } from '../lib/riskEngine';
 import { mockDb } from '../lib/mockDb';
+import { searchGeographicalLocations } from '../lib/geocodingService';
 
 export interface TrackedLocation {
   latitude: number;
@@ -91,6 +92,9 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(new Date());
+  
+  // Guard against race conditions: newer location requests supersede older asynchronous responses
+  const locationRequestIdRef = useRef<number>(0);
 
   // Load weather and risk for given coordinates
   const updateTelemetry = useCallback(async (lat: number, lon: number, locZone: LocationZone, forceRefresh: boolean = false) => {
@@ -115,13 +119,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  // Update telemetry whenever coordinates change, and poll every 5 minutes (300,000 ms) in real time
+  // Update telemetry whenever coordinates change, and poll every 5 minutes in real time
   useEffect(() => {
     updateTelemetry(currentLocation.latitude, currentLocation.longitude, selectedZone);
 
-    // 5-minute automated telemetry sync cycle
     const intervalTimer = setInterval(() => {
-      console.log(`[HeatShield AI] Real-time 5-minute telemetry auto-update cycle triggered at ${new Date().toLocaleTimeString()}`);
       updateTelemetry(currentLocation.latitude, currentLocation.longitude, selectedZone, true);
     }, 5 * 60 * 1000);
 
@@ -133,12 +135,48 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await updateTelemetry(currentLocation.latitude, currentLocation.longitude, selectedZone, true);
   }, [currentLocation.latitude, currentLocation.longitude, selectedZone, updateTelemetry]);
 
-  // Reverse Geocoding helper with DNS timeout guard
+  // Reverse Geocoding helper with high-reliability dual provider and zero hardcoding
   const reverseGeocode = async (lat: number, lon: number) => {
+    // 1. Try BigDataCloud reverse geocode client (fast, keyless, CORS enabled)
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        const locality = data.locality || data.city || '';
+        const city = data.city || data.locality || data.principalSubdivision || 'Detected City';
+        const state = data.principalSubdivision || 'India';
+        const pincode = data.postcode || '';
 
+        let detailArea = locality;
+        if (data.localityInfo?.administrative) {
+          const ward = data.localityInfo.administrative.find((a: any) => a.adminLevel >= 7 && a.name);
+          if (ward) detailArea = ward.name;
+        }
+
+        const localityName = detailArea && detailArea !== city ? `${detailArea}, ${city}` : (locality || city);
+
+        return {
+          localityName,
+          subArea: detailArea || city,
+          city,
+          state,
+          pincode
+        };
+      }
+    } catch {
+      // Proceed to OSM fallback
+    }
+
+    // 2. Try Nominatim with appropriate headers
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
         { headers: { 'Accept': 'application/json' }, signal: controller.signal }
@@ -148,13 +186,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (res.ok) {
         const data = await res.json();
         const addr = data.address || {};
-        
-        // Extract road, suburb, neighbourhood
         const road = addr.road || addr.street;
         const sub = addr.suburb || addr.neighbourhood || addr.residential || addr.subdistrict;
         const localityName = road ? (sub ? `${road}, ${sub}` : road) : (sub || data.name || 'Hyperlocal Area');
-        const city = addr.city || addr.town || addr.city_district || addr.state_district || 'Bengaluru';
-        const state = addr.state || 'Karnataka';
+        const city = addr.city || addr.town || addr.city_district || addr.state_district || 'Detected Area';
+        const state = addr.state || 'India';
         const pincode = addr.postcode || '';
 
         return {
@@ -165,35 +201,15 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           pincode
         };
       }
-    } catch (e) {
-      // Graceful local heuristic fallback when DNS or network is unreachable
+    } catch {
+      // Proceed to coordinate position fallback
     }
 
-    // Heuristic fallback based on coordinates if network geocode fails
-    if (lat > 12.8 && lat < 13.3 && lon > 77.4 && lon < 77.8) {
-      return {
-        localityName: 'Chokkanahalli Road / Yelahanka',
-        subArea: 'North Bengaluru Urban',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        pincode: '560064'
-      };
-    }
-
-    if (lat > 28.4 && lat < 28.9 && lon > 77.0 && lon < 77.4) {
-      return {
-        localityName: 'Central Delhi / Connaught Place',
-        subArea: 'Delhi Urban District',
-        city: 'New Delhi',
-        state: 'Delhi',
-        pincode: '110001'
-      };
-    }
-
+    // Clean coordinate-based fallback without fake hardcoded locality names
     return {
-      localityName: `Coordinates (${lat.toFixed(3)}°, ${lon.toFixed(3)}°)`,
-      subArea: 'Local Ward',
-      city: 'Current Area',
+      localityName: `GPS Fix (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E)`,
+      subArea: `Field Coordinates Location`,
+      city: 'Detected Zone',
       state: 'India',
       pincode: ''
     };
@@ -201,14 +217,17 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Fast IP Geolocation fallback when GPS is not yet granted or denied
   const detectLocationByIP = useCallback(async (): Promise<boolean> => {
+    const reqId = ++locationRequestIdRef.current;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       const res = await fetch('https://ipwho.is/', { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
+        if (reqId !== locationRequestIdRef.current) return false;
+
         if (data && data.success && data.latitude && data.longitude) {
           const newLoc: TrackedLocation = {
             latitude: data.latitude,
@@ -219,7 +238,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             city: data.city || 'Bengaluru',
             state: data.region || 'Karnataka',
             pincode: data.postal || '',
-            isRealDeviceLocation: true,
+            isRealDeviceLocation: false, // IP is not a genuine GPS device sensor fix
             locationSource: 'ip',
             detectedAt: new Date().toISOString(),
           };
@@ -242,6 +261,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Detect real device browser location with GPS and IP fallback
   const detectLocation = useCallback(async (): Promise<void> => {
+    const reqId = ++locationRequestIdRef.current;
     setIsTracking(true);
     setTrackingError(null);
 
@@ -255,11 +275,21 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return new Promise<void>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
+          if (reqId !== locationRequestIdRef.current) {
+            resolve();
+            return;
+          }
+
           const { latitude, longitude, accuracy } = pos.coords;
           setPermissionStatus('granted');
 
           // Reverse geocode coordinates to extract locality & street name
           const geo = await reverseGeocode(latitude, longitude);
+
+          if (reqId !== locationRequestIdRef.current) {
+            resolve();
+            return;
+          }
 
           const newLoc: TrackedLocation = {
             latitude,
@@ -270,7 +300,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             city: geo.city,
             state: geo.state,
             pincode: geo.pincode,
-            isRealDeviceLocation: true,
+            isRealDeviceLocation: true, // Genuine browser GPS reading
             locationSource: 'gps',
             detectedAt: new Date().toISOString(),
           };
@@ -287,7 +317,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           resolve();
         },
         async (err) => {
-          // If browser GPS is denied or unavailable, immediately use IP fallback
+          if (reqId !== locationRequestIdRef.current) {
+            resolve();
+            return;
+          }
+
           setPermissionStatus('denied');
           setTrackingError(
             err.code === err.PERMISSION_DENIED
@@ -309,75 +343,62 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // AUTO-DETECT LOCATION ON INITIAL APP LOAD
   useEffect(() => {
-    // Automatically trigger location detection on startup so browser prompts immediately
     detectLocation();
   }, [detectLocation]);
 
-  // Forward search any road/area in Bangalore or anywhere in India
+  // Forward search any road/area across India
   const searchAndSetLocation = async (query: string): Promise<boolean> => {
     if (!query.trim()) return false;
+    const reqId = ++locationRequestIdRef.current;
     setIsTracking(true);
     setTrackingError(null);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      // 1. Try unified geographical search (instant curated database + Nominatim)
+      const matches = await searchGeographicalLocations(query.trim());
+      if (reqId !== locationRequestIdRef.current) return false;
 
-      // Append countrycodes=in for India focus
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=in&limit=1`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' }, signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error('Search failed');
+      if (matches && matches.length > 0) {
+        const match = matches[0];
+        const newLoc: TrackedLocation = {
+          latitude: match.latitude,
+          longitude: match.longitude,
+          localityName: match.shortName || match.displayName,
+          subArea: match.subArea || `${match.city} Ward`,
+          city: match.city,
+          state: match.state,
+          pincode: match.pincode || '',
+          isRealDeviceLocation: false,
+          locationSource: 'search',
+          detectedAt: new Date().toISOString(),
+        };
 
-      const results = await res.json();
-      if (!results || results.length === 0) {
-        setTrackingError(`No location found for "${query}". Try adding "Bengaluru" or road name.`);
+        const dynamicZone = createZoneFromTrackedLocation(newLoc);
+        mockDb.saveLocation(dynamicZone);
+
+        setCurrentLocation(newLoc);
+        setSelectedZone(dynamicZone);
+        localStorage.setItem('heatshield_tracked_location', JSON.stringify(newLoc));
         setIsTracking(false);
-        return false;
+
+        await updateTelemetry(match.latitude, match.longitude, dynamicZone, true);
+        return true;
       }
 
-      const match = results[0];
-      const lat = parseFloat(match.lat);
-      const lon = parseFloat(match.lon);
-      const addr = match.address || {};
-
-      const road = addr.road || addr.street;
-      const sub = addr.suburb || addr.neighbourhood || addr.residential;
-      const localityName = road ? (sub ? `${road}, ${sub}` : road) : (match.name || query);
-      const city = addr.city || addr.town || addr.city_district || addr.state_district || 'Bengaluru';
-      const state = addr.state || 'Karnataka';
-
-      const newLoc: TrackedLocation = {
-        latitude: lat,
-        longitude: lon,
-        localityName,
-        subArea: sub || city,
-        city,
-        state,
-        pincode: addr.postcode || '',
-        isRealDeviceLocation: true,
-        locationSource: 'search',
-        detectedAt: new Date().toISOString(),
-      };
-
-      const dynamicZone = createZoneFromTrackedLocation(newLoc);
-      mockDb.saveLocation(dynamicZone);
-
-      setCurrentLocation(newLoc);
-      setSelectedZone(dynamicZone);
-      localStorage.setItem('heatshield_tracked_location', JSON.stringify(newLoc));
+      setTrackingError(`No location found for "${query}". Try searching by locality, city or PIN code.`);
       setIsTracking(false);
-
-      await updateTelemetry(lat, lon, dynamicZone);
-      return true;
+      return false;
     } catch (e: any) {
-      setTrackingError('Location search failed. Please check network connection.');
-      setIsTracking(false);
+      if (reqId === locationRequestIdRef.current) {
+        setTrackingError('Location search failed. Please check network connection.');
+        setIsTracking(false);
+      }
       return false;
     }
   };
 
   const selectCustomLocality = (loc: LocationZone) => {
+    locationRequestIdRef.current++;
     setSelectedZone(loc);
     const newLoc: TrackedLocation = {
       latitude: loc.latitude,
@@ -393,6 +414,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     setCurrentLocation(newLoc);
     localStorage.setItem('heatshield_tracked_location', JSON.stringify(newLoc));
+    updateTelemetry(loc.latitude, loc.longitude, loc, true);
   };
 
   return (

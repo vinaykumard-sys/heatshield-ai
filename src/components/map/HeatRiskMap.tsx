@@ -84,7 +84,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   className = 'h-[720px]'
 }) => {
   const { t } = useLanguage();
-  const { currentLocation } = useLocationTracker();
+  const { currentLocation, selectCustomLocality } = useLocationTracker();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const outerWrapperRef = useRef<HTMLDivElement>(null);
@@ -265,17 +265,37 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         weatherResult.reading.temperature_c
       );
 
-      // Trigger external callback if location matches a registered zone
+      // Synchronize with external callback and global LocationContext
+      const matchedZone = locations.find(l => l.name.toLowerCase().includes(place.shortName.toLowerCase()));
+      const targetZone: LocationZone = matchedZone || {
+        id: `loc-custom-${Date.now()}`,
+        name: place.shortName || place.displayName,
+        city: place.city || 'India',
+        state: place.state || 'India',
+        pincode: place.pincode || '',
+        latitude: place.latitude,
+        longitude: place.longitude,
+        baseline_vulnerability_score: 65,
+        urban_heat_island_factor: 1.25,
+        cooling_centers_count: 2,
+        estimated_population: 25000
+      };
+
+      if (!matchedZone) {
+        mockDb.saveLocation(targetZone);
+      }
+
       if (onSelectLocation) {
-        const matchedZone = locations.find(l => l.name.toLowerCase().includes(place.shortName.toLowerCase()));
-        if (matchedZone) onSelectLocation(matchedZone);
+        onSelectLocation(targetZone);
+      } else if (selectCustomLocality) {
+        selectCustomLocality(targetZone);
       }
     } catch (err) {
       console.error('Error generating location heat report:', err);
     } finally {
       setIsLoadingReport(false);
     }
-  }, [dropSonarTargetMarker, locations, onSelectLocation]);
+  }, [dropSonarTargetMarker, locations, onSelectLocation, selectCustomLocality]);
 
   // Handle Clicking Anywhere on the Map
   const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
@@ -301,12 +321,34 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         geocoded.shortName, 
         weatherResult.reading.temperature_c
       );
+
+      // 3. Synchronize clicked coordinates to global LocationContext
+      const clickedZone: LocationZone = {
+        id: `loc-click-${Date.now()}`,
+        name: geocoded.shortName,
+        city: geocoded.city,
+        state: geocoded.state,
+        pincode: geocoded.pincode || '',
+        latitude: lat,
+        longitude: lon,
+        baseline_vulnerability_score: 65,
+        urban_heat_island_factor: 1.25,
+        cooling_centers_count: 2,
+        estimated_population: 25000
+      };
+      mockDb.saveLocation(clickedZone);
+
+      if (onSelectLocation) {
+        onSelectLocation(clickedZone);
+      } else if (selectCustomLocality) {
+        selectCustomLocality(clickedZone);
+      }
     } catch (err) {
       console.error('Error handling map click report:', err);
     } finally {
       setIsLoadingReport(false);
     }
-  }, [dropSonarTargetMarker]);
+  }, [dropSonarTargetMarker, onSelectLocation, selectCustomLocality]);
 
   // Helper to build tile layer
   const createTileLayer = useCallback((style: 'dark' | 'satellite' | 'osm'): L.TileLayer => {

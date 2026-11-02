@@ -260,7 +260,40 @@ export async function getUnifiedCheckins(): Promise<WelfareCheckin[]> {
 }
 
 // ==============================================================================
-// 9. DYNAMIC CIVIC IMPACT & COMMAND CENTRE METRICS
+// 9. REALTIME SYNCHRONIZATION VIA SUPABASE
+// ==============================================================================
+export function subscribeToUnifiedChanges(
+  table: string,
+  onPayload: (payload: any) => void
+): () => void {
+  if (!isSupabaseConfigured || !supabase) {
+    return () => {};
+  }
+
+  const client = supabase;
+  const channelName = `realtime-${table}-${Date.now()}`;
+  const channel = client
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: table
+      },
+      (payload) => {
+        onPayload(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    client.removeChannel(channel);
+  };
+}
+
+// ==============================================================================
+// 10. DYNAMIC CIVIC IMPACT & COMMAND CENTRE METRICS
 // ==============================================================================
 export interface DynamicImpactMetrics {
   wardsMonitored: number;
@@ -279,6 +312,7 @@ export interface DynamicImpactMetrics {
 }
 
 export function computeDynamicImpactMetrics(): DynamicImpactMetrics {
+  const locations = mockDb.getLocations();
   const residents = mockDb.getResidents();
   const checkins = mockDb.getCheckins();
   const requests = mockDb.getRequests();
@@ -287,29 +321,33 @@ export function computeDynamicImpactMetrics(): DynamicImpactMetrics {
   const coolingCentres = mockDb.getCoolingCentres();
   const alerts = mockDb.getSmartAlerts().filter(a => a.is_active);
   const workers = mockDb.getOutdoorWorkers();
+  const users = mockDb.getUsers();
 
   const completedCheckins = checkins.filter(c => c.status === 'completed').length;
   const totalCheckinAttempts = checkins.length || 1;
   const successRate = ((completedCheckins / totalCheckinAttempts) * 100).toFixed(1);
 
-  const resolvedRequests = requests.filter(r => r.status === 'in_progress' || r.status === 'assigned').length;
-  const protectedMultiplier = 1420; // Avg household density per surveyed slum/ward cluster
-  const totalProtected = (residents.length * protectedMultiplier).toLocaleString();
+  const resolvedRequests = requests.filter(r => r.status === 'resolved' || r.status === 'in_progress').length;
+  const activeVolunteers = users.filter(u => u.role === 'volunteer').length || 14;
 
-  const totalWaterDispensed = (waterStations.reduce((acc, s) => {
-    return acc + (s.status === 'available' ? 1450 : 600);
-  }, 0) * 18).toLocaleString();
+  const distinctWards = new Set([
+    ...locations.map(l => l.name),
+    ...residents.map(r => r.locality_name).filter(Boolean)
+  ]).size;
+
+  const activeWaterPoints = waterStations.filter(s => s.status === 'available').length;
+  const estimatedWaterDispensed = `${(activeWaterPoints * 450).toLocaleString()} L`;
 
   return {
-    wardsMonitored: 198,
-    residentsProtected: totalProtected,
-    volunteersActive: 312,
-    welfareCheckinsDone: checkins.length + 1410,
+    wardsMonitored: distinctWards || 18,
+    residentsProtected: `${residents.length.toLocaleString()} Residents`,
+    volunteersActive: activeVolunteers,
+    welfareCheckinsDone: checkins.length,
     checkinSuccessRate: `${successRate}%`,
-    emergencyRequestsResolved: resolvedRequests + 84,
-    waterDispensedLiters: totalWaterDispensed,
-    workerRestCyclesEnforced: workers.length * 48 + 520,
-    academyCertificationsIssued: 418,
+    emergencyRequestsResolved: resolvedRequests,
+    waterDispensedLiters: estimatedWaterDispensed,
+    workerRestCyclesEnforced: workers.length,
+    academyCertificationsIssued: 12,
     waterStationsCount: waterStations.length,
     hospitalsCount: hospitals.length,
     coolingCentresCount: coolingCentres.length,

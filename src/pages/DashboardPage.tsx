@@ -30,35 +30,20 @@ import { useLanguage } from '../context/LanguageContext';
 import { LocationZone, HeatRiskAssessment, EnvironmentalReading } from '../types';
 
 export const DashboardPage: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { 
-    currentReading: liveReading, 
-    currentRisk: liveRisk, 
-    forecastHourly: liveHourly, 
-    forecastDaily: liveDaily,
-    isLiveWeather: liveIsLive,
-    selectedZone
+    currentReading, 
+    currentRisk, 
+    forecastHourly, 
+    forecastDaily,
+    isLiveWeather: isLiveTelemetry,
+    selectedZone,
+    selectCustomLocality,
+    forceTelemetryRefresh
   } = useLocationTracker();
 
   const locations = mockDb.getLocations();
-  const [selectedLocId, setSelectedLocId] = useState<string>(selectedZone?.id || locations[0]?.id || '');
-  const [currentReading, setCurrentReading] = useState<EnvironmentalReading | null>(liveReading);
-  const [currentRisk, setCurrentRisk] = useState<HeatRiskAssessment | null>(liveRisk);
-  const [forecastHourly, setForecastHourly] = useState<any[]>(liveHourly);
-  const [forecastDaily, setForecastDaily] = useState<any[]>(liveDaily);
-  const [isLiveTelemetry, setIsLiveTelemetry] = useState(liveIsLive);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Sync with LocationTracker updates
-  useEffect(() => {
-    if (liveReading) {
-      setCurrentReading(liveReading);
-      setCurrentRisk(liveRisk);
-      setForecastHourly(liveHourly);
-      setForecastDaily(liveDaily);
-      setIsLiveTelemetry(liveIsLive);
-    }
-  }, [liveReading, liveRisk, liveHourly, liveDaily, liveIsLive]);
 
   const residents = mockDb.getResidents();
   const checkins = mockDb.getCheckins();
@@ -66,45 +51,11 @@ export const DashboardPage: React.FC = () => {
   const activityLogs = mockDb.getActivityLogs();
   const notifications = mockDb.getNotifications();
 
-  const selectedLoc = locations.find(l => l.id === selectedLocId) || locations[0];
-
-  // Refresh Weather and AI risk
-  const loadLocWeather = async (loc: LocationZone) => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      const res = await fetchLiveWeather(loc.latitude, loc.longitude, loc.id);
-      setCurrentReading(res.reading);
-      setIsLiveTelemetry(res.isLive);
-      setForecastHourly(res.forecastHourly);
-      setForecastDaily(res.forecastDaily);
-
-      const risk = evaluateHeatRisk({
-        temperatureC: res.reading.temperature_c,
-        relativeHumidityPct: res.reading.relative_humidity_pct,
-        baselineVulnerabilityScore: loc.baseline_vulnerability_score,
-        urbanHeatIslandFactor: loc.urban_heat_island_factor,
-      }, loc.id, language);
-
-      setCurrentRisk(risk);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsRefreshing(false);
-    }
+    await forceTelemetryRefresh();
+    setTimeout(() => setIsRefreshing(false), 600);
   };
-
-  useEffect(() => {
-    if (selectedLoc) {
-      loadLocWeather(selectedLoc);
-
-      // Automated 5-minute recurring refresh for dashboard telemetry & charts
-      const timer = setInterval(() => {
-        loadLocWeather(selectedLoc);
-      }, 5 * 60 * 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [selectedLocId, language]);
 
   // Aggregate Stats
   const pendingCheckinsCount = checkins.filter(c => c.status === 'pending').length;
@@ -143,10 +94,18 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="relative">
             <select
-              value={selectedLocId}
-              onChange={(e) => setSelectedLocId(e.target.value)}
+              value={selectedZone?.id || ''}
+              onChange={(e) => {
+                const found = locations.find(l => l.id === e.target.value);
+                if (found) selectCustomLocality(found);
+              }}
               className="bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 pr-8 focus:outline-none input-interactive shadow-sm font-medium"
             >
+              {!locations.some(l => l.id === selectedZone?.id) && selectedZone && (
+                <option value={selectedZone.id}>
+                  📍 {selectedZone.name} ({selectedZone.city}) [Selected]
+                </option>
+              )}
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id} className="text-slate-900">
                   {loc.name} ({loc.city})
@@ -156,7 +115,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => selectedLoc && loadLocWeather(selectedLoc)}
+            onClick={handleRefresh}
             disabled={isRefreshing}
             className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all shadow-sm btn-press hover:scale-105 active:scale-95"
             title="Refresh weather data"
@@ -252,7 +211,8 @@ export const DashboardPage: React.FC = () => {
         </div>
         <HeatRiskMap 
           locations={locations} 
-          selectedLocationId={selectedLocId} 
+          selectedLocationId={selectedZone?.id} 
+          onSelectLocation={selectCustomLocality}
           className="h-[520px]" 
         />
       </div>
@@ -266,7 +226,7 @@ export const DashboardPage: React.FC = () => {
                 <Sparkles className="w-4 h-4" />
               </span>
               <span className="text-xs uppercase font-mono font-bold text-slate-900 tracking-wider">
-                {t('aiAnalysisHeader')} • {selectedLoc?.name}
+                {t('aiAnalysisHeader')} • {selectedZone?.name || 'Selected Ward'}
               </span>
               <RiskBadge category={currentRisk.risk_category} score={currentRisk.risk_score} size="sm" />
             </div>
