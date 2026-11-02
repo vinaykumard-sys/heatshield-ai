@@ -74,7 +74,7 @@ export const HeatRiskMapPage: React.FC = () => {
       {/* Main Interactive Futuristic Map Canvas */}
       <HeatRiskMap
         locations={locations}
-        className="h-[680px] sm:h-[740px] rounded-2xl border border-slate-800 shadow-2xl"
+        className="h-auto lg:h-[740px] xl:h-[780px] rounded-2xl border border-slate-800 shadow-2xl"
       />
 
       {/* Map Guidance Footer */}

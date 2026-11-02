@@ -965,9 +965,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       {/* =========================================================================
           MAIN MAP CANVAS & FLOATING CONTROLS (FEATURES 1, 6, 7)
           ========================================================================= */}
-      <div className="flex-1 flex flex-col lg:flex-row relative min-h-[500px]">
-        {/* Map Viewport Container: ~70% width on desktop */}
-        <div className="w-full lg:w-[68%] xl:w-[70%] relative h-[480px] lg:h-full min-h-[460px]">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row relative overflow-hidden">
+        {/* Map Viewport Container: ~70% width on desktop, strictly isolated */}
+        <div className="w-full lg:w-[68%] xl:w-[70%] relative h-[440px] sm:h-[480px] lg:h-full min-h-0 overflow-hidden isolate z-0 shrink-0 lg:shrink">
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* Floating Top-Left Controls Bar (Horizon & Filter Toggles) */}
@@ -1139,12 +1139,12 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         {/* =========================================================================
             RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
             ========================================================================= */}
-        <div className="w-full lg:w-[32%] xl:w-[30%] border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-auto lg:h-full">
+        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col relative z-10 overflow-hidden">
           <LocationIntelligencePanel
             report={activeReport}
             isLoading={isLoadingReport}
             onSelectPlace={handleSelectPlace}
-            className="flex-1"
+            className="flex-1 min-h-0"
           />
         </div>
       </div>

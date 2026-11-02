@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   MapPin, 
   Thermometer, 
@@ -14,17 +14,16 @@ import {
   Building2, 
   Compass,
   CheckCircle2,
-  Share2
+  PhoneCall,
+  ShieldAlert,
+  Navigation,
+  ShieldCheck,
+  ChevronRight,
+  Sun,
+  Activity,
+  Droplet
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  Tooltip 
-} from 'recharts';
-import { LocationHeatReport, GeocodedPlace } from '../../types';
+import { LocationHeatReport, GeocodedPlace, CoolingCentre } from '../../types';
 import { FullLocationReportModal } from './FullLocationReportModal';
 import { mockDb } from '../../lib/mockDb';
 
@@ -33,6 +32,19 @@ interface LocationIntelligencePanelProps {
   isLoading: boolean;
   onSelectPlace?: (place: GeocodedPlace) => void;
   className?: string;
+}
+
+// Haversine distance calculator for nearby cooling centres
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps> = ({
@@ -63,19 +75,25 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
     setIsFavorited(newState);
   };
 
-  // Sparkline data for 3-day projection
-  const forecastChartData = report ? [
-    { label: 'Now', temp: report.temperature, risk: Math.round(report.risk_score) },
-    { label: '+24h', temp: report.forecast_data.pred24h_temp, risk: report.forecast_data.pred24h_risk },
-    { label: '+48h', temp: report.forecast_data.pred48h_temp, risk: report.forecast_data.pred48h_risk },
-    { label: '+72h', temp: report.forecast_data.pred72h_temp, risk: report.forecast_data.pred72h_risk }
-  ] : [];
+  // Find nearest verified cooling centres from database
+  const nearestCoolingCentres = useMemo(() => {
+    if (!report) return [];
+    const centres = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
+    return centres
+      .map(c => ({
+        centre: c,
+        distanceKm: calculateDistanceKm(report.latitude, report.longitude, c.latitude, c.longitude)
+      }))
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 2);
+  }, [report]);
 
+  // Loading state skeleton
   if (isLoading) {
     return (
-      <aside aria-label="Location Telemetry Loading" className={`w-full h-full min-h-[360px] bg-slate-900/95 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center gap-3 animate-pulse ${className}`}>
+      <aside aria-label="Location Telemetry Loading" className={`w-full h-full min-h-[420px] bg-slate-900/98 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center gap-3 animate-pulse ${className}`}>
         <div className="w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-        <span className="text-xs font-mono text-cyan-400 tracking-wider uppercase font-semibold">
+        <span className="text-xs font-mono text-cyan-400 tracking-wider uppercase font-bold">
           ANALYZING COORDINATES...
         </span>
         <span className="text-[11px] text-slate-400 text-center max-w-[260px] leading-relaxed">
@@ -85,9 +103,10 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
     );
   }
 
+  // Blank state prompt
   if (!report) {
     return (
-      <aside aria-label="Location Intelligence Panel" className={`w-full h-full min-h-[360px] bg-slate-900/95 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center text-center gap-3 ${className}`}>
+      <aside aria-label="Location Intelligence Panel" className={`w-full h-full min-h-[420px] bg-slate-900/98 backdrop-blur-xl text-white p-6 flex flex-col justify-center items-center text-center gap-3 ${className}`}>
         <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-cyan-400 shadow-lg">
           <Compass className="w-6 h-6 animate-pulse" />
         </div>
@@ -101,12 +120,44 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
 
   const isAbove35 = report.temperature > 35.0;
 
+  // Trajectory points for pure SVG curve
+  const forecastPoints = [
+    { label: 'Now', temp: report.temperature, risk: Math.round(report.risk_score) },
+    { label: '+24h', temp: report.forecast_data.pred24h_temp, risk: report.forecast_data.pred24h_risk },
+    { label: '+48h', temp: report.forecast_data.pred48h_temp, risk: report.forecast_data.pred48h_risk },
+    { label: '+72h', temp: report.forecast_data.pred72h_temp, risk: report.forecast_data.pred72h_risk }
+  ];
+
+  const minTemp = Math.min(...forecastPoints.map(p => p.temp)) - 1;
+  const maxTemp = Math.max(...forecastPoints.map(p => p.temp)) + 1;
+  const tempRange = Math.max(1, maxTemp - minTemp);
+
+  // SVG coordinates calculation (width: 280, height: 60)
+  const svgWidth = 280;
+  const svgHeight = 60;
+  const coords = forecastPoints.map((pt, i) => {
+    const x = 20 + i * ((svgWidth - 40) / 3);
+    const y = svgHeight - 12 - ((pt.temp - minTemp) / tempRange) * (svgHeight - 24);
+    return { x, y, ...pt };
+  });
+
+  const pathD = coords.reduce((acc, pt, i) => {
+    return i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+  }, '');
+
+  const areaD = `${pathD} L ${coords[coords.length - 1].x} ${svgHeight} L ${coords[0].x} ${svgHeight} Z`;
+
   return (
     <>
-      <aside aria-label="Location Intelligence Report" className={`w-full h-full bg-slate-900/95 backdrop-blur-xl text-white flex flex-col p-4 sm:p-5 overflow-y-auto space-y-4 ${className}`}>
-        {/* Header: Location & Freshness Badge */}
-        <div>
-          <div className="flex items-center justify-between gap-2 mb-1.5">
+      <aside 
+        aria-label="Location Intelligence Report" 
+        className={`w-full h-full bg-slate-900/98 backdrop-blur-xl text-white flex flex-col p-4 sm:p-5 overflow-y-auto overflow-x-hidden space-y-4 pb-24 ${className}`}
+      >
+        {/* =========================================================================
+            SECTION 1: SELECTED LOCATION INFORMATION
+            ========================================================================= */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-1 truncate">
               <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               <span className="truncate">{report.city || 'India'}, {report.state || ''}</span>
@@ -119,95 +170,135 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
               >
                 <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-rose-400 text-rose-400' : ''}`} />
               </button>
-              <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
-                ● LIVE METEO
-              </span>
             </div>
           </div>
 
           <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-snug break-words">
             {report.location_name}
           </h3>
-
-          <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1">
-            <span className="truncate">
-              {report.latitude.toFixed(4)}°N, {report.longitude.toFixed(4)}°E
-            </span>
-            {report.pincode && <span className="shrink-0 pl-1">PIN: {report.pincode}</span>}
-          </div>
         </div>
 
-        {/* Temperature Alert Banner: Strictly when > 35°C */}
+        {/* =========================================================================
+            SECTION 2: LOCATION COORDINATES
+            ========================================================================= */}
+        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5">
+          <span className="flex items-center gap-1 truncate">
+            <Compass className="w-3 h-3 text-cyan-400 shrink-0" />
+            <span>{report.latitude.toFixed(4)}°N, {report.longitude.toFixed(4)}°E</span>
+          </span>
+          {report.pincode && (
+            <span className="text-slate-300 font-semibold shrink-0 pl-2 border-l border-slate-800">
+              PIN: {report.pincode}
+            </span>
+          )}
+        </div>
+
+        {/* =========================================================================
+            SECTION 3: DATA FRESHNESS INDICATOR
+            ========================================================================= */}
+        <div className="flex items-center justify-between text-[10px] font-mono">
+          <span className="flex items-center gap-1.5 text-cyan-300 font-semibold px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>OPEN-METEO LIVE</span>
+          </span>
+          <span className="text-slate-400 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-slate-500" />
+            <span>{new Date(report.created_at || report.data_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </span>
+        </div>
+
+        {/* =========================================================================
+            SECTION 4: ENVIRONMENTAL STATUS
+            ========================================================================= */}
         {isAbove35 ? (
-          <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/50 flex items-center gap-2.5 text-red-200 text-xs animate-in fade-in">
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-            <div>
+          <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/50 flex items-start gap-2.5 text-red-200 text-xs">
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
               <span className="font-bold text-red-400 block text-[11px] uppercase tracking-wider">
-                RED HEAT DANGER ZONE (&gt; 35°C)
+                HEAT DANGER ZONE (&gt; 35.0°C)
               </span>
-              <span className="text-[10px] text-red-200">
-                Temperature is {report.temperature}°C. Red circle rendered on map.
-              </span>
+              <p className="text-[10px] text-red-200 leading-relaxed">
+                Ambient reading exceeds safe threshold ({report.temperature.toFixed(1)}°C). Red radar ring active on map.
+              </p>
             </div>
           </div>
         ) : (
           <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300 text-[11px]">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>Normal Thermal Range ({report.temperature}°C). No red circle overlay.</span>
+            <span>Normal Thermal Range ({report.temperature.toFixed(1)}°C). No red circle overlay.</span>
           </div>
         )}
 
-        {/* Microclimate Observation Matrix */}
-        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70">
-            <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-0.5">
-              <Thermometer className="w-3 h-3 text-orange-400" />
-              <span>Ambient Temp</span>
+        {/* =========================================================================
+            SECTIONS 5 & 6: WEATHER CARD 2-COLUMN GRID
+            Row 1: Ambient Temperature | Feels Like
+            Row 2: Humidity            | Wind / Sky
+            ========================================================================= */}
+        <div className="grid grid-cols-2 gap-2.5 font-mono">
+          {/* Card 1: Ambient Temperature */}
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+            <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+              <Thermometer className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+              <span className="truncate">Ambient Temp</span>
             </div>
-            <div className={`text-lg font-black ${isAbove35 ? 'text-red-400' : 'text-white'}`}>
+            <div className={`text-xl font-black ${isAbove35 ? 'text-red-400' : 'text-white'}`}>
               {report.temperature.toFixed(1)}°C
             </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              {isAbove35 ? 'Critical Heat' : 'Standard'}
+            </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70">
-            <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-0.5">
-              <Flame className="w-3 h-3 text-red-400" />
-              <span>Feels Like</span>
+          {/* Card 2: Feels Like */}
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+            <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+              <Flame className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <span className="truncate">Feels Like</span>
             </div>
-            <div className="text-lg font-black text-orange-400">
+            <div className="text-xl font-black text-orange-400">
               {report.feels_like.toFixed(1)}°C
             </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              Apparent Index
+            </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70">
-            <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-0.5">
-              <Droplets className="w-3 h-3 text-cyan-400" />
-              <span>Humidity</span>
+          {/* Card 3: Humidity */}
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+            <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+              <Droplets className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="truncate">Humidity</span>
             </div>
-            <div className="text-lg font-black text-cyan-400">
+            <div className="text-xl font-black text-cyan-400">
               {report.humidity}%
             </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              Relative Vapor
+            </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/70">
-            <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-0.5">
-              <Wind className="w-3 h-3 text-teal-400" />
-              <span>Wind / Sky</span>
+          {/* Card 4: Wind / Sky */}
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 flex flex-col justify-between min-h-[76px] space-y-1">
+            <div className="flex items-center gap-1 text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+              <Wind className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+              <span className="truncate">Wind / Sky</span>
             </div>
-            <div className="text-xs font-bold text-slate-200 truncate">
-              {report.weather_condition || 'Clear'}
-            </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-base font-black text-slate-100 truncate">
               {report.wind_speed_kmh || 12} km/h
+            </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              {report.weather_condition || 'Clear Sky'}
             </div>
           </div>
         </div>
 
-        {/* Operational Risk Index Banner */}
+        {/* =========================================================================
+            SECTION 7: HEAT RISK SCORE
+            ========================================================================= */}
         <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block">
+              <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block font-bold">
                 HEAT RISK SCORE
               </span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
@@ -228,7 +319,7 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
             </span>
           </div>
 
-          {/* Progress gauge */}
+          {/* Progress bar gauge */}
           <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div 
               className={`h-full transition-all duration-300 ${
@@ -242,85 +333,222 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           </div>
         </div>
 
-        {/* 3-Day Thermal Trajectory with Interactive Sparkline */}
-        <div className="space-y-1.5">
+        {/* =========================================================================
+            SECTION 8: 3-DAY TEMPERATURE OUTLOOK (Pure SVG Trajectory Curve)
+            ========================================================================= */}
+        <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-slate-400 uppercase tracking-wider font-semibold flex items-center gap-1 font-mono text-[10px]">
               <TrendingUp className="w-3 h-3 text-cyan-400" />
-              <span>3-Day Temperature Outlook</span>
+              <span>3-Day Thermal Trajectory</span>
             </span>
-            <span className="text-[10px] text-cyan-400 font-mono">
-              Peak: {Math.max(...forecastChartData.map(d => d.temp))}°C
+            <span className="text-[10px] text-cyan-400 font-mono font-bold">
+              Peak: {Math.max(...forecastPoints.map(d => d.temp)).toFixed(1)}°C
             </span>
           </div>
 
-          {/* Mini Recharts Sparkline */}
-          <div className="h-20 w-full bg-slate-950/60 border border-slate-800 rounded-xl p-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={forecastChartData} margin={{ top: 8, right: 12, left: 12, bottom: 4 }}>
-                <XAxis 
-                  dataKey="label" 
-                  tick={{ fill: '#94A3B8', fontSize: 9, fontFamily: 'monospace' }} 
-                  axisLine={false} 
-                  tickLine={false} 
-                />
-                <YAxis domain={['dataMin - 2', 'dataMax + 2']} hide />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: 8, fontSize: 11 }}
-                  itemStyle={{ color: '#38BDF8' }}
-                  formatter={(val: any) => [`${val}°C`, 'Forecast Temp']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="temp" 
-                  stroke="#38BDF8" 
-                  strokeWidth={2.5} 
-                  dot={{ r: 3, fill: '#38BDF8', stroke: '#0F172A', strokeWidth: 1.5 }}
-                  activeDot={{ r: 5, fill: '#38BDF8' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Pure SVG Sparkline: Never triggers ResizeObserver loops, zero overlapping */}
+          <div className="w-full h-16 relative flex items-center justify-center">
+            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="trajGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
 
-          {/* Horizon cards */}
-          <div className="grid grid-cols-3 gap-1.5 font-mono text-[10px] text-center pt-1">
-            <div className="p-1.5 bg-slate-800/60 border border-slate-700/60 rounded-lg">
-              <span className="text-slate-400 block">+24h</span>
-              <span className="font-bold text-white text-xs block">{report.forecast_data.pred24h_temp}°C</span>
-              <span className="text-slate-400">Risk {report.forecast_data.pred24h_risk}</span>
-            </div>
-            <div className="p-1.5 bg-slate-800/60 border border-slate-700/60 rounded-lg">
-              <span className="text-slate-400 block">+48h</span>
-              <span className="font-bold text-white text-xs block">{report.forecast_data.pred48h_temp}°C</span>
-              <span className="text-slate-400">Risk {report.forecast_data.pred48h_risk}</span>
-            </div>
-            <div className="p-1.5 bg-slate-800/60 border border-slate-700/60 rounded-lg">
-              <span className="text-slate-400 block">+72h</span>
-              <span className="font-bold text-white text-xs block">{report.forecast_data.pred72h_temp}°C</span>
-              <span className="text-slate-400">Risk {report.forecast_data.pred72h_risk}</span>
-            </div>
+              {/* Area under curve */}
+              <path d={areaD} fill="url(#trajGrad)" />
+
+              {/* Trajectory Stroke */}
+              <path d={pathD} fill="none" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" />
+
+              {/* Nodes and Labels */}
+              {coords.map((pt, i) => (
+                <g key={i}>
+                  <circle cx={pt.x} cy={pt.y} r="3.5" fill="#38BDF8" stroke="#0B132B" strokeWidth="1.5" />
+                  <text 
+                    x={pt.x} 
+                    y={pt.y - 7} 
+                    textAnchor="middle" 
+                    fill="#F8FAFC" 
+                    fontSize="9" 
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    {pt.temp.toFixed(0)}°
+                  </text>
+                  <text 
+                    x={pt.x} 
+                    y={svgHeight} 
+                    textAnchor="middle" 
+                    fill="#94A3B8" 
+                    fontSize="8" 
+                    fontFamily="monospace"
+                  >
+                    {pt.label}
+                  </text>
+                </g>
+              ))}
+            </svg>
           </div>
         </div>
 
-        {/* AI Explainable Assessment Card */}
-        <div className="p-3 bg-cyan-950/40 border border-cyan-800/50 rounded-xl space-y-1">
+        {/* =========================================================================
+            SECTION 9: 24/48/72-HOUR FORECAST CARDS
+            ========================================================================= */}
+        <div className="grid grid-cols-3 gap-1.5 font-mono text-[10px] text-center">
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+            <span className="text-slate-400 block">+24h</span>
+            <span className="font-bold text-white text-xs block">{report.forecast_data.pred24h_temp}°C</span>
+            <span className={`text-[9px] block font-semibold ${report.forecast_data.pred24h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>
+              Risk {report.forecast_data.pred24h_risk}
+            </span>
+          </div>
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+            <span className="text-slate-400 block">+48h</span>
+            <span className="font-bold text-white text-xs block">{report.forecast_data.pred48h_temp}°C</span>
+            <span className={`text-[9px] block font-semibold ${report.forecast_data.pred48h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>
+              Risk {report.forecast_data.pred48h_risk}
+            </span>
+          </div>
+          <div className="p-2 bg-slate-800/60 border border-slate-700/60 rounded-xl space-y-0.5">
+            <span className="text-slate-400 block">+72h</span>
+            <span className="font-bold text-white text-xs block">{report.forecast_data.pred72h_temp}°C</span>
+            <span className={`text-[9px] block font-semibold ${report.forecast_data.pred72h_risk > 65 ? 'text-orange-400' : 'text-slate-400'}`}>
+              Risk {report.forecast_data.pred72h_risk}
+            </span>
+          </div>
+        </div>
+
+        {/* =========================================================================
+            SECTION 10: AI ENVIRONMENTAL ASSESSMENT
+            ========================================================================= */}
+        <div className="p-3 bg-cyan-950/40 border border-cyan-800/50 rounded-xl space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span>AI Environmental Assessment</span>
           </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-3">
+          <p className="text-[11px] text-slate-300 leading-relaxed">
             {report.ai_explanation}
           </p>
         </div>
 
-        {/* Primary Action Button: View Full Location Report */}
-        <button
-          onClick={() => setShowFullModal(true)}
-          className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 transition-all transform active:scale-98"
-        >
-          <FileText className="w-4 h-4" />
-          <span>View Full Location Report</span>
-        </button>
+        {/* =========================================================================
+            SECTION 11: PREVENTIVE RECOMMENDATIONS
+            ========================================================================= */}
+        <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Preventive Heat Health Actions</span>
+          </div>
+          <ul className="space-y-1.5 text-[11px] text-slate-300">
+            <li className="flex items-start gap-1.5">
+              <span className="text-cyan-400 font-bold shrink-0">💧</span>
+              <span>Maintain hydration: drink at least 500ml water or ORS every 2 hours.</span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="text-amber-400 font-bold shrink-0">☀️</span>
+              <span>Avoid strenuous direct outdoor exposure during peak sun hours (12:00 PM – 03:30 PM).</span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="text-emerald-400 font-bold shrink-0">👕</span>
+              <span>Wear loose, light-colored breathable cotton clothing and head covers.</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* =========================================================================
+            SECTION 12: NEARBY COOLING CENTRES
+            ========================================================================= */}
+        <div className="p-3 bg-sky-950/30 border border-sky-800/40 rounded-xl space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-300">
+              <Building2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span>Nearby Verified Cooling Respite</span>
+            </div>
+            <span className="text-[9px] font-mono text-sky-400">Air-Conditioned</span>
+          </div>
+
+          {nearestCoolingCentres.length === 0 ? (
+            <p className="text-[11px] text-slate-400">
+              No municipal cooling shelters in immediate proximity.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {nearestCoolingCentres.map(({ centre, distanceKm }) => (
+                <div 
+                  key={centre.id}
+                  className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">
+                      {centre.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      {centre.address} • ⏰ {centre.operating_hours}
+                    </div>
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${centre.latitude},${centre.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[10px] font-bold shrink-0 transition-colors flex items-center gap-1"
+                  >
+                    <span>{distanceKm.toFixed(1)} km</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* =========================================================================
+            SECTION 13: COMMUNITY ASSISTANCE INFORMATION & HELPLINES
+            ========================================================================= */}
+        <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold flex items-center gap-1">
+              <PhoneCall className="w-3 h-3 text-red-400 shrink-0" />
+              <span>Emergency Heat Helplines</span>
+            </span>
+            <span className="text-[9px] font-mono text-red-400 font-bold">24x7 TOLL FREE</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            <a 
+              href="tel:112" 
+              className="p-1.5 bg-red-950/50 hover:bg-red-900/60 border border-red-800/60 rounded-lg text-red-200 transition-colors block"
+            >
+              <span className="text-xs font-black block font-mono">112</span>
+              <span className="text-[9px] text-red-300">National</span>
+            </a>
+            <a 
+              href="tel:108" 
+              className="p-1.5 bg-red-950/50 hover:bg-red-900/60 border border-red-800/60 rounded-lg text-red-200 transition-colors block"
+            >
+              <span className="text-xs font-black block font-mono">108</span>
+              <span className="text-[9px] text-red-300">Ambulance</span>
+            </a>
+            <a 
+              href="tel:1070" 
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 transition-colors block"
+            >
+              <span className="text-xs font-black block font-mono">1070</span>
+              <span className="text-[9px] text-slate-400">Disaster</span>
+            </a>
+          </div>
+
+          {/* Primary Action Button: View Full Location Report */}
+          <button
+            onClick={() => setShowFullModal(true)}
+            className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 transition-all transform active:scale-98"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Generate Full Dossier</span>
+          </button>
+        </div>
       </aside>
 
       {/* Dedicated Fullscreen / Modal Report */}

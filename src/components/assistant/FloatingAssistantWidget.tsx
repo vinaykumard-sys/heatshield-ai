@@ -136,26 +136,26 @@ export const FloatingAssistantWidget: React.FC = () => {
   };
 
   return (
-    <aside aria-label="AI Assistant" className="fixed bottom-5 right-5 z-40">
+    <aside aria-label="AI Assistant" className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-30 pointer-events-auto">
       {/* Floating Toggle Button (Visible when closed) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2.5 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+          className="group relative flex items-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
           title="Open HeatShield AI Assistant"
         >
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <Bot className="w-5 h-5 transition-transform group-hover:scale-110" />
-          <span className="text-xs font-bold tracking-tight">AI Assistant</span>
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+          <span className="text-xs font-bold tracking-tight hidden sm:inline-block">AI Assistant</span>
         </button>
       )}
 
       {/* Floating Chat Modal (Visible when open) */}
       {isOpen && (
-        <div className="w-[360px] sm:w-[400px] h-[520px] bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="w-[340px] sm:w-[390px] h-[480px] sm:h-[520px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-90px)] bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
