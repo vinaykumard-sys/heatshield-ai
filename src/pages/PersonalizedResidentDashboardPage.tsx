@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   User, 
   Thermometer, 
@@ -23,9 +23,29 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useLocationTracker } from '../context/LocationContext';
+import { useAuth } from '../context/AuthContext';
 import { mockDb } from '../lib/mockDb';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { Link } from 'react-router-dom';
+
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(distKm: number): string {
+  if (distKm < 1) {
+    return `${Math.round(distKm * 1000)} m away`;
+  }
+  return `${distKm.toFixed(1)} km away`;
+}
 
 interface ResidentProfile {
   name: string;
@@ -38,20 +58,47 @@ interface ResidentProfile {
 }
 
 export const PersonalizedResidentDashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const { currentLocation, currentReading, currentRisk, forecastHourly, isLiveWeather } = useLocationTracker();
 
-  // Resident Profile state
-  const [profile, setProfile] = useState<ResidentProfile>({
-    name: 'Priya Sharma',
-    age_group: 'adult',
-    has_cardiovascular_condition: false,
-    has_respiratory_condition: false,
-    has_ac_at_home: true,
-    outdoor_exposure_hours: 2,
-    weight_kg: 62
+  // Resident Profile state with persistence
+  const [profile, setProfile] = useState<ResidentProfile>(() => {
+    try {
+      const saved = localStorage.getItem('heatshield_resident_profile');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      name: user?.full_name || (user?.email ? user.email.split('@')[0] : 'Resident User'),
+      age_group: 'adult',
+      has_cardiovascular_condition: false,
+      has_respiratory_condition: false,
+      has_ac_at_home: true,
+      outdoor_exposure_hours: 2,
+      weight_kg: 62
+    };
   });
 
+  // Sync profile name when user logs in if not previously set to custom name
+  useEffect(() => {
+    if (user?.full_name && (profile.name === 'Resident User' || profile.name === 'Priya Sharma')) {
+      setProfile(p => ({ ...p, name: user.full_name }));
+    }
+  }, [user]);
+
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const handleSaveProfile = () => {
+    try {
+      localStorage.setItem('heatshield_resident_profile', JSON.stringify(profile));
+    } catch {
+      // ignore
+    }
+    setShowProfileModal(false);
+  };
 
   // Live weather readings from LocationContext
   const currentTemp = currentReading?.temperature_c ?? 32.5;
@@ -60,8 +107,38 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
   const currentRiskScore = currentRisk?.risk_score ?? 60;
   const currentRiskCategory = currentRisk?.risk_category ?? 'moderate';
 
-  // Hydration Tracker State
-  const [waterGlasses, setWaterGlasses] = useState(5); // 250ml each = 1250ml
+  // Hydration Tracker State with daily persistence
+  const [waterGlasses, setWaterGlassesState] = useState<number>(() => {
+    try {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const savedDate = localStorage.getItem('heatshield_hydration_date');
+      if (savedDate === todayKey) {
+        const saved = localStorage.getItem('heatshield_hydration_glasses');
+        if (saved !== null) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed)) return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 5; // default 5 glasses = 1250ml
+  });
+
+  const setWaterGlasses = (updater: number | ((prev: number) => number)) => {
+    setWaterGlassesState(prev => {
+      const val = typeof updater === 'function' ? updater(prev) : updater;
+      const bounded = Math.max(0, val);
+      try {
+        const todayKey = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('heatshield_hydration_date', todayKey);
+        localStorage.setItem('heatshield_hydration_glasses', bounded.toString());
+      } catch {
+        // ignore
+      }
+      return bounded;
+    });
+  };
 
   // Recommended hydration based on weight and heat
   const dailyTargetMl = useMemo(() => {
@@ -74,28 +151,81 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
   const currentHydrationMl = waterGlasses * 250;
   const hydrationPercent = Math.min(100, Math.round((currentHydrationMl / dailyTargetMl) * 100));
 
-  // Family status from mockDb
-  const families = mockDb.getFamilyGroups();
-  const primaryFamily = families[0];
+  // Nearest lifelines dynamically sorted by distance
+  const { nearestWater, nearestCooling } = useMemo(() => {
+    const waterStations = mockDb.getWaterStations();
+    const coolingCentres = mockDb.getCoolingCentres();
 
-  // Nearest lifelines
-  const waterStations = mockDb.getWaterStations();
-  const coolingCentres = mockDb.getCoolingCentres();
-  const nearestWater = waterStations[0];
-  const nearestCooling = coolingCentres[0];
+    const sortedWater = [...waterStations].map(w => ({
+      ...w,
+      distKm: getDistanceKm(currentLocation.latitude, currentLocation.longitude, w.latitude, w.longitude)
+    })).sort((a, b) => a.distKm - b.distKm);
 
-  // Hourly exposure planner for today
-  const hourlyForecast = [
-    { hour: '09:00', temp: 28, risk: 'safe', label: 'Safe Window', note: 'Good time for outdoor errands' },
-    { hour: '11:00', temp: 32, risk: 'caution', label: 'Caution Window', note: 'Seek shade, wear UV protection' },
-    { hour: '13:00', temp: 35, risk: 'danger', label: 'High Danger Window', note: 'Avoid direct sun, stay indoors' },
-    { hour: '15:00', temp: 36, risk: 'danger', label: 'Peak Heat Window', note: 'Hydrate every 20 min, keep curtains closed' },
-    { hour: '17:00', temp: 33, risk: 'caution', label: 'Moderate Caution', note: 'Thermal load cooling gradually' },
-    { hour: '19:00', temp: 29, risk: 'safe', label: 'Safe Evening', note: 'Ventilate indoor spaces' }
-  ];
+    const sortedCooling = [...coolingCentres].map(c => ({
+      ...c,
+      distKm: getDistanceKm(currentLocation.latitude, currentLocation.longitude, c.latitude, c.longitude)
+    })).sort((a, b) => a.distKm - b.distKm);
+
+    return {
+      nearestWater: sortedWater[0] || null,
+      nearestCooling: sortedCooling[0] || null
+    };
+  }, [currentLocation.latitude, currentLocation.longitude]);
+
+  // Dynamic Hourly exposure planner for today based on real Open-Meteo forecast
+  const dynamicHourlyForecast = useMemo(() => {
+    if (forecastHourly && forecastHourly.length > 0) {
+      // Pick next 6 consecutive or step-2 hours
+      const step = forecastHourly.length >= 10 ? 2 : 1;
+      const sample = [];
+      for (let i = 0; i < forecastHourly.length && sample.length < 6; i += step) {
+        sample.push(forecastHourly[i]);
+      }
+
+      return sample.map(slot => {
+        const t = slot.temperature_c;
+        const hi = slot.heat_index_c || t;
+        let risk: 'safe' | 'caution' | 'danger' = 'safe';
+        let label = 'Safe Window';
+        let note = 'Good time for outdoor errands & commute';
+
+        if (hi >= 39 || t >= 38) {
+          risk = 'danger';
+          label = 'Peak Heat Window';
+          note = 'Hydrate continuously, avoid direct sun & keep indoors';
+        } else if (hi >= 35 || t >= 33) {
+          risk = 'danger';
+          label = 'High Danger Window';
+          note = 'Elevated heat index, seek shade, wear head cover';
+        } else if (hi >= 30 || t >= 29) {
+          risk = 'caution';
+          label = 'Caution Window';
+          note = 'UV and thermal load rising, keep hydrated';
+        }
+
+        return {
+          hour: slot.time || '12:00',
+          temp: t,
+          risk,
+          label,
+          note
+        };
+      });
+    }
+
+    // High quality fallback around currentTemp
+    return [
+      { hour: '09:00', temp: Math.round(currentTemp - 4), risk: 'safe' as const, label: 'Safe Window', note: 'Good time for outdoor errands' },
+      { hour: '11:00', temp: Math.round(currentTemp - 1), risk: 'caution' as const, label: 'Caution Window', note: 'Seek shade, wear UV protection' },
+      { hour: '13:00', temp: Math.round(currentTemp + 2), risk: 'danger' as const, label: 'High Danger Window', note: 'Avoid direct sun, stay indoors' },
+      { hour: '15:00', temp: Math.round(currentTemp + 3), risk: 'danger' as const, label: 'Peak Heat Window', note: 'Hydrate every 20 min, keep curtains closed' },
+      { hour: '17:00', temp: Math.round(currentTemp), risk: 'caution' as const, label: 'Moderate Caution', note: 'Thermal load cooling gradually' },
+      { hour: '19:00', temp: Math.round(currentTemp - 3), risk: 'safe' as const, label: 'Safe Evening', note: 'Ventilate indoor spaces' }
+    ];
+  }, [forecastHourly, currentTemp]);
 
   // Bookmarked places
-  const [bookmarkedPlaces, setBookmarkedPlaces] = useState([
+  const [bookmarkedPlaces] = useState([
     { name: 'Home (Hebbal)', temp: 33.8, risk: 'Moderate', color: 'text-amber-600 bg-amber-50' },
     { name: 'Workplace (Manyata Tech Park)', temp: 35.1, risk: 'High', color: 'text-orange-600 bg-orange-50' },
     { name: 'Parents (Jayanagar)', temp: 32.5, risk: 'Moderate', color: 'text-amber-600 bg-amber-50' }
@@ -270,7 +400,7 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
           </div>
 
           <div className="space-y-2.5">
-            {hourlyForecast.map((slot) => {
+            {dynamicHourlyForecast.map((slot) => {
               const badgeStyle = 
                 slot.risk === 'safe' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
                 slot.risk === 'caution' ? 'bg-amber-100 text-amber-800 border-amber-200' :
@@ -332,19 +462,27 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <h3 className="text-sm font-bold text-slate-900">Nearest Cooling & Water Lifelines</h3>
             </div>
+            <span className="text-[11px] font-mono text-slate-500">Live Proximity Sorted</span>
           </div>
 
           <div className="space-y-3">
             {nearestWater && (
-              <div className="p-3.5 rounded-2xl border border-blue-100 bg-blue-50/40 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-mono text-blue-700 uppercase font-bold">Nearest Water ATM</span>
-                  <h4 className="text-xs font-bold text-slate-900 mt-0.5">{nearestWater.name}</h4>
-                  <span className="text-[11px] text-slate-500">{nearestWater.address}</span>
+              <div className="p-3.5 rounded-2xl border border-blue-100 bg-blue-50/40 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-blue-700 uppercase font-bold">Nearest Water ATM</span>
+                    {nearestWater.distKm !== undefined && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold">
+                        {formatDistance(nearestWater.distKm)}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 mt-0.5 truncate">{nearestWater.name}</h4>
+                  <span className="text-[11px] text-slate-500 block truncate">{nearestWater.address}</span>
                 </div>
                 <Link
                   to="/water-stations"
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm"
+                  className="shrink-0 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm"
                 >
                   Locate
                 </Link>
@@ -352,15 +490,22 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
             )}
 
             {nearestCooling && (
-              <div className="p-3.5 rounded-2xl border border-emerald-100 bg-emerald-50/40 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-mono text-emerald-700 uppercase font-bold">Nearest Cooling Sanctuary</span>
-                  <h4 className="text-xs font-bold text-slate-900 mt-0.5">{nearestCooling.name}</h4>
-                  <span className="text-[11px] text-slate-500">{nearestCooling.address}</span>
+              <div className="p-3.5 rounded-2xl border border-emerald-100 bg-emerald-50/40 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-emerald-700 uppercase font-bold">Nearest Cooling Sanctuary</span>
+                    {nearestCooling.distKm !== undefined && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                        {formatDistance(nearestCooling.distKm)}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 mt-0.5 truncate">{nearestCooling.name}</h4>
+                  <span className="text-[11px] text-slate-500 block truncate">{nearestCooling.address}</span>
                 </div>
                 <Link
                   to="/cooling-centres"
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm"
+                  className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm"
                 >
                   View
                 </Link>
@@ -373,7 +518,7 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
       {/* Adjust Profile Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Personal Health & Sensitivity Settings</h3>
               <button onClick={() => setShowProfileModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -437,7 +582,15 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
+                type="button"
                 onClick={() => setShowProfileModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 shadow-sm"
               >
                 Save Settings
