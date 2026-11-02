@@ -111,7 +111,7 @@ export const FamilySafetyPage: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleCopyCode}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-press hover:scale-105 active:scale-95"
           >
             <Copy className="w-3.5 h-3.5 text-slate-400" />
             <span>{copiedCode ? 'Code Copied!' : `Invite Code: ${activeGroup.invite_code}`}</span>
@@ -119,7 +119,7 @@ export const FamilySafetyPage: React.FC = () => {
 
           <button
             onClick={() => setShowAddMemberModal(true)}
-            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             <span>Add Family Member</span>
@@ -137,7 +137,7 @@ export const FamilySafetyPage: React.FC = () => {
           return (
             <div 
               key={member.id}
-              className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3 hover:border-slate-300 transition-all"
+              className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3 card-interactive hover:border-slate-300 transition-all"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -209,8 +209,8 @@ export const FamilySafetyPage: React.FC = () => {
 
       {/* Add Member Modal */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm text-slate-900">Add Family Member</h3>
               <button onClick={() => setShowAddMemberModal(false)} className="p-1 text-slate-400 hover:text-slate-600">

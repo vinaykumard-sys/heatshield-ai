@@ -153,7 +153,7 @@ export const HeatSimulatorPage: React.FC = () => {
             <button
               key={idx}
               onClick={() => handleApplyPreset(p)}
-              className={`p-2.5 rounded-xl border text-left transition-all ${
+              className={`p-2.5 rounded-xl border text-left card-interactive btn-press transition-all ${
                 activePresetName === p.name
                   ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
@@ -375,7 +375,7 @@ export const HeatSimulatorPage: React.FC = () => {
         <div className="lg:col-span-8 space-y-5">
           {/* Top Metrics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm card-interactive">
               <span className="text-xs text-slate-500 block mb-1">Average Risk Shift</span>
               <div className={`text-2xl font-bold font-mono ${
                 currentResult.summary.average_risk_delta > 0 
@@ -389,7 +389,7 @@ export const HeatSimulatorPage: React.FC = () => {
               <span className="text-[10px] text-slate-400">vs live baseline</span>
             </div>
 
-            <div className="p-4 bg-white border border-red-200 rounded-xl shadow-sm">
+            <div className="p-4 bg-white border border-red-200 rounded-xl shadow-sm card-interactive">
               <span className="text-xs text-red-600 font-semibold block mb-1">Critical Zones</span>
               <div className="text-2xl font-bold font-mono text-red-700">
                 {currentResult.summary.critical_neighbourhoods_count}
@@ -397,7 +397,7 @@ export const HeatSimulatorPage: React.FC = () => {
               <span className="text-[10px] text-slate-500">Risk Score ≥ 75</span>
             </div>
 
-            <div className="p-4 bg-white border border-orange-200 rounded-xl shadow-sm">
+            <div className="p-4 bg-white border border-orange-200 rounded-xl shadow-sm card-interactive">
               <span className="text-xs text-orange-600 font-semibold block mb-1">Additional At-Risk</span>
               <div className="text-2xl font-bold font-mono text-orange-700">
                 ~{currentResult.summary.additional_at_risk_residents.toLocaleString()}
@@ -405,7 +405,7 @@ export const HeatSimulatorPage: React.FC = () => {
               <span className="text-[10px] text-slate-500">Vulnerable residents</span>
             </div>
 
-            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm card-interactive">
               <span className="text-xs text-slate-500 block mb-1">Zones Above 35°C</span>
               <div className="text-2xl font-bold font-mono text-red-600">
                 {currentResult.locality_results.filter(l => l.is_above_35).length} / {currentResult.locality_results.length}

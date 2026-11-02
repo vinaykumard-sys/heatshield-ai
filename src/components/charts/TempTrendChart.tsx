@@ -53,7 +53,7 @@ export const TempTrendChart: React.FC<TempTrendProps> = ({ data }) => {
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
                 return (
-                  <div className="bg-white border border-[#E2E8F0] p-3 rounded-lg shadow-dropdown text-xs space-y-1">
+                  <div className="bg-white border border-[#E2E8F0] p-3 rounded-xl shadow-dropdown text-xs space-y-1 animate-dropdown-enter">
                     <p className="font-semibold text-slate-900">{label}</p>
                     <p className="text-blue-600 font-medium">
                       Ambient Temp: <span className="font-bold font-mono">{payload[0].value}°C</span>
@@ -78,6 +78,9 @@ export const TempTrendChart: React.FC<TempTrendProps> = ({ data }) => {
             fillOpacity={1}
             fill="url(#tempGradient)"
             name="Ambient Temp"
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
           <Area
             type="monotone"
@@ -88,6 +91,9 @@ export const TempTrendChart: React.FC<TempTrendProps> = ({ data }) => {
             fillOpacity={1}
             fill="url(#heatIndexGradient)"
             name="Heat Index"
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </AreaChart>
       </ResponsiveContainer>

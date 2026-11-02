@@ -93,7 +93,7 @@ export const RequestsPage: React.FC = () => {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm self-start sm:self-auto"
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm btn-interact self-start sm:self-auto"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Submit Assistance Request</span>
@@ -117,7 +117,7 @@ export const RequestsPage: React.FC = () => {
             placeholder="Search requests by resident, ward, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 input-interactive focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
           />
         </div>
 
@@ -126,7 +126,7 @@ export const RequestsPage: React.FC = () => {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1 rounded capitalize whitespace-nowrap font-medium transition-colors ${
+              className={`px-3 py-1 rounded capitalize whitespace-nowrap font-medium btn-press transition-all ${
                 statusFilter === st
                   ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -143,7 +143,7 @@ export const RequestsPage: React.FC = () => {
         {filtered.map((req) => (
           <div
             key={req.id}
-            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all space-y-3.5 flex flex-col justify-between"
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 card-interactive transition-all space-y-3.5 flex flex-col justify-between"
           >
             <div>
               {/* Card Header: Category & Priority */}

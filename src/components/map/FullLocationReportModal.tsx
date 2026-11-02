@@ -72,9 +72,9 @@ export const FullLocationReportModal: React.FC<FullLocationReportModalProps> = (
   const isCritical = report.temperature > 35.0 || report.risk_score >= 75;
 
   return (
-    <div className="fixed inset-0 z-[1200] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1200] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
       <div 
-        className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col"
+        className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-modal-enter"
         role="dialog"
         aria-modal="true"
       >

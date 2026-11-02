@@ -124,7 +124,7 @@ Issued by HeatShield AI Knowledge Base.`;
 
         <button
           onClick={handleDownloadCheatsheet}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-subtle transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-subtle btn-press transition-all"
         >
           <FileText className="w-4 h-4 text-blue-600" />
           <span>Download Action Cheat-Sheet</span>
@@ -145,7 +145,7 @@ Issued by HeatShield AI Knowledge Base.`;
             <button
               key={tab.id}
               onClick={() => handleRoleChange(tab.id as any)}
-              className={`p-4 rounded-2xl border text-left transition-all ${
+              className={`p-4 rounded-2xl border text-left btn-press card-interactive transition-all ${
                 isSelected
                   ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                   : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 shadow-subtle'
@@ -236,7 +236,7 @@ Issued by HeatShield AI Knowledge Base.`;
                           key={optIdx}
                           disabled={isQuizSubmitted}
                           onClick={() => handleSelectAnswer(qIdx, optIdx)}
-                          className={`w-full text-left p-2.5 rounded-xl border text-xs transition-colors flex items-center justify-between ${optClass}`}
+                          className={`w-full text-left p-2.5 rounded-xl border text-xs btn-press transition-all flex items-center justify-between ${optClass}`}
                         >
                           <span>{opt}</span>
                           {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
@@ -253,7 +253,7 @@ Issued by HeatShield AI Knowledge Base.`;
               <button
                 onClick={handleSubmitQuiz}
                 disabled={Object.keys(selectedAnswers).length < activeCourse.quiz.length}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md btn-interact disabled:opacity-50"
               >
                 Submit Answers for Evaluation
               </button>
@@ -273,7 +273,7 @@ Issued by HeatShield AI Knowledge Base.`;
                     setIsQuizSubmitted(false);
                     setSelectedAnswers({});
                   }}
-                  className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 btn-press flex items-center justify-center gap-1.5"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Retake Quiz</span>

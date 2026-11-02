@@ -108,7 +108,7 @@ export const SchoolSafetyPage: React.FC = () => {
 
         <button
           onClick={() => setShowRegisterModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm btn-interact shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Register School Campus</span>
@@ -123,7 +123,7 @@ export const SchoolSafetyPage: React.FC = () => {
           <select
             value={selectedSchoolId}
             onChange={e => setSelectedSchoolId(e.target.value)}
-            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none font-semibold text-slate-800"
+            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none input-interactive font-semibold text-slate-800"
           >
             {schools.map(s => (
               <option key={s.id} value={s.id}>{s.name} ({s.student_count} students)</option>
@@ -170,7 +170,7 @@ export const SchoolSafetyPage: React.FC = () => {
       {/* School Protocols & Facility Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Recess Guidance Card */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2 card-interactive">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
             <Sun className="w-4 h-4 text-amber-500" />
             <span>Recess & Play Protocol</span>
@@ -184,7 +184,7 @@ export const SchoolSafetyPage: React.FC = () => {
         </div>
 
         {/* Compulsory Hydration Bell */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2 card-interactive">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
             <Bell className="w-4 h-4 text-blue-500" />
             <span>Compulsory Hydration Schedule</span>
@@ -198,7 +198,7 @@ export const SchoolSafetyPage: React.FC = () => {
         </div>
 
         {/* Campus Facilities Audit */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2 card-interactive">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
             <Building2 className="w-4 h-4 text-sky-500" />
             <span>Campus Heat Facilities</span>

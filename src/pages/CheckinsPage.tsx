@@ -281,7 +281,7 @@ export const CheckinsPage: React.FC = () => {
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs">
           <button
             onClick={() => setActiveTab('priority_queue')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold btn-press transition-all ${
               activeTab === 'priority_queue'
                 ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
@@ -291,7 +291,7 @@ export const CheckinsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('volunteer_view')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold btn-press transition-all ${
               activeTab === 'volunteer_view'
                 ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
@@ -301,7 +301,7 @@ export const CheckinsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('all_logs')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold btn-press transition-all ${
               activeTab === 'all_logs'
                 ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
@@ -314,7 +314,7 @@ export const CheckinsPage: React.FC = () => {
 
       {/* Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3.5 bg-white border border-red-200 rounded-xl shadow-sm">
+        <div className="p-3.5 bg-white border border-red-200 rounded-xl shadow-sm card-interactive">
           <div className="flex items-center justify-between text-xs text-red-600 font-semibold mb-1">
             <span>Critical Priority</span>
             <Flame className="w-4 h-4 text-red-500" />
@@ -323,7 +323,7 @@ export const CheckinsPage: React.FC = () => {
           <p className="text-[11px] text-slate-500 mt-0.5">Score ≥ 75 (Immediate)</p>
         </div>
 
-        <div className="p-3.5 bg-white border border-orange-200 rounded-xl shadow-sm">
+        <div className="p-3.5 bg-white border border-orange-200 rounded-xl shadow-sm card-interactive">
           <div className="flex items-center justify-between text-xs text-orange-600 font-semibold mb-1">
             <span>Urgent Attention</span>
             <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -332,7 +332,7 @@ export const CheckinsPage: React.FC = () => {
           <p className="text-[11px] text-slate-500 mt-0.5">Score 50-74 (Same-day)</p>
         </div>
 
-        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-sm card-interactive">
           <div className="flex items-center justify-between text-xs text-slate-600 font-semibold mb-1">
             <span>Overdue (&gt;48h)</span>
             <Clock className="w-4 h-4 text-slate-400" />
@@ -341,7 +341,7 @@ export const CheckinsPage: React.FC = () => {
           <p className="text-[11px] text-slate-500 mt-0.5">Require fresh status check</p>
         </div>
 
-        <div className="p-3.5 bg-white border border-emerald-200 rounded-xl shadow-sm">
+        <div className="p-3.5 bg-white border border-emerald-200 rounded-xl shadow-sm card-interactive">
           <div className="flex items-center justify-between text-xs text-emerald-700 font-semibold mb-1">
             <span>Confirmed Safe</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -350,7 +350,7 @@ export const CheckinsPage: React.FC = () => {
           <p className="text-[11px] text-slate-500 mt-0.5">Verified safely hydrated</p>
         </div>
 
-        <div className="p-3.5 bg-white border border-red-200 rounded-xl shadow-sm col-span-2 sm:col-span-1">
+        <div className="p-3.5 bg-white border border-red-200 rounded-xl shadow-sm col-span-2 sm:col-span-1 card-interactive">
           <div className="flex items-center justify-between text-xs text-red-600 font-semibold mb-1">
             <span>Active Escalations</span>
             <ShieldAlert className="w-4 h-4 text-red-600" />

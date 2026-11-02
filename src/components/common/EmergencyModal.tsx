@@ -42,13 +42,13 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+      <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-modal-enter">
         {/* Urgent Header */}
         <div className="p-5 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-rose-600 rounded-xl text-white shadow-sm">
-              <PhoneCall className="w-5 h-5" />
+            <div className="p-2.5 bg-rose-600 rounded-xl text-white shadow-sm sos-breathe-subtle">
+              <PhoneCall className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white btn-press transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -115,13 +115,13 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
               {/* Primary State Disaster Helpline */}
               <a
                 href={`tel:${activeContact.disasterHelpline}`}
-                className="group p-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all flex flex-col justify-between"
+                className="group p-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all btn-press hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono uppercase font-semibold tracking-wider opacity-90">
                     Disaster Heat Control
                   </span>
-                  <PhoneCall className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <PhoneCall className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                 </div>
                 <div>
                   <span className="text-3xl font-extrabold font-mono tracking-tight block">
@@ -136,13 +136,13 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
               {/* Medical Emergency Ambulance (108) */}
               <a
                 href={`tel:${activeContact.medicalHelpline}`}
-                className="group p-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-all flex flex-col justify-between"
+                className="group p-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-all btn-press hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono uppercase font-semibold tracking-wider opacity-90">
                     Ambulance Rescue
                   </span>
-                  <HeartPulse className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <HeartPulse className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                 </div>
                 <div>
                   <span className="text-3xl font-extrabold font-mono tracking-tight block">
@@ -157,7 +157,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
               {/* National Unified Emergency (112) */}
               <a
                 href="tel:112"
-                className="group p-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all flex flex-col justify-between"
+                className="group p-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all btn-press hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono uppercase font-semibold tracking-wider text-slate-300">

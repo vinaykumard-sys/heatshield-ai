@@ -30,20 +30,20 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card hover-elevate hover:border-slate-300 transition-all flex flex-col justify-between ${
-        onClick ? 'cursor-pointer' : ''
+      className={`group bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card card-interactive hover:border-slate-300 transition-all flex flex-col justify-between ${
+        onClick ? 'cursor-pointer active:scale-[0.98]' : ''
       } ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-slate-500 tracking-normal">{title}</p>
+          <p className="text-xs font-medium text-slate-500 tracking-normal transition-colors group-hover:text-slate-700">{title}</p>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-mono">
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-mono transition-transform duration-200">
               <CountUp value={value} />
             </h3>
             {trend && (
               <span
-                className={`text-[11px] font-medium px-1.5 py-0.5 rounded transition-colors ${
+                className={`text-[11px] font-medium px-1.5 py-0.5 rounded transition-all duration-150 group-hover:scale-105 ${
                   trend.isNeutral
                     ? 'bg-slate-100 text-slate-600'
                     : trend.isPositive
@@ -57,13 +57,13 @@ export const StatCard: React.FC<StatCardProps> = ({
           </div>
         </div>
 
-        <div className="p-2 rounded-lg bg-slate-50 border border-[#E2E8F0] text-slate-600 shrink-0 transition-transform group-hover:scale-105">
-          <Icon className="w-5 h-5 text-slate-600" />
+        <div className="p-2 rounded-lg bg-slate-50 border border-[#E2E8F0] text-slate-600 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600 shadow-2xs">
+          <Icon className="w-5 h-5 transition-colors duration-200" />
         </div>
       </div>
 
       {subtitle && (
-        <p className="text-xs text-slate-500 mt-2.5 pt-2 border-t border-[#F1F5F9] truncate">
+        <p className="text-xs text-slate-500 mt-2.5 pt-2 border-t border-[#F1F5F9] truncate transition-colors group-hover:text-slate-600">
           {subtitle}
         </p>
       )}

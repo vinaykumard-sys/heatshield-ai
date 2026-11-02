@@ -117,7 +117,7 @@ export const OfflineEmergencyPage: React.FC = () => {
             <button
               onClick={handlePreCacheData}
               disabled={isPreCaching}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm btn-press transition-all"
             >
               {isPreCaching ? <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" /> : <DownloadCloud className="w-4 h-4 text-cyan-400" />}
               <span>{isPreCaching ? 'Caching Lifelines...' : 'Pre-Cache Offline Data'}</span>
@@ -127,7 +127,7 @@ export const OfflineEmergencyPage: React.FC = () => {
               <button
                 onClick={syncOfflineQueue}
                 disabled={isSyncing}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md transition-all active:scale-95"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md btn-interact"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 <span>Sync {pendingCount} Queued Actions</span>
@@ -157,7 +157,7 @@ export const OfflineEmergencyPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
             href="tel:108"
-            className="p-4 rounded-2xl bg-red-50 hover:bg-red-100/80 border border-red-200 transition-all flex flex-col justify-between group"
+            className="p-4 rounded-2xl bg-red-50 hover:bg-red-100/80 border border-red-200 card-interactive flex flex-col justify-between group"
           >
             <div>
               <span className="text-[10px] font-mono uppercase font-bold text-red-700 block">Ambulance & Trauma</span>
@@ -171,7 +171,7 @@ export const OfflineEmergencyPage: React.FC = () => {
 
           <a
             href="tel:112"
-            className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all flex flex-col justify-between group"
+            className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 card-interactive flex flex-col justify-between group"
           >
             <div>
               <span className="text-[10px] font-mono uppercase font-bold text-slate-600 block">All-India Emergency</span>
@@ -185,7 +185,7 @@ export const OfflineEmergencyPage: React.FC = () => {
 
           <a
             href="tel:1070"
-            className="p-4 rounded-2xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200 transition-all flex flex-col justify-between group"
+            className="p-4 rounded-2xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200 card-interactive flex flex-col justify-between group"
           >
             <div>
               <span className="text-[10px] font-mono uppercase font-bold text-amber-700 block">Disaster Authority (SDMA)</span>
@@ -199,7 +199,7 @@ export const OfflineEmergencyPage: React.FC = () => {
 
           <a
             href="tel:1533"
-            className="p-4 rounded-2xl bg-blue-50 hover:bg-blue-100/80 border border-blue-200 transition-all flex flex-col justify-between group"
+            className="p-4 rounded-2xl bg-blue-50 hover:bg-blue-100/80 border border-blue-200 card-interactive flex flex-col justify-between group"
           >
             <div>
               <span className="text-[10px] font-mono uppercase font-bold text-blue-700 block">BBMP Control Room</span>

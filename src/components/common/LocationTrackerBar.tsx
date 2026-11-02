@@ -98,7 +98,7 @@ export const LocationTrackerBar: React.FC = () => {
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
                   title="Telemetry automatically updates every 5 minutes in real time. Click to sync immediately."
-                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-lg font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 btn-press transition-all"
                 >
                   <RefreshCw className={`w-2.5 h-2.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                   <span>Auto-sync: 5m</span>
@@ -173,9 +173,9 @@ export const LocationTrackerBar: React.FC = () => {
             {/* Emergency Hotline Button */}
             <button
               onClick={() => setIsEmergencyOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-sm transition-colors"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-sm sos-breathe-subtle btn-press"
             >
-              <PhoneCall className="w-3.5 h-3.5" />
+              <PhoneCall className="w-3.5 h-3.5 animate-pulse" />
               <span>SOS Helpline ({helplineNumber})</span>
             </button>
           </div>
@@ -186,19 +186,19 @@ export const LocationTrackerBar: React.FC = () => {
           {/* Instant Address / Road Search Form */}
           <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-96 flex items-center gap-1.5">
             <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search any road/colony (e.g. Chokkanahalli, Bengaluru)..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none input-interactive transition-all"
               />
             </div>
             <button
               type="submit"
               disabled={isSearching}
-              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors shrink-0 shadow-sm"
+              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs btn-interact shrink-0 shadow-sm"
             >
               {isSearching ? 'Locating...' : 'Set Area'}
             </button>
@@ -209,7 +209,7 @@ export const LocationTrackerBar: React.FC = () => {
             <button
               onClick={detectLocation}
               disabled={isTracking}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 transition-colors whitespace-nowrap shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 btn-interact whitespace-nowrap shadow-sm"
             >
               <Navigation className={`w-3.5 h-3.5 text-blue-600 ${isTracking ? 'animate-spin' : ''}`} />
               <span>{isTracking ? 'Detecting GPS...' : 'Detect Device GPS'}</span>
@@ -223,7 +223,7 @@ export const LocationTrackerBar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => searchAndSetLocation('Chokkanahalli Road, Bengaluru')}
-                className="hover:text-blue-600 transition-colors font-medium hover:underline"
+                className="hover:text-blue-600 transition-all duration-150 font-medium hover:scale-105 inline-block"
               >
                 Chokkanahalli
               </button>
@@ -231,7 +231,7 @@ export const LocationTrackerBar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => searchAndSetLocation('Yelahanka, Bengaluru')}
-                className="hover:text-blue-600 transition-colors font-medium hover:underline"
+                className="hover:text-blue-600 transition-all duration-150 font-medium hover:scale-105 inline-block"
               >
                 Yelahanka
               </button>
@@ -239,7 +239,7 @@ export const LocationTrackerBar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => searchAndSetLocation('Indiranagar, Bengaluru')}
-                className="hover:text-blue-600 transition-colors font-medium hover:underline"
+                className="hover:text-blue-600 transition-all duration-150 font-medium hover:scale-105 inline-block"
               >
                 Indiranagar
               </button>

@@ -121,7 +121,7 @@ export const PredictionsPage: React.FC = () => {
             <select
               value={selectedLocId}
               onChange={(e) => setSelectedLocId(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-900 text-xs font-semibold pl-9 pr-8 py-2 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+              className="bg-white border border-slate-200 text-slate-900 text-xs font-semibold pl-9 pr-8 py-2 rounded-lg shadow-sm input-interactive focus:outline-none focus:border-blue-500"
             >
               {locations.map(loc => (
                 <option key={loc.id} value={loc.id}>
@@ -134,7 +134,7 @@ export const PredictionsPage: React.FC = () => {
           <button
             onClick={() => selectedLoc && loadForecastData(selectedLoc, true)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 btn-press transition-all shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Re-compute Models</span>
@@ -156,7 +156,7 @@ export const PredictionsPage: React.FC = () => {
             <div
               key={fc.forecast_horizon_hours}
               onClick={() => setSelectedHorizon(fc.forecast_horizon_hours)}
-              className={`p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-4 hover-elevate ${
+              className={`p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-4 card-interactive ${
                 isSelected 
                   ? 'border-blue-600 ring-2 ring-blue-600/10 shadow-md' 
                   : 'border-slate-200 hover:border-slate-300'

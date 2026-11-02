@@ -180,7 +180,7 @@ export const WaterStationsPage: React.FC = () => {
 
         <button
           onClick={() => setShowSuggestModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 btn-interact"
         >
           <Plus className="w-4 h-4" />
           <span>Suggest New Water Point</span>
@@ -188,7 +188,7 @@ export const WaterStationsPage: React.FC = () => {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -196,7 +196,7 @@ export const WaterStationsPage: React.FC = () => {
             placeholder="Search by locality, street or landmark..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none input-interactive"
           />
         </div>
 
@@ -205,9 +205,9 @@ export const WaterStationsPage: React.FC = () => {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg capitalize font-medium whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-xl capitalize font-medium whitespace-nowrap btn-press transition-all ${
                 statusFilter === st
-                  ? 'bg-sky-600 text-white'
+                  ? 'bg-sky-600 text-white shadow-xs font-semibold'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -250,8 +250,8 @@ export const WaterStationsPage: React.FC = () => {
                       mapInstanceRef.current.flyTo([st.latitude, st.longitude], 15);
                     }
                   }}
-                  className={`p-4 rounded-xl border bg-white transition-all cursor-pointer hover:border-sky-300 shadow-xs ${
-                    selectedStation?.id === st.id ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-200'
+                  className={`p-4 rounded-xl border bg-white transition-all cursor-pointer hover:border-sky-300 card-interactive shadow-xs ${
+                    selectedStation?.id === st.id ? 'border-sky-500 ring-2 ring-sky-100 shadow-sm' : 'border-slate-200'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -314,8 +314,8 @@ export const WaterStationsPage: React.FC = () => {
 
       {/* Report Modal */}
       {showReportModal && selectedStation && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm text-slate-900">Report Water Station Status</h3>
               <button onClick={() => setShowReportModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
@@ -375,8 +375,8 @@ export const WaterStationsPage: React.FC = () => {
 
       {/* Suggest Modal */}
       {showSuggestModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm text-slate-900">Suggest New Drinking Water Point</h3>
               <button onClick={() => setShowSuggestModal(false)} className="p-1 text-slate-400 hover:text-slate-600">

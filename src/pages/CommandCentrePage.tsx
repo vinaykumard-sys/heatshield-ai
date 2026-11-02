@@ -210,7 +210,7 @@ export const CommandCentrePage: React.FC = () => {
           <button
             onClick={handleManualBriefingRefresh}
             disabled={isRefreshing}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-press hover:scale-105 active:scale-95"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
             <span>Sync Live Telemetry</span>
@@ -218,7 +218,7 @@ export const CommandCentrePage: React.FC = () => {
 
           <button
             onClick={handleExportBriefing}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Official Dossier</span>
@@ -308,40 +308,40 @@ export const CommandCentrePage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
             <button
               onClick={() => setShowHeatLayer(!showHeatLayer)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors ${
-                showHeatLayer ? 'bg-red-950 text-red-300 border-red-700' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
+                showHeatLayer ? 'bg-red-950 text-red-300 border-red-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
               }`}
             >
               ⚠️ Heat Risk Circles
             </button>
             <button
               onClick={() => setShowCoolingLayer(!showCoolingLayer)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors ${
-                showCoolingLayer ? 'bg-sky-950 text-sky-300 border-sky-700' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
+                showCoolingLayer ? 'bg-sky-950 text-sky-300 border-sky-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
               }`}
             >
               ❄️ Cooling Centres
             </button>
             <button
               onClick={() => setShowWaterLayer(!showWaterLayer)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors ${
-                showWaterLayer ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
+                showWaterLayer ? 'bg-cyan-950 text-cyan-300 border-cyan-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
               }`}
             >
               💧 Water ATMs
             </button>
             <button
               onClick={() => setShowHospitalLayer(!showHospitalLayer)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors ${
-                showHospitalLayer ? 'bg-rose-950 text-rose-300 border-rose-700' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
+                showHospitalLayer ? 'bg-rose-950 text-rose-300 border-rose-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
               }`}
             >
               🏥 Hospitals
             </button>
             <button
               onClick={() => setShowSchoolLayer(!showSchoolLayer)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors ${
-                showSchoolLayer ? 'bg-amber-950 text-amber-300 border-amber-700' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
+                showSchoolLayer ? 'bg-amber-950 text-amber-300 border-amber-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
               }`}
             >
               🏫 Schools

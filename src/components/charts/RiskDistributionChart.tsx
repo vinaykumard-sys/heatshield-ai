@@ -37,6 +37,9 @@ export const RiskDistributionChart: React.FC<RiskDistributionProps> = ({ distrib
               outerRadius={74}
               paddingAngle={4}
               dataKey="value"
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-out"
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} stroke="#FFFFFF" strokeWidth={2} />
@@ -48,7 +51,7 @@ export const RiskDistributionChart: React.FC<RiskDistributionProps> = ({ distrib
                   const d = payload[0];
                   const percent = total > 0 ? ((Number(d.value) / total) * 100).toFixed(0) : 0;
                   return (
-                    <div className="bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm text-xs">
+                    <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-dropdown text-xs animate-dropdown-enter">
                       <p className="font-semibold text-slate-900">{d.name}</p>
                       <p className="text-slate-600 font-mono mt-0.5">
                         {d.value} locations ({percent}%)

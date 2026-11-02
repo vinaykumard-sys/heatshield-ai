@@ -128,7 +128,7 @@ export const ResidentsPage: React.FC = () => {
         {isVolunteer && (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm self-start sm:self-auto"
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm btn-interact self-start sm:self-auto"
           >
             <UserPlus className="w-4 h-4" />
             <span>Register Vulnerable Resident</span>
@@ -145,7 +145,7 @@ export const ResidentsPage: React.FC = () => {
             placeholder="Search resident by name, locality, or housing conditions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 input-interactive focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
           />
         </div>
 
@@ -153,7 +153,7 @@ export const ResidentsPage: React.FC = () => {
           <select
             value={localityFilter}
             onChange={(e) => setLocalityFilter(e.target.value)}
-            className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 shadow-sm font-medium"
+            className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-3 py-2 input-interactive focus:outline-none focus:border-blue-500 shadow-sm font-medium"
           >
             <option value="all">All Localities</option>
             {locations.map((loc) => (
@@ -164,7 +164,7 @@ export const ResidentsPage: React.FC = () => {
           <select
             value={ageFilter}
             onChange={(e) => setAgeFilter(e.target.value)}
-            className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 shadow-sm font-medium"
+            className="bg-white border border-slate-200 text-slate-800 text-xs rounded-lg px-3 py-2 input-interactive focus:outline-none focus:border-blue-500 shadow-sm font-medium"
           >
             <option value="all">All Age Groups</option>
             <option value="75_plus">75+ Years</option>
@@ -180,7 +180,7 @@ export const ResidentsPage: React.FC = () => {
         {filtered.map((res) => (
           <div
             key={res.id}
-            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all space-y-4 relative flex flex-col justify-between"
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 card-interactive transition-all space-y-4 relative flex flex-col justify-between"
           >
             <div>
               {/* Card Top: Rank & Age */}

@@ -126,14 +126,14 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
             >
               <Settings2 className="w-4 h-4 text-cyan-400" />
               <span>Adjust Health Profile</span>
             </button>
             <Link
               to="/safe-routes"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/30 transition-all btn-interact hover:scale-[1.03] active:scale-[0.97]"
             >
               <Navigation className="w-4 h-4" />
               <span>Plan Shaded Route</span>
@@ -235,14 +235,14 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setWaterGlasses(prev => prev + 1)}
-              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all btn-interact hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>+1 Glass (250 ml)</span>
             </button>
             <button
               onClick={() => setWaterGlasses(prev => Math.max(0, prev - 1))}
-              className="px-4 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-semibold"
+              className="px-4 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-semibold btn-press hover:scale-105 active:scale-95"
             >
               -1
             </button>

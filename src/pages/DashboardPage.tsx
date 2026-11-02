@@ -145,7 +145,7 @@ export const DashboardPage: React.FC = () => {
             <select
               value={selectedLocId}
               onChange={(e) => setSelectedLocId(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm font-medium"
+              className="bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 pr-8 focus:outline-none input-interactive shadow-sm font-medium"
             >
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id} className="text-slate-900">
@@ -158,7 +158,7 @@ export const DashboardPage: React.FC = () => {
           <button
             onClick={() => selectedLoc && loadLocWeather(selectedLoc)}
             disabled={isRefreshing}
-            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm"
+            className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all shadow-sm btn-press hover:scale-105 active:scale-95"
             title="Refresh weather data"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
@@ -277,7 +277,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-3 shrink-0">
             <Link
               to="/map"
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm btn-press"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm btn-interact"
             >
               <MapPin className="w-3.5 h-3.5" />
               <span>Inspect on Map</span>
@@ -333,7 +333,7 @@ export const DashboardPage: React.FC = () => {
             {forecastDaily.map((day, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-center space-y-1.5 hover-elevate"
+                className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1.5 card-interactive cursor-default"
               >
                 <span className="text-[11px] font-mono font-semibold text-slate-500 block truncate">{day.date}</span>
                 <div className="text-base font-bold text-slate-900 font-mono">{day.max_temp_c}°C</div>

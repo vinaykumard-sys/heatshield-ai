@@ -415,7 +415,7 @@ print(data)`;
                 <div
                   key={ep.id}
                   onClick={() => handleSelectEndpoint(ep)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer card-interactive ${
                     isSelected
                       ? 'bg-blue-50/60 border-blue-500 shadow-sm ring-1 ring-blue-500'
                       : 'bg-white border-slate-200 hover:border-slate-300 shadow-subtle'
@@ -545,11 +545,11 @@ print(data)`;
 
       {/* New API Key Modal */}
       {showNewKeyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Provision New API Key</h3>
-              <button onClick={() => setShowNewKeyModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => setShowNewKeyModal(false)} className="text-slate-400 hover:text-slate-600 btn-press">✕</button>
             </div>
 
             <form onSubmit={handleCreateKey} className="space-y-4">
@@ -561,7 +561,7 @@ print(data)`;
                   placeholder="e.g. Bangalore Civic Tech Labs"
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none input-interactive"
                 />
               </div>
 

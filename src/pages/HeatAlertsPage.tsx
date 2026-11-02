@@ -93,7 +93,7 @@ export const HeatAlertsPage: React.FC = () => {
 
         <button
           onClick={() => setShowSubModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 btn-interact"
         >
           <Plus className="w-4 h-4" />
           <span>Subscribe to Location</span>
@@ -102,7 +102,7 @@ export const HeatAlertsPage: React.FC = () => {
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs card-interactive">
           <div className="text-xs text-slate-500 font-semibold mb-1">Active Public Warnings</div>
           <div className="text-2xl font-black text-slate-900 font-mono">
             {alerts.filter(a => a.is_active).length}
@@ -112,7 +112,7 @@ export const HeatAlertsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs card-interactive">
           <div className="text-xs text-slate-500 font-semibold mb-1">Subscribed Localities</div>
           <div className="text-2xl font-black text-slate-900 font-mono">
             {subscriptions.length}
@@ -122,7 +122,7 @@ export const HeatAlertsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs card-interactive">
           <div className="text-xs text-slate-500 font-semibold mb-1">Total Delivery Reach</div>
           <div className="text-2xl font-black text-slate-900 font-mono">
             {alerts.reduce((acc, a) => acc + (a.delivery_stats?.delivered_count || 0), 0).toLocaleString()}
@@ -171,7 +171,7 @@ export const HeatAlertsPage: React.FC = () => {
                 return (
                   <div 
                     key={alert.id}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-all card-interactive ${
                       isCrit 
                         ? 'bg-red-50/60 border-red-300 shadow-xs' 
                         : 'bg-white border-slate-200 shadow-xs'
@@ -301,8 +301,8 @@ export const HeatAlertsPage: React.FC = () => {
 
       {/* Subscription Dialog Modal */}
       {showSubModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-base text-slate-900">Subscribe to Ward Alerts</h3>
               <button onClick={() => setShowSubModal(false)} className="p-1 text-slate-400 hover:text-slate-600">

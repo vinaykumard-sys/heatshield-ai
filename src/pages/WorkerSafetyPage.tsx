@@ -116,7 +116,7 @@ export const WorkerSafetyPage: React.FC = () => {
 
         <button
           onClick={() => setShowAddWorkerModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 btn-interact"
         >
           <Plus className="w-4 h-4" />
           <span>Register Worker</span>
@@ -228,7 +228,7 @@ export const WorkerSafetyPage: React.FC = () => {
             return (
               <div 
                 key={w.id}
-                className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 hover:border-slate-300 transition-all"
+                className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 card-interactive hover:border-slate-300 transition-all"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>

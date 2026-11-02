@@ -275,19 +275,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium nav-item-interactive ${
                         isActive
-                          ? 'bg-blue-50 text-blue-700 font-semibold'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 hover:translate-x-0.5'
+                          ? 'active-nav'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                        <Icon className="w-4 h-4 nav-icon shrink-0" />
                         <span>{item.label}</span>
                       </div>
                       {item.badge !== undefined && (
-                        <span className={`px-1.5 py-0.2 text-[10px] font-semibold rounded-full ${
-                          item.badge === 'Live' ? 'bg-red-100 text-red-700 font-mono' : 'bg-blue-100 text-blue-800'
+                        <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-full shadow-2xs ${
+                          item.badge === 'Live' ? 'bg-red-100 text-red-700 font-mono animate-pulse' : 'bg-blue-100 text-blue-800'
                         }`}>
                           {item.badge}
                         </span>
@@ -340,29 +340,29 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Quick Search */}
             <div className="relative hidden md:block w-48 lg:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search platform..."
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-full bg-slate-50 border border-[#E2E8F0] rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-[#E2E8F0] rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none input-interactive"
               />
             </div>
 
             {/* Online / Offline Sync Status Indicator */}
             <Link
               to="/offline-emergency"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono font-medium btn-press ${
                 isOnline 
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:scale-[1.02]' 
                   : 'border-amber-300 bg-amber-50 text-amber-800 animate-pulse'
               }`}
               title={isOnline ? 'Online - Database synchronized' : 'Offline - Emergency lifelines cached'}
             >
               {isOnline ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="hidden sm:inline">Online</span>
                 </>
               ) : (
@@ -376,22 +376,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             {/* Emergency Hotline SOS Button */}
             <button
               onClick={() => setIsEmergencyModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold sos-breathe-subtle btn-press"
               title="State Emergency Hotline"
             >
-              <PhoneCall className="w-3.5 h-3.5 text-red-600" />
+              <PhoneCall className="w-3.5 h-3.5 text-red-600 animate-pulse" />
               <span className="hidden sm:inline">SOS ({helplineNum})</span>
             </button>
 
             {/* Notifications Trigger */}
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="relative p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+              className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all btn-press hover:scale-105"
               title="Community Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 animate-ping" />
               )}
             </button>
 
@@ -401,7 +401,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-all btn-press hover:scale-[1.02]"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   {user?.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -414,12 +414,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     {roleLabel}
                   </div>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform duration-200" />
               </button>
 
               {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-[#E2E8F0] shadow-dropdown py-1.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-[#E2E8F0] shadow-dropdown py-1.5 text-xs z-50 animate-dropdown-enter">
                   <div className="px-3.5 py-2 border-b border-[#E2E8F0]">
                     <p className="font-semibold text-slate-900 truncate">{user?.full_name}</p>
                     <p className="text-slate-500 truncate text-[11px]">{user?.email}</p>

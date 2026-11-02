@@ -200,27 +200,177 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Staggered Entrance Utilities */
-.stagger-1 { animation-delay: 35ms; }
-.stagger-2 { animation-delay: 70ms; }
-.stagger-3 { animation-delay: 105ms; }
-.stagger-4 { animation-delay: 140ms; }
-.stagger-5 { animation-delay: 175ms; }
-.stagger-6 { animation-delay: 210ms; }
+.stagger-1 { animation-delay: 30ms; }
+.stagger-2 { animation-delay: 60ms; }
+.stagger-3 { animation-delay: 90ms; }
+.stagger-4 { animation-delay: 120ms; }
+.stagger-5 { animation-delay: 150ms; }
+.stagger-6 { animation-delay: 180ms; }
+.stagger-7 { animation-delay: 210ms; }
+.stagger-8 { animation-delay: 240ms; }
 
 /* Subtle Apple-style Hover & Interaction Utilities */
 .hover-elevate {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+  will-change: transform;
 }
 .hover-elevate:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 }
 
 .btn-press {
-  transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .btn-press:active {
-  transform: scale(0.98);
+  transform: scale(0.975);
+}
+
+/* Universal Button Micro-interactions */
+.btn-interact {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.15s ease, 
+              border-color 0.15s ease, 
+              color 0.15s ease;
+  will-change: transform;
+}
+.btn-interact:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+}
+.btn-interact:active:not(:disabled) {
+  transform: translateY(0px) scale(0.975);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+}
+.btn-interact:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+}
+.btn-interact:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+/* Card Interactive Elevate & Glow */
+.card-interactive {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.2s ease,
+              background-color 0.2s ease;
+  will-change: transform;
+}
+.card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  border-color: #CBD5E1;
+}
+
+/* Interactive Input States */
+.input-interactive {
+  transition: border-color 0.2s ease, 
+              box-shadow 0.2s ease, 
+              background-color 0.2s ease;
+}
+.input-interactive:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Sidebar Nav Item Micro-Interactions */
+.nav-item-interactive {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.18s ease, 
+              color 0.18s ease,
+              box-shadow 0.18s ease;
+}
+.nav-item-interactive:hover {
+  transform: translateX(4px);
+  background-color: #F8FAFC;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+}
+.nav-item-interactive:active {
+  transform: translateX(2px) scale(0.99);
+}
+.nav-item-interactive .nav-icon {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+}
+.nav-item-interactive:hover .nav-icon {
+  transform: scale(1.12);
+  color: #2563EB;
+}
+.nav-item-interactive.active-nav {
+  background: linear-gradient(90deg, #EFF6FF 0%, #F8FAFC 100%);
+  color: #1D4ED8;
+  font-weight: 600;
+  border-left: 3px solid #2563EB;
+  box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08);
+}
+.nav-item-interactive.active-nav .nav-icon {
+  color: #2563EB;
+}
+
+/* Subtle SOS Helpline Breathing Animation */
+@keyframes sos-breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 1px 2px 0 rgba(225, 29, 72, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px 2px rgba(225, 29, 72, 0.22);
+  }
+}
+.sos-breathe-subtle {
+  animation: sos-breathe 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.sos-breathe-subtle:hover {
+  animation-play-state: paused;
+  transform: scale(1.03);
+}
+
+/* Skeleton Loading Shimmer */
+@keyframes shimmer-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer-wave 1.8s infinite ease-in-out;
+}
+
+/* Animated Modal & Dropdown Entrances */
+@keyframes modal-scale-up {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-modal-enter {
+  animation: modal-scale-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dropdown-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-dropdown-enter {
+  animation: dropdown-slide-down 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Selected Location Pulse Ring (Apple-grade subtle rhythm) */

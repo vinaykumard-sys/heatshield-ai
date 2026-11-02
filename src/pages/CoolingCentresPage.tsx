@@ -204,7 +204,7 @@ export const CoolingCentresPage: React.FC = () => {
           {(isAdmin || isVolunteer) && (
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm btn-interact"
             >
               <Plus className="w-4 h-4" />
               <span>Register New Shelter</span>
@@ -223,7 +223,7 @@ export const CoolingCentresPage: React.FC = () => {
             placeholder="Search shelter name, locality, or address..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:bg-white focus:border-blue-500 transition-colors"
+            className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:bg-white input-interactive focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -242,7 +242,7 @@ export const CoolingCentresPage: React.FC = () => {
             <button
               key={fac.id}
               onClick={() => setSelectedFacility(fac.id)}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded-lg font-medium btn-press transition-all ${
                 selectedFacility === fac.id 
                   ? 'bg-blue-600 text-white shadow-xs font-semibold' 
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -257,7 +257,7 @@ export const CoolingCentresPage: React.FC = () => {
         <div className="flex items-center gap-1 text-xs">
           <button
             onClick={() => setVerificationFilter(verificationFilter === 'verified' ? 'all' : 'verified')}
-            className={`px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded-lg border font-medium btn-press transition-all ${
               verificationFilter === 'verified'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -285,7 +285,7 @@ export const CoolingCentresPage: React.FC = () => {
                 <div
                   key={centre.id}
                   onClick={() => setSelectedCentre(centre)}
-                  className={`p-4 sm:p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-3 hover-elevate ${
+                  className={`p-4 sm:p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-3 card-interactive ${
                     isSelected ? 'border-blue-600 ring-2 ring-blue-600/10' : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >

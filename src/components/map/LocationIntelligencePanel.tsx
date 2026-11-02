@@ -543,7 +543,7 @@ export const LocationIntelligencePanel: React.FC<LocationIntelligencePanelProps>
           {/* Primary Action Button: View Full Location Report */}
           <button
             onClick={() => setShowFullModal(true)}
-            className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 transition-all transform active:scale-98"
+            className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 btn-interact hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <FileText className="w-4 h-4" />
             <span>Generate Full Dossier</span>

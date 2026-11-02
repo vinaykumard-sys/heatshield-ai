@@ -41,7 +41,7 @@ export const HumidityTrendChart: React.FC<HumidityTrendProps> = ({ data }) => {
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
                 return (
-                  <div className="bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm text-xs space-y-1">
+                  <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-dropdown text-xs space-y-1 animate-dropdown-enter">
                     <p className="font-semibold text-slate-900">{label}</p>
                     <p className="text-slate-600">
                       Relative Humidity: <span className="font-semibold text-blue-600 font-mono">{payload[0].value}%</span>
@@ -58,6 +58,9 @@ export const HumidityTrendChart: React.FC<HumidityTrendProps> = ({ data }) => {
             radius={[4, 4, 0, 0]}
             maxBarSize={32}
             name="Humidity"
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </BarChart>
       </ResponsiveContainer>

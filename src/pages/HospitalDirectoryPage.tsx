@@ -76,14 +76,14 @@ export const HospitalDirectoryPage: React.FC = () => {
         <div className="flex items-center gap-2 w-full md:w-auto">
           <a
             href="tel:108"
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md transition-all active:scale-95"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md transition-all btn-interact hover:scale-[1.03] active:scale-[0.97]"
           >
-            <PhoneCall className="w-4 h-4" />
+            <PhoneCall className="w-4 h-4 animate-pulse" />
             Call 108 (Ambulance)
           </a>
           <a
             href="tel:112"
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-all"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-all btn-interact hover:scale-[1.03] active:scale-[0.97]"
           >
             <PhoneCall className="w-4 h-4" />
             Call 112
@@ -132,7 +132,7 @@ export const HospitalDirectoryPage: React.FC = () => {
             placeholder="Search hospitals by name, locality, address or PIN code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:bg-white focus:outline-none input-interactive transition-all"
           />
         </div>
 
@@ -140,9 +140,9 @@ export const HospitalDirectoryPage: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
           <button
             onClick={() => setSelectedFilter('all')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
+            className={`px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap btn-press transition-all ${
               selectedFilter === 'all'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-blue-600 text-white shadow-xs font-semibold'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -150,9 +150,9 @@ export const HospitalDirectoryPage: React.FC = () => {
           </button>
           <button
             onClick={() => setSelectedFilter('heatstroke')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap btn-press transition-all flex items-center gap-1.5 ${
               selectedFilter === 'heatstroke'
-                ? 'bg-orange-600 text-white shadow-sm'
+                ? 'bg-orange-600 text-white shadow-xs font-semibold'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -161,9 +161,9 @@ export const HospitalDirectoryPage: React.FC = () => {
           </button>
           <button
             onClick={() => setSelectedFilter('pediatric')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
+            className={`px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap btn-press transition-all ${
               selectedFilter === 'pediatric'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-blue-600 text-white shadow-xs font-semibold'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >

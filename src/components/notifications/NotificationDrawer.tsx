@@ -47,9 +47,9 @@ export const NotificationDrawer: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] overflow-hidden bg-slate-900/50 backdrop-blur-sm flex justify-end">
+    <div className="fixed inset-0 z-[1200] overflow-hidden bg-slate-900/50 backdrop-blur-sm flex justify-end animate-fade-in">
       <div 
-        className="w-full max-w-md bg-white border-l border-slate-200 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        className="w-full max-w-md bg-white border-l border-slate-200 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-250 ease-out"
       >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
@@ -116,11 +116,11 @@ export const NotificationDrawer: React.FC = () => {
               <div
                 key={item.id}
                 onClick={() => markAsRead(item.id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
                   !item.is_read
                     ? 'bg-blue-50/40 border-blue-200 shadow-xs'
                     : 'bg-white border-slate-200'
-                } hover:border-slate-300`}
+                } hover:border-blue-300 hover:translate-x-1 hover:shadow-xs active:scale-[0.99]`}
               >
                 <div className="flex items-start gap-3">
                   <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 mt-0.5 shrink-0">

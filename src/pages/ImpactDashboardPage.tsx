@@ -99,7 +99,7 @@ export const ImpactDashboardPage: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
             <Download className="w-4 h-4 text-cyan-400" />
             <span>Export CSV Report</span>
@@ -109,7 +109,7 @@ export const ImpactDashboardPage: React.FC = () => {
 
       {/* Key Stats Hero Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle card-interactive hover-elevate">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">Protected Residents</span>
             <Users className="w-4 h-4 text-blue-600" />
@@ -121,7 +121,7 @@ export const ImpactDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle card-interactive hover-elevate">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">Welfare Check-Ins</span>
             <HeartHandshake className="w-4 h-4 text-emerald-600" />
@@ -133,7 +133,7 @@ export const ImpactDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle card-interactive hover-elevate">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">Water Distributed</span>
             <Droplets className="w-4 h-4 text-cyan-600" />
@@ -142,7 +142,7 @@ export const ImpactDashboardPage: React.FC = () => {
           <div className="text-[11px] text-slate-400 mt-1">Across 24 verified public ATMs</div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-subtle card-interactive hover-elevate">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">Worker Safety Rest</span>
             <Clock className="w-4 h-4 text-orange-600" />
