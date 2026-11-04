@@ -39,7 +39,6 @@ import { SafeRoutesPage } from './pages/SafeRoutesPage';
 import { FamilySafetyPage } from './pages/FamilySafetyPage';
 import { SchoolSafetyPage } from './pages/SchoolSafetyPage';
 import { HospitalDirectoryPage } from './pages/HospitalDirectoryPage';
-import { DeveloperPortalPage } from './pages/DeveloperPortalPage';
 import { PersonalizedResidentDashboardPage } from './pages/PersonalizedResidentDashboardPage';
 import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
 import { HeatAcademyPage } from './pages/HeatAcademyPage';
@@ -315,11 +314,7 @@ export function App() {
                 />
                 <Route
                   path="/developer"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <DeveloperPortalPage />
-                    </ProtectedRoute>
-                  }
+                  element={<Navigate to="/dashboard" replace />}
                 />
                 <Route
                   path="/account"

@@ -8,7 +8,6 @@ import {
   FamilyGroup, 
   SchoolRegistration, 
   HospitalResource, 
-  DeveloperApiKey, 
   SituationReport, 
   AcademyCourse,
   HeatSafeRoute 
@@ -34,7 +33,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 0.00,
     wheelchair_accessible: true,
     reported_empty_count: 0,
-    verified_by: 'Kavita Deshmukh (Volunteer)',
+    verified_by: 'BWSSB Municipal Water Authority',
     last_verified_at: '2026-05-01T09:30:00Z',
     created_at: '2026-04-10T08:00:00Z'
   },
@@ -54,7 +53,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 0.00,
     wheelchair_accessible: true,
     reported_empty_count: 0,
-    verified_by: 'Dr. Ramesh Sundaram (Admin)',
+    verified_by: 'Gram Panchayat Public Utilities',
     last_verified_at: '2026-05-02T08:15:00Z',
     created_at: '2026-04-12T09:00:00Z'
   },
@@ -74,7 +73,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 1.00,
     wheelchair_accessible: false,
     reported_empty_count: 2,
-    verified_by: 'Syed Imran (Volunteer)',
+    verified_by: 'BMTC Transit Authority',
     last_verified_at: '2026-05-01T14:45:00Z',
     created_at: '2026-04-15T11:00:00Z'
   },
@@ -94,7 +93,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 0.00,
     wheelchair_accessible: true,
     reported_empty_count: 0,
-    verified_by: 'Manjunath Gowda (Admin)',
+    verified_by: 'Peenya Industries Association Safety Cell',
     last_verified_at: '2026-05-02T10:00:00Z',
     created_at: '2026-04-18T10:00:00Z'
   },
@@ -114,7 +113,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 2.00,
     wheelchair_accessible: true,
     reported_empty_count: 4,
-    verified_by: 'Priya Sharma (Volunteer)',
+    verified_by: 'BMRCL Metro Utilities',
     last_verified_at: '2026-05-01T17:00:00Z',
     created_at: '2026-04-20T12:00:00Z'
   },
@@ -134,7 +133,7 @@ export const INITIAL_WATER_STATIONS: WaterStation[] = [
     price_per_litre: 0.00,
     wheelchair_accessible: true,
     reported_empty_count: 0,
-    verified_by: 'Kavita Deshmukh (Volunteer)',
+    verified_by: 'Whitefield Municipal Health Cell',
     last_verified_at: '2026-05-02T09:00:00Z',
     created_at: '2026-04-22T08:30:00Z'
   }
@@ -212,14 +211,14 @@ export const INITIAL_SMART_ALERTS: SmartHeatAlert[] = [
       'Rotate outdoor loading bay workers every 45 minutes.',
       'Watch for muscle cramps, dizziness, and rapid pulse.'
     ],
-    issued_by: 'Dr. Ramesh Sundaram (Admin)',
+    issued_by: 'State Disaster Management Authority',
     is_active: true,
     created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
     delivery_stats: {
-      in_app_count: 640,
-      push_count: 480,
-      email_count: 310,
-      delivered_count: 1430
+      in_app_count: 0,
+      push_count: 0,
+      email_count: 0,
+      delivered_count: 0
     }
   }
 ];
@@ -574,42 +573,6 @@ export const INITIAL_HOSPITALS: HospitalResource[] = [
     ambulance_available: true,
     verification_status: 'verified',
     last_verified_at: '2026-05-01T12:00:00Z'
-  }
-];
-
-// ==============================================================================
-// 7. DEVELOPER API KEYS (PART 12)
-// ==============================================================================
-export const INITIAL_DEVELOPER_KEYS: DeveloperApiKey[] = [
-  {
-    id: 'key-1',
-    user_id: 'u-1',
-    organization_name: 'Red Cross Karnataka Heat Relief Taskforce',
-    key_name: 'Production Weather & Respite Sync',
-    key_prefix: 'hs_live_rc88',
-    key_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-    rate_limit_per_minute: 120,
-    daily_quota: 10000,
-    used_today: 1420,
-    is_active: true,
-    scopes: ['read:heat_risk', 'read:forecasts', 'read:cooling_centres', 'read:water_points', 'read:alerts'],
-    created_at: '2026-04-05T09:00:00Z',
-    last_used_at: new Date(Date.now() - 120000).toISOString()
-  },
-  {
-    id: 'key-2',
-    user_id: 'u-1',
-    organization_name: 'IISc Urban Climate Lab',
-    key_name: 'Research Microclimate Ingestion',
-    key_prefix: 'hs_live_iisc09',
-    key_hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
-    rate_limit_per_minute: 60,
-    daily_quota: 5000,
-    used_today: 890,
-    is_active: true,
-    scopes: ['read:heat_risk', 'read:forecasts'],
-    created_at: '2026-04-12T14:00:00Z',
-    last_used_at: new Date(Date.now() - 3600000).toISOString()
   }
 ];
 

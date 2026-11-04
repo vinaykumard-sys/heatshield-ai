@@ -1,15 +1,5 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/hourly-notifications",
-      "schedule": "0 * * * *"
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

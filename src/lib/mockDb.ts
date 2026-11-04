@@ -37,7 +37,6 @@ import {
   INITIAL_FAMILY_GROUPS,
   INITIAL_SCHOOLS,
   INITIAL_HOSPITALS,
-  INITIAL_DEVELOPER_KEYS,
   INITIAL_SITUATION_REPORT,
   INITIAL_ACADEMY_COURSES,
   INITIAL_SAFE_ROUTES
@@ -54,7 +53,6 @@ import {
   FamilyMember,
   SchoolRegistration,
   HospitalResource,
-  DeveloperApiKey,
   SituationReport,
   AcademyCourse,
   HeatSafeRoute
@@ -89,7 +87,6 @@ const STORAGE_KEYS = {
   FAMILY_GROUPS: 'heatshield_family_groups',
   SCHOOLS: 'heatshield_schools',
   HOSPITALS: 'heatshield_hospitals',
-  DEVELOPER_KEYS: 'heatshield_developer_keys',
   SITUATION_REPORT: 'heatshield_situation_report',
   ACADEMY_PROGRESS: 'heatshield_academy_progress',
   OFFLINE_QUEUE: 'heatshield_offline_queue'
@@ -97,10 +94,78 @@ const STORAGE_KEYS = {
 
 const isProduction = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.PROD;
 
+// Purge legacy mock data from browser localStorage so demo users/records don't linger
+export function purgeLegacyMockStorage(): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    
+    // Always remove developer keys
+    localStorage.removeItem('heatshield_developer_keys');
+
+    // Remove legacy fake residents if present
+    const res = localStorage.getItem('heatshield_residents');
+    if (res && (res.includes('Anjinappa') || res.includes('res-blr-1') || res.includes('res-1') || res.includes('Priya'))) {
+      localStorage.removeItem('heatshield_residents');
+    }
+
+    // Remove legacy fake users
+    const usr = localStorage.getItem('heatshield_users');
+    if (usr && (usr.includes('usr-admin-1') || usr.includes('usr-vol-1') || usr.includes('Ramesh Sundaram'))) {
+      localStorage.removeItem('heatshield_users');
+    }
+
+    // Remove legacy fake checkins
+    const chk = localStorage.getItem('heatshield_checkins');
+    if (chk && (chk.includes('chk-1') || chk.includes('chk-blr'))) {
+      localStorage.removeItem('heatshield_checkins');
+    }
+
+    // Remove legacy fake requests
+    const req = localStorage.getItem('heatshield_requests');
+    if (req && (req.includes('req-1') || req.includes('Sham Lal'))) {
+      localStorage.removeItem('heatshield_requests');
+    }
+
+    // Remove legacy fake activity logs
+    const act = localStorage.getItem('heatshield_activity_logs');
+    if (act && (act.includes('Priya') || act.includes('Ramesh') || act.includes('Kavita') || act.includes('act-1'))) {
+      localStorage.removeItem('heatshield_activity_logs');
+    }
+
+    // Remove legacy fake situation report
+    const sit = localStorage.getItem('heatshield_situation_report');
+    if (sit && (sit.includes('sit-rep-today') || sit.includes('46.2°C'))) {
+      localStorage.removeItem('heatshield_situation_report');
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Run cleanup immediately
+purgeLegacyMockStorage();
+
 function getStorage<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+    if (!item) return defaultValue;
+
+    // In production, if the key contains legacy fake fixture IDs, discard it and return defaultValue
+    if (isProduction) {
+      if (
+        (key === STORAGE_KEYS.RESIDENTS && item.includes('res-blr-1')) ||
+        (key === STORAGE_KEYS.USERS && item.includes('usr-admin-1')) ||
+        (key === STORAGE_KEYS.CHECKINS && item.includes('chk-1')) ||
+        (key === STORAGE_KEYS.REQUESTS && item.includes('req-1')) ||
+        (key === STORAGE_KEYS.ACTIVITY_LOGS && item.includes('act-1')) ||
+        (key === STORAGE_KEYS.SITUATION_REPORT && item.includes('sit-rep-today'))
+      ) {
+        localStorage.removeItem(key);
+        return defaultValue;
+      }
+    }
+
+    return JSON.parse(item);
   } catch (e) {
     return defaultValue;
   }
@@ -295,7 +360,8 @@ export const mockDb = {
   },
 
   getActivityLogs(): ActivityLog[] {
-    return getStorage(STORAGE_KEYS.ACTIVITY_LOGS, INITIAL_ACTIVITY_LOGS);
+    const initial = isProduction ? [] : INITIAL_ACTIVITY_LOGS;
+    return getStorage(STORAGE_KEYS.ACTIVITY_LOGS, initial);
   },
 
   logActivity(log: Omit<ActivityLog, 'id' | 'created_at'>): void {
@@ -682,45 +748,30 @@ export const mockDb = {
     setStorage(STORAGE_KEYS.HOSPITALS, list);
   },
 
-  // --- DEVELOPER API (PART 12) ---
-  getDeveloperApiKeys(): DeveloperApiKey[] {
-    return getStorage<DeveloperApiKey[]>(STORAGE_KEYS.DEVELOPER_KEYS, INITIAL_DEVELOPER_KEYS);
-  },
-
-  generateApiKey(name: string, orgName: string): DeveloperApiKey {
-    const prefix = `hs_live_${Math.random().toString(36).substring(2, 8)}`;
-    const newKey: DeveloperApiKey = {
-      id: `key-${Date.now()}`,
-      user_id: 'current-user',
-      organization_name: orgName,
-      key_name: name,
-      key_prefix: prefix,
-      key_hash: Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join(''),
-      rate_limit_per_minute: 60,
-      daily_quota: 5000,
-      used_today: 0,
-      is_active: true,
-      scopes: ['read:heat_risk', 'read:forecasts', 'read:cooling_centres', 'read:water_points', 'read:alerts'],
-      created_at: new Date().toISOString()
-    };
-    const list = this.getDeveloperApiKeys();
-    list.unshift(newKey);
-    setStorage(STORAGE_KEYS.DEVELOPER_KEYS, list);
-    return newKey;
-  },
-
-  revokeApiKey(keyId: string): void {
-    const list = this.getDeveloperApiKeys();
-    const target = list.find(k => k.id === keyId);
-    if (target) {
-      target.is_active = false;
-      setStorage(STORAGE_KEYS.DEVELOPER_KEYS, list);
-    }
-  },
-
   // --- SITUATION REPORTS (PART 6) ---
   getSituationReport(): SituationReport {
-    return getStorage<SituationReport>(STORAGE_KEYS.SITUATION_REPORT, INITIAL_SITUATION_REPORT);
+    const cleanDefault: SituationReport = {
+      id: 'sit-rep-live',
+      title: 'Municipal Heat Command Situation Briefing',
+      generated_at: new Date().toISOString(),
+      overall_status: 'normal',
+      summary_text: 'Atmospheric telemetry monitored continuously. No verified heat emergency field operations active.',
+      key_concerns: [],
+      most_affected_localities: [],
+      resource_status: {
+        cooling_centres_open: 0,
+        water_stations_operational: 0,
+        active_volunteers: 0,
+        emergency_dispatches: 0
+      },
+      recommended_administrative_actions: [
+        'Monitor live telemetry across all ward sectors.',
+        'Maintain operational readiness of local drinking water ATMs and cooling centres.'
+      ],
+      data_freshness_pct: 100
+    };
+    if (isProduction) return cleanDefault;
+    return getStorage<SituationReport>(STORAGE_KEYS.SITUATION_REPORT, cleanDefault);
   },
 
   saveSituationReport(report: SituationReport): void {

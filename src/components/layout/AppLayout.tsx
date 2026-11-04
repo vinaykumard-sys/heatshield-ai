@@ -29,7 +29,6 @@ import {
   Heart,
   GraduationCap,
   Stethoscope,
-  Code2,
   Flame,
   Wifi,
   WifiOff,
@@ -143,8 +142,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         return 'School Heat Safety Protocol';
       case '/hospital-directory':
         return 'Hospital Resource Directory';
-      case '/developer':
-        return 'Developer Portal & Public APIs';
       case '/resident-dashboard':
         return 'Personalized Resident Dashboard';
       case '/impact-dashboard':
@@ -206,7 +203,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders, show: isAdmin },
         { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award, show: isVolunteer || isAdmin },
         { to: '/analytics', label: 'Health Analytics', icon: BarChart3, show: isAdmin },
-        { to: '/developer', label: 'Developer Portal', icon: Code2, show: isAdmin },
         { to: '/admin', label: 'Admin Settings', icon: Settings, show: isAdmin },
       ]
     }

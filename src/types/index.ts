@@ -803,23 +803,6 @@ export interface HospitalResource {
   last_verified_at: string;
 }
 
-// --- PART 12: DEVELOPER API ---
-export interface DeveloperApiKey {
-  id: string;
-  user_id: string;
-  organization_name: string;
-  key_name: string;
-  key_prefix: string; // e.g. "hs_live_..."
-  key_hash: string;
-  rate_limit_per_minute: number;
-  daily_quota: number;
-  used_today: number;
-  is_active: boolean;
-  scopes: Array<'read:heat_risk' | 'read:forecasts' | 'read:cooling_centres' | 'read:water_points' | 'read:alerts'>;
-  created_at: string;
-  last_used_at?: string;
-}
-
 // --- PART 14: IMPACT METRICS ---
 export interface ImpactStatistics {
   total_neighbourhoods_monitored: number;
