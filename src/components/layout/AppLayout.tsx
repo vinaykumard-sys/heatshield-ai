@@ -94,16 +94,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard':
-        return 'Overview';
+        return 'Resident Safety Briefing';
       case '/map':
+      case '/explore':
       case '/heat-map':
         return 'Hyperlocal Heat Risk Map';
       case '/predictions':
         return 'AI Heatwave Prediction Engine';
       case '/cooling-centres':
-        return 'Cooling Centre & Water Finder';
+        return 'Cooling Shelters & Mist Havens';
       case '/residents':
-        return 'Vulnerable Residents';
+        return 'Vulnerable Residents Directory';
       case '/checkins':
       case '/welfare-checkins':
         return 'Smart Welfare Check-in System';
@@ -114,12 +115,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       case '/heat-simulator':
         return 'What-If Heat Simulation Sandbox';
       case '/alerts':
-        return 'Alerts & Notifications';
+      case '/alerts-assistance':
+        return 'Alerts & Assistance';
       case '/analytics':
         return 'Health Risk Analytics';
       case '/settings':
       case '/admin':
-        return 'System Settings & Models';
+        return 'Municipal System Settings';
+      case '/account':
+        return 'My Account & Alert Preferences';
       case '/portal':
         return 'Resident Safety Portal';
       case '/heat-alerts':
@@ -133,7 +137,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       case '/safe-routes':
         return 'Heat-Safe Route Planner';
       case '/family-safety':
-        return 'Family Heat Safety Group';
+      case '/my-safety':
+        return 'My Safety & Family Circle';
       case '/school-safety':
         return 'School Heat Safety Protocol';
       case '/hospital-directory':
@@ -168,53 +173,41 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   const navGroups: NavGroup[] = [
     {
-      title: 'Core Monitoring',
+      title: 'Resident Safety Services',
       items: [
-        { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-        { to: '/map', label: 'Heat Risk Map', icon: MapPin },
-        { to: '/predictions', label: 'Predictions', icon: TrendingUp },
-        { to: '/heat-alerts', label: 'Smart Heat Alerts', icon: Flame, badge: 'Live' },
+        { to: '/dashboard', label: 'Home Dashboard', icon: LayoutDashboard },
+        { to: '/map', label: 'Explore & Find Help', icon: MapPin },
+        { to: '/alerts', label: 'Alerts & Assistance', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+        { to: '/family-safety', label: 'My Safety', icon: Heart },
+        { to: '/academy', label: 'Learn & Prepare', icon: GraduationCap },
+        { to: '/account', label: 'My Account', icon: UserIcon },
       ]
     },
     {
-      title: 'Community Protection',
+      title: 'Community Lifelines',
       items: [
-        { to: '/resident-dashboard', label: 'Resident Dashboard', icon: Sparkles },
         { to: '/water-stations', label: 'Water Availability', icon: Droplets },
         { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
-        { to: '/safe-routes', label: 'Heat-Safe Routes', icon: Navigation },
-        { to: '/family-safety', label: 'Family Safety', icon: Heart },
-        { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
-        { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
-        { to: '/requests', label: 'Assistance Requests', icon: HelpCircle },
-      ]
-    },
-    {
-      title: 'Institutions & Workplace',
-      items: [
-        { to: '/worker-safety', label: 'Worker Safety', icon: HardHat },
-        { to: '/school-safety', label: 'School Safety', icon: GraduationCap },
         { to: '/hospital-directory', label: 'Hospital Directory', icon: Stethoscope },
+        { to: '/safe-routes', label: 'Heat-Safe Routes', icon: Navigation },
+        { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
+        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
       ]
     },
     {
-      title: 'Command & Intelligence',
+      title: 'Municipal & Officer Tools',
       items: [
         { to: '/command-centre', label: 'Command Centre', icon: ShieldAlert, show: isAdmin },
-        { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders },
-        { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
-        { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award },
-        { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-      ]
-    },
-    {
-      title: 'Academy & Tools',
-      items: [
-        { to: '/academy', label: 'Heat Academy', icon: GraduationCap },
-        { to: '/developer', label: 'Developer Portal', icon: Code2 },
-        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
-        { to: '/alerts', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
-        { to: isAdmin ? '/admin' : '/settings', label: 'Settings', icon: Settings },
+        { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
+        { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
+        { to: '/requests', label: 'Assistance Triage', icon: HelpCircle, show: isVolunteer || isAdmin },
+        { to: '/worker-safety', label: 'Worker Safety', icon: HardHat, show: isVolunteer || isAdmin },
+        { to: '/school-safety', label: 'School Safety', icon: GraduationCap, show: isVolunteer || isAdmin },
+        { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders, show: isAdmin },
+        { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award, show: isVolunteer || isAdmin },
+        { to: '/analytics', label: 'Health Analytics', icon: BarChart3, show: isAdmin },
+        { to: '/developer', label: 'Developer Portal', icon: Code2, show: isAdmin },
+        { to: '/admin', label: 'Admin Settings', icon: Settings, show: isAdmin },
       ]
     }
   ];
@@ -431,21 +424,31 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
                   <div className="py-1">
                     <Link
-                      to="/portal"
+                      to="/account"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                     >
                       <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Resident Portal</span>
+                      <span>My Account & Verification</span>
                     </Link>
                     <Link
-                      to="/settings"
+                      to="/family-safety"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                     >
-                      <Settings className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Account Settings</span>
+                      <Heart className="w-3.5 h-3.5 text-slate-400" />
+                      <span>My Safety & Family</span>
                     </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                      >
+                        <Settings className="w-3.5 h-3.5 text-slate-400" />
+                        <span>System Administration</span>
+                      </Link>
+                    )}
                   </div>
 
                   <div className="border-t border-[#E2E8F0] pt-1">

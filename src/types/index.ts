@@ -24,10 +24,108 @@ export interface UserProfile {
   full_name: string;
   role: UserRole;
   phone?: string;
+  country_code?: string;
+  is_phone_verified?: boolean;
+  is_email_verified?: boolean;
+  phone_verified_at?: string;
+  email_verified_at?: string;
+  hourly_notification_consent?: boolean;
+  notification_consent_at?: string;
+  primary_locality_name?: string;
+  primary_latitude?: number;
+  primary_longitude?: number;
   preferred_language: SupportedLanguage;
   locality_id?: string;
   is_active: boolean;
   created_at: string;
+}
+
+// --- RESIDENT-FIRST EXPANSIONS & NOTIFICATION SYSTEM ---
+export interface NotificationConsent {
+  id: string;
+  user_id: string;
+  consent_type: 'hourly_heat_updates' | 'critical_emergency_alerts';
+  channels: Array<'email' | 'sms' | 'in_app'>;
+  phone_number?: string;
+  email_address?: string;
+  consented_at: string;
+  ip_address?: string;
+}
+
+export interface UserNotificationPreferences {
+  user_id: string;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  in_app_enabled: boolean;
+  hourly_updates_enabled: boolean;
+  critical_alerts_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  updated_at: string;
+}
+
+export interface UserFavouriteLocation {
+  id: string;
+  user_id: string;
+  label: 'Home' | 'Workplace' | 'School' | 'Parents' | 'Other';
+  name: string;
+  locality: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface ScheduledNotificationJob {
+  id: string;
+  scheduled_for: string;
+  executed_at: string;
+  duration_ms: number;
+  status: 'running' | 'completed' | 'failed';
+  total_eligible_residents: number;
+  emails_dispatched: number;
+  sms_dispatched: number;
+  failures: number;
+  error_summary?: string;
+}
+
+export interface NotificationDeliveryLog {
+  id: string;
+  job_id?: string;
+  user_id: string;
+  resident_name: string;
+  recipient_masked: string;
+  channel: 'email' | 'sms';
+  locality_name: string;
+  temperature_c: number;
+  feels_like_c: number;
+  heat_risk_category: RiskCategory;
+  heat_risk_score: number;
+  idempotency_key: string;
+  status: 'queued' | 'sent' | 'delivered' | 'failed' | 'skipped';
+  provider: 'resend_email' | 'transactional_sms' | 'supabase_edge';
+  provider_message_id?: string;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface CommunityIssueReport {
+  id: string;
+  reporter_id?: string;
+  reporter_name?: string;
+  facility_type: 'water_station' | 'cooling_centre' | 'hospital' | 'general_hazard';
+  facility_id?: string;
+  facility_name: string;
+  locality_name: string;
+  issue_type: 'empty_water' | 'broken_dispenser' | 'closed_unexpectedly' | 'unhygienic' | 'overcrowded' | 'other';
+  description: string;
+  status: 'pending_review' | 'investigating' | 'resolved' | 'dismissed';
+  created_at: string;
+  resolved_at?: string;
+  resolution_notes?: string;
 }
 
 export interface LocationZone {

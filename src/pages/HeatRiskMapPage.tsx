@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Compass, 
   Info, 
@@ -52,22 +53,42 @@ export const HeatRiskMapPage: React.FC = () => {
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Compass className="w-6 h-6 text-blue-600" />
-              <span>Geospatial Heat Intelligence Radar</span>
+              <span>Explore & Find Help</span>
             </h1>
             <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-              SMART COMMAND CENTER
+              UNIFIED RESIDENT MAP
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Interactive AI microclimate mapping across India. Search any city, road, or PIN code, or click anywhere on the map to generate instant environmental heat reports.
+            Interactive heat safety radar combining verified drinking water ATMs, air-conditioned cooling centres, hospital emergency wards, and shaded transit corridors.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-            <span>Open-Meteo High-Res Active</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/water-stations"
+            className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors"
+          >
+            Water ATMs
+          </Link>
+          <Link
+            to="/cooling-centres"
+            className="px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
+          >
+            Cooling Centres
+          </Link>
+          <Link
+            to="/hospital-directory"
+            className="px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition-colors"
+          >
+            Hospitals
+          </Link>
+          <Link
+            to="/safe-routes"
+            className="px-3 py-1.5 rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-800 text-xs font-bold hover:bg-cyan-100 transition-colors"
+          >
+            Safe Routes
+          </Link>
         </div>
       </div>
 

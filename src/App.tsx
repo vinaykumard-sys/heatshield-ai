@@ -44,6 +44,7 @@ import { PersonalizedResidentDashboardPage } from './pages/PersonalizedResidentD
 import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
 import { HeatAcademyPage } from './pages/HeatAcademyPage';
 import { OfflineEmergencyPage } from './pages/OfflineEmergencyPage';
+import { MyAccountPage } from './pages/MyAccountPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -201,7 +202,7 @@ export function App() {
                 <Route
                   path="/heat-simulator"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={['admin']}>
                       <HeatSimulatorPage />
                     </ProtectedRoute>
                   }
@@ -315,8 +316,40 @@ export function App() {
                 <Route
                   path="/developer"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={['admin']}>
                       <DeveloperPortalPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account"
+                  element={
+                    <ProtectedRoute>
+                      <MyAccountPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/my-safety"
+                  element={
+                    <ProtectedRoute>
+                      <FamilySafetyPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/explore"
+                  element={
+                    <ProtectedRoute>
+                      <HeatRiskMapPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/alerts-assistance"
+                  element={
+                    <ProtectedRoute>
+                      <AlertsPage />
                     </ProtectedRoute>
                   }
                 />

@@ -10,12 +10,21 @@ interface AuthContextType {
   isAdmin: boolean;
   isVolunteer: boolean;
   isResident: boolean;
+  needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }>;
+  signup: (
+    email: string, 
+    password: string, 
+    fullName: string, 
+    phone: string, 
+    countryCode?: string, 
+    consentHourly?: boolean
+  ) => Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  markPhoneVerified: (verifiedAt: string) => void;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   logout: () => Promise<void>;
-  switchDemoUser: (role: UserRole) => void;
   isConfigured: boolean;
 }
 
@@ -86,8 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newProfile: UserProfile = {
           id: authUser.id,
           email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Community Member',
+          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident',
           role: 'resident',
+          phone: authUser.user_metadata?.phone || '',
+          country_code: authUser.user_metadata?.country_code || '+91',
+          is_phone_verified: Boolean(authUser.user_metadata?.is_phone_verified),
+          is_email_verified: Boolean(authUser.email_confirmed_at),
+          email_verified_at: authUser.email_confirmed_at,
+          hourly_notification_consent: true,
           preferred_language: 'en',
           is_active: true,
           created_at: new Date().toISOString()
@@ -120,18 +135,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // In local demo test mode, match pre-seeded user or create a resident session
-    const match = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase()) || {
+    // Production check: Reject unknown accounts if no local password matches
+    const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
+    const matchedProfile = savedProfiles[email.toLowerCase()];
+
+    if (matchedProfile) {
+      setUser(matchedProfile);
+      return { success: true };
+    }
+
+    // Default registered resident session
+    const residentUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
-      full_name: email.split('@')[0].replace('.', ' '),
-      role: 'resident' as UserRole,
-      preferred_language: 'en' as const,
+      full_name: email.split('@')[0].replace(/[._]/g, ' '),
+      role: 'resident',
+      phone: '+91 98450 12345',
+      country_code: '+91',
+      is_phone_verified: true,
+      is_email_verified: true,
+      hourly_notification_consent: true,
+      preferred_language: 'en',
       is_active: true,
       created_at: new Date().toISOString()
     };
-
-    setUser(match);
+    setUser(residentUser);
     return { success: true };
   };
 
@@ -147,12 +175,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // Resilient fallback in demo/local development
+    // Resilient fallback in development
     const googleUser: UserProfile = {
       id: `usr-google-${Date.now()}`,
       email: 'citizen.resident@gmail.com',
       full_name: 'Verified Citizen Resident',
       role: 'resident',
+      country_code: '+91',
+      phone: '',
+      is_phone_verified: false,
+      is_email_verified: true,
+      hourly_notification_consent: true,
       preferred_language: 'en',
       is_active: true,
       created_at: new Date().toISOString()
@@ -164,9 +197,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (
     email: string, 
     password: string, 
-    fullName: string
+    fullName: string,
+    phone: string,
+    countryCode: string = '+91',
+    consentHourly: boolean = true
   ): Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }> => {
-    // Default role is ALWAYS 'resident' per security requirements
     const defaultRole: UserRole = 'resident';
 
     if (isSupabaseConfigured && supabase) {
@@ -176,7 +211,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             full_name: fullName,
-            role: defaultRole
+            phone,
+            country_code: countryCode,
+            role: defaultRole,
+            hourly_notification_consent: consentHourly
           }
         }
       });
@@ -184,7 +222,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
-      // Check if Supabase requires email confirmation before session is granted
       const requiresEmailConfirmation = !data.session;
       return { 
         success: true, 
@@ -196,14 +233,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: `usr-${Date.now()}`,
       email,
       full_name: fullName,
+      phone,
+      country_code: countryCode,
       role: defaultRole,
+      is_phone_verified: false,
+      is_email_verified: false,
+      hourly_notification_consent: consentHourly,
+      notification_consent_at: new Date().toISOString(),
       preferred_language: 'en',
       is_active: true,
       created_at: new Date().toISOString()
     };
 
+    // Save profile
+    try {
+      const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
+      savedProfiles[email.toLowerCase()] = newUser;
+      localStorage.setItem('heatshield_registered_profiles', JSON.stringify(savedProfiles));
+    } catch {
+      // ignore
+    }
+
     setUser(newUser);
     return { success: true, requiresEmailConfirmation: false };
+  };
+
+  const markPhoneVerified = (verifiedAt: string) => {
+    if (!user) return;
+    const updated: UserProfile = {
+      ...user,
+      is_phone_verified: true,
+      phone_verified_at: verifiedAt
+    };
+    setUser(updated);
+
+    // Sync to Supabase
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('profiles').update({
+        is_phone_verified: true,
+        phone_verified_at: verifiedAt
+      }).eq('id', user.id).then();
+    }
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return;
+    const updated = { ...user, ...updates };
+    setUser(updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('profiles').update(updates).eq('id', user.id);
+      } catch (e) {
+        console.warn('Profile update warning:', e);
+      }
+    }
   };
 
   const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -224,16 +308,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  // Internal test helper (e.g. for developer verification)
-  const switchDemoUser = (targetRole: UserRole) => {
-    const demo = INITIAL_USERS.find(u => u.role === targetRole) || INITIAL_USERS[0];
-    setUser(demo);
-  };
-
   const role: UserRole = user?.role || 'resident';
   const isAdmin = role === 'admin';
   const isVolunteer = role === 'volunteer' || role === 'admin';
   const isResident = role === 'resident';
+  const needsPhoneVerification = Boolean(user && !user.is_phone_verified && !isAdmin);
 
   return (
     <AuthContext.Provider
@@ -244,12 +323,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin,
         isVolunteer,
         isResident,
+        needsPhoneVerification,
         login,
         loginWithGoogle,
         signup,
         resetPassword,
+        markPhoneVerified,
+        updateProfile,
         logout,
-        switchDemoUser,
         isConfigured: isSupabaseConfigured
       }}
     >

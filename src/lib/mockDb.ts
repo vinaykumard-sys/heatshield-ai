@@ -95,6 +95,8 @@ const STORAGE_KEYS = {
   OFFLINE_QUEUE: 'heatshield_offline_queue'
 };
 
+const isProduction = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.PROD;
+
 function getStorage<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(key);
@@ -135,15 +137,9 @@ export const mockDb = {
   },
 
   getResidents(): Resident[] {
-    const list = getStorage<Resident[]>(STORAGE_KEYS.RESIDENTS, INITIAL_RESIDENTS);
-    const existing = new Set(list.map(r => r.id));
-    const missing = INITIAL_RESIDENTS.filter(r => !existing.has(r.id));
-    if (missing.length > 0) {
-      const merged = [...missing, ...list];
-      setStorage(STORAGE_KEYS.RESIDENTS, merged);
-      return merged;
-    }
-    return list;
+    // In production, strictly avoid pre-seeded demo residents
+    const initial = isProduction ? [] : INITIAL_RESIDENTS;
+    return getStorage<Resident[]>(STORAGE_KEYS.RESIDENTS, initial);
   },
 
   saveResident(resident: Resident): void {
@@ -163,15 +159,8 @@ export const mockDb = {
   },
 
   getCheckins(): WelfareCheckin[] {
-    const list = getStorage<WelfareCheckin[]>(STORAGE_KEYS.CHECKINS, INITIAL_CHECKINS);
-    const existing = new Set(list.map(c => c.id));
-    const missing = INITIAL_CHECKINS.filter(c => !existing.has(c.id));
-    if (missing.length > 0) {
-      const merged = [...missing, ...list];
-      setStorage(STORAGE_KEYS.CHECKINS, merged);
-      return merged;
-    }
-    return list;
+    const initial = isProduction ? [] : INITIAL_CHECKINS;
+    return getStorage<WelfareCheckin[]>(STORAGE_KEYS.CHECKINS, initial);
   },
 
   updateCheckinStatus(
@@ -231,15 +220,8 @@ export const mockDb = {
   },
 
   getRequests(): AssistanceRequest[] {
-    const list = getStorage<AssistanceRequest[]>(STORAGE_KEYS.REQUESTS, INITIAL_REQUESTS);
-    const existing = new Set(list.map(r => r.id));
-    const missing = INITIAL_REQUESTS.filter(r => !existing.has(r.id));
-    if (missing.length > 0) {
-      const merged = [...missing, ...list];
-      setStorage(STORAGE_KEYS.REQUESTS, merged);
-      return merged;
-    }
-    return list;
+    const initial = isProduction ? [] : INITIAL_REQUESTS;
+    return getStorage<AssistanceRequest[]>(STORAGE_KEYS.REQUESTS, initial);
   },
 
   saveRequest(req: AssistanceRequest): void {
@@ -279,7 +261,8 @@ export const mockDb = {
   },
 
   getNotifications(userId?: string): AppNotification[] {
-    const notifs = getStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const initial = isProduction ? [] : INITIAL_NOTIFICATIONS;
+    const notifs = getStorage(STORAGE_KEYS.NOTIFICATIONS, initial);
     if (!userId) return notifs;
     return notifs.filter(n => n.user_id === userId || n.user_id === 'all');
   },
@@ -343,7 +326,8 @@ export const mockDb = {
   },
 
   getUsers(): UserProfile[] {
-    return getStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const initial = isProduction ? [] : INITIAL_USERS;
+    return getStorage(STORAGE_KEYS.USERS, initial);
   },
 
   // ============================================================================
@@ -599,7 +583,8 @@ export const mockDb = {
 
   // --- SMART HEAT ALERTS (PART 3) ---
   getSmartAlerts(): SmartHeatAlert[] {
-    return getStorage<SmartHeatAlert[]>(STORAGE_KEYS.SMART_ALERTS, INITIAL_SMART_ALERTS);
+    const initial = isProduction ? [] : INITIAL_SMART_ALERTS;
+    return getStorage<SmartHeatAlert[]>(STORAGE_KEYS.SMART_ALERTS, initial);
   },
 
   saveSmartAlert(alert: SmartHeatAlert): void {
@@ -611,22 +596,7 @@ export const mockDb = {
   },
 
   getAlertSubscriptions(): HeatAlertSubscription[] {
-    return getStorage<HeatAlertSubscription[]>(STORAGE_KEYS.ALERT_SUBSCRIPTIONS, [
-      {
-        id: 'sub-1',
-        user_id: 'default',
-        location_id: 'loc-1',
-        location_name: 'Hebbal, Bengaluru',
-        high_threshold: 50,
-        critical_threshold: 75,
-        channels: ['in_app', 'push', 'email'],
-        quiet_hours_enabled: true,
-        quiet_hours_start: '22:00',
-        quiet_hours_end: '06:00',
-        is_active: true,
-        created_at: new Date().toISOString()
-      }
-    ]);
+    return getStorage<HeatAlertSubscription[]>(STORAGE_KEYS.ALERT_SUBSCRIPTIONS, []);
   },
 
   saveAlertSubscription(sub: HeatAlertSubscription): void {
@@ -639,15 +609,18 @@ export const mockDb = {
 
   // --- OUTDOOR WORKER SAFETY (PART 5) ---
   getWorkerOrganizations(): WorkerOrganization[] {
-    return getStorage<WorkerOrganization[]>(STORAGE_KEYS.WORKER_ORGS, INITIAL_WORKER_ORGS);
+    const initial = isProduction ? [] : INITIAL_WORKER_ORGS;
+    return getStorage<WorkerOrganization[]>(STORAGE_KEYS.WORKER_ORGS, initial);
   },
 
   getWorkerWorkplaces(): WorkerWorkplace[] {
-    return getStorage<WorkerWorkplace[]>(STORAGE_KEYS.WORKPLACES, INITIAL_WORKPLACES);
+    const initial = isProduction ? [] : INITIAL_WORKPLACES;
+    return getStorage<WorkerWorkplace[]>(STORAGE_KEYS.WORKPLACES, initial);
   },
 
   getOutdoorWorkers(): OutdoorWorker[] {
-    return getStorage<OutdoorWorker[]>(STORAGE_KEYS.OUTDOOR_WORKERS, INITIAL_OUTDOOR_WORKERS);
+    const initial = isProduction ? [] : INITIAL_OUTDOOR_WORKERS;
+    return getStorage<OutdoorWorker[]>(STORAGE_KEYS.OUTDOOR_WORKERS, initial);
   },
 
   saveOutdoorWorker(worker: OutdoorWorker): void {
@@ -670,7 +643,8 @@ export const mockDb = {
 
   // --- FAMILY SAFETY (PART 9) ---
   getFamilyGroups(): FamilyGroup[] {
-    return getStorage<FamilyGroup[]>(STORAGE_KEYS.FAMILY_GROUPS, INITIAL_FAMILY_GROUPS);
+    const initial = isProduction ? [] : INITIAL_FAMILY_GROUPS;
+    return getStorage<FamilyGroup[]>(STORAGE_KEYS.FAMILY_GROUPS, initial);
   },
 
   saveFamilyGroup(group: FamilyGroup): void {
@@ -683,7 +657,8 @@ export const mockDb = {
 
   // --- SCHOOL SAFETY (PART 10) ---
   getSchools(): SchoolRegistration[] {
-    return getStorage<SchoolRegistration[]>(STORAGE_KEYS.SCHOOLS, INITIAL_SCHOOLS);
+    const initial = isProduction ? [] : INITIAL_SCHOOLS;
+    return getStorage<SchoolRegistration[]>(STORAGE_KEYS.SCHOOLS, initial);
   },
 
   saveSchool(school: SchoolRegistration): void {

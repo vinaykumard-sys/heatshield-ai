@@ -10,147 +10,116 @@ import {
   Search, 
   Filter, 
   CheckCircle2, 
-  ExternalLink,
-  Clock,
-  ShieldAlert,
-  ArrowRight
+  ExternalLink, 
+  Clock, 
+  ShieldAlert, 
+  ArrowRight,
+  PhoneCall,
+  PlusCircle,
+  Droplets,
+  Building2,
+  Send,
+  Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
+import { mockDb } from '../lib/mockDb';
 import { formatTimeAgo } from '../lib/utils';
-import { NotificationType, NotificationPriority } from '../types';
+import { NewRequestModal } from '../components/requests/NewRequestModal';
+import { EmergencyModal } from '../components/common/EmergencyModal';
 
 export const AlertsPage: React.FC = () => {
+  const { user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'critical' | 'environmental' | 'welfare'>('all');
+  const [mainTab, setMainTab] = useState<'warnings' | 'notifications' | 'requests'>('warnings');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
 
-  // Overview metrics
+  const smartAlerts = mockDb.getSmartAlerts();
+  const requests = mockDb.getRequests();
+
+  // Metrics
   const metrics = useMemo(() => {
     const critical = notifications.filter(n => n.priority === 'critical' || n.type === 'critical_risk').length;
-    const warnings = notifications.filter(n => n.priority === 'warning' || n.type === 'environmental_alert').length;
-    const welfare = notifications.filter(n => n.type === 'missed_checkin').length;
+    const warnings = smartAlerts.filter(a => a.severity === 'critical' || a.severity === 'high').length;
+    const myRequests = requests.filter(r => r.resident_id === user?.id || r.requested_by === user?.id);
 
-    return { total: notifications.length, unread: unreadCount, critical, warnings, welfare };
-  }, [notifications, unreadCount]);
-
-  // Filtered notifications
-  const filtered = useMemo(() => {
-    return notifications.filter(n => {
-      // Tab filter
-      if (activeTab === 'unread' && n.is_read) return false;
-      if (activeTab === 'critical' && n.priority !== 'critical' && n.type !== 'critical_risk') return false;
-      if (activeTab === 'environmental' && n.type !== 'environmental_alert') return false;
-      if (activeTab === 'welfare' && n.type !== 'missed_checkin') return false;
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const match = n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-
-      return true;
-    });
-  }, [notifications, activeTab, searchQuery]);
-
-  const getAlertIcon = (type: NotificationType, priority: NotificationPriority) => {
-    if (priority === 'critical' || type === 'critical_risk') {
-      return (
-        <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-200">
-          <Flame className="w-5 h-5 animate-pulse" />
-        </div>
-      );
-    }
-    if (priority === 'warning' || type === 'environmental_alert') {
-      return (
-        <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200">
-          <AlertTriangle className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (type === 'missed_checkin') {
-      return (
-        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
-          <UserCheck className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (type === 'request_update') {
-      return (
-        <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
-          <HelpCircle className="w-5 h-5" />
-        </div>
-      );
-    }
-    return (
-      <div className="p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200">
-        <Info className="w-5 h-5" />
-      </div>
-    );
-  };
-
-  const getPriorityBadge = (priority: NotificationPriority) => {
-    switch (priority) {
-      case 'critical':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
-            CRITICAL
-          </span>
-        );
-      case 'warning':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 border border-orange-200">
-            WARNING
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-            INFO
-          </span>
-        );
-    }
-  };
-
-  const getActionLink = (type: NotificationType) => {
-    switch (type) {
-      case 'critical_risk':
-      case 'environmental_alert':
-        return { to: '/map', label: 'View Heat Risk Map' };
-      case 'missed_checkin':
-        return { to: '/checkins', label: 'Review Welfare Priority' };
-      case 'request_update':
-        return { to: '/requests', label: 'View Assistance Requests' };
-      default:
-        return { to: '/dashboard', label: 'Open Overview' };
-    }
-  };
+    return { 
+      totalAlerts: smartAlerts.length, 
+      unreadNotifs: unreadCount, 
+      criticalWarnings: warnings,
+      pendingRequests: requests.filter(r => r.status === 'open' || r.status === 'assigned').length 
+    };
+  }, [notifications, smartAlerts, requests, unreadCount, user]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 space-y-6">
+    <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6">
+      {/* Emergency Modal */}
+      <EmergencyModal isOpen={isEmergencyModalOpen} onClose={() => setIsEmergencyModalOpen(false)} />
+      
+      {/* New Assistance Request Modal */}
+      <NewRequestModal 
+        isOpen={isRequestModalOpen} 
+        onClose={() => setIsRequestModalOpen(false)} 
+        onSuccess={() => {}} 
+      />
+
+      {/* TOP EMERGENCY SOS BANNER */}
+      <div className="bg-gradient-to-r from-rose-900 via-red-900 to-rose-950 text-white p-4 sm:p-5 rounded-3xl shadow-lg border border-red-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-rose-300">
+            <PhoneCall className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold tracking-tight">Need Immediate Heat Emergency Assistance?</h3>
+            <p className="text-xs text-rose-200">
+              National Emergency Hotline: <strong>112</strong> &bull; Ambulance Medical Response: <strong>108</strong> &bull; NDMA Disaster Helpline: <strong>1077</strong>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsEmergencyModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-white text-rose-900 font-bold text-xs shadow-md hover:bg-rose-50 transition-all flex items-center gap-1.5"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+            <span>Emergency SOS Desk</span>
+          </button>
+          <button
+            onClick={() => setIsRequestModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-rose-700/80 hover:bg-rose-700 text-white font-bold text-xs border border-rose-600 shadow-md transition-all flex items-center gap-1.5"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Request Aid</span>
+          </button>
+        </div>
+      </div>
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Bell className="w-6 h-6 text-blue-600" />
-              <span>Community Alerts & Dispatches</span>
+              <Flame className="w-6 h-6 text-orange-600" />
+              <span>Alerts & Community Assistance</span>
             </h1>
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-              TELEMETRY ALERTS
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">
+              LIVE BROADCASTS
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time thermal risk warnings, emergency welfare escalations, and environmental telemetry updates.
+            Real-time heat advisories, hourly weather alerts, and localized humanitarian assistance dispatch.
           </p>
         </div>
 
-        {unreadCount > 0 && (
+        {mainTab === 'notifications' && unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto"
           >
             <CheckCheck className="w-4 h-4 text-emerald-600" />
             <span>Mark All as Read ({unreadCount})</span>
@@ -158,161 +127,218 @@ export const AlertsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>Total Broadcasts</span>
-            <Bell className="w-4 h-4 text-slate-400" />
-          </div>
-          <div className="text-2xl font-bold font-mono text-slate-900">{metrics.total}</div>
-          <span className="text-[10px] text-slate-400">All registered alerts</span>
-        </div>
+      {/* MAIN NAVIGATION PILLS */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs">
+        <button
+          onClick={() => setMainTab('warnings')}
+          className={`px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
+            mainTab === 'warnings'
+              ? 'bg-orange-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Smart Heat Warnings ({smartAlerts.length})</span>
+        </button>
 
-        <div className="p-4 bg-white border border-blue-200 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-xs text-blue-700 font-semibold mb-1">
-            <span>Unread Alerts</span>
-            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-          </div>
-          <div className="text-2xl font-bold font-mono text-blue-700">{metrics.unread}</div>
-          <span className="text-[10px] text-slate-500">Require coordinator review</span>
-        </div>
+        <button
+          onClick={() => setMainTab('notifications')}
+          className={`px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
+            mainTab === 'notifications'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>In-App Notifications {unreadCount > 0 && `(${unreadCount} new)`}</span>
+        </button>
 
-        <div className="p-4 bg-white border border-red-200 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-xs text-red-600 font-semibold mb-1">
-            <span>Critical Warnings</span>
-            <Flame className="w-4 h-4 text-red-500" />
-          </div>
-          <div className="text-2xl font-bold font-mono text-red-700">{metrics.critical}</div>
-          <span className="text-[10px] text-slate-500">Extreme thermal distress</span>
-        </div>
-
-        <div className="p-4 bg-white border border-amber-200 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-xs text-amber-700 font-semibold mb-1">
-            <span>Welfare Escalations</span>
-            <ShieldAlert className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="text-2xl font-bold font-mono text-amber-800">{metrics.welfare}</div>
-          <span className="text-[10px] text-slate-500">Field visit flags</span>
-        </div>
+        <button
+          onClick={() => setMainTab('requests')}
+          className={`px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 ${
+            mainTab === 'requests'
+              ? 'bg-purple-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span>Assistance Requests ({requests.length})</span>
+        </button>
       </div>
 
-      {/* Filters and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search alerts by title or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
-          />
-        </div>
+      {/* TAB 1: SMART HEAT WARNINGS */}
+      {mainTab === 'warnings' && (
+        <div className="space-y-4">
+          {smartAlerts.length > 0 ? (
+            <div className="space-y-3">
+              {smartAlerts.map((alert) => {
+                const isCritical = alert.severity === 'critical';
+                const isHigh = alert.severity === 'high';
 
-        <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-lg text-xs overflow-x-auto shadow-sm">
-          {[
-            { id: 'all', label: `All (${notifications.length})` },
-            { id: 'unread', label: `Unread (${unreadCount})` },
-            { id: 'critical', label: `Critical (${metrics.critical})` },
-            { id: 'environmental', label: `Weather (${metrics.warnings})` },
-            { id: 'welfare', label: `Welfare (${metrics.welfare})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 py-1 rounded capitalize whitespace-nowrap font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Alerts Feed */}
-      <div className="space-y-3">
-        {filtered.map((notif) => {
-          const action = getActionLink(notif.type);
-          const isCritical = notif.priority === 'critical' || notif.type === 'critical_risk';
-
-          return (
-            <div
-              key={notif.id}
-              className={`bg-white border rounded-xl p-4 sm:p-5 shadow-sm transition-all ${
-                !notif.is_read ? 'border-l-4 border-l-blue-600 bg-blue-50/20' : 'border-slate-200'
-              } ${isCritical ? 'border-red-200' : ''}`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                {/* Left: Icon & Content */}
-                <div className="flex items-start gap-3.5">
-                  {getAlertIcon(notif.type, notif.priority)}
-
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                        {notif.title}
-                      </h3>
-                      {getPriorityBadge(notif.priority)}
-                      {!notif.is_read && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600" title="Unread" />
-                      )}
+                return (
+                  <div
+                    key={alert.id}
+                    className={`bg-white border rounded-3xl p-5 sm:p-6 shadow-sm space-y-3 transition-all ${
+                      isCritical ? 'border-red-300 bg-red-50/20' : isHigh ? 'border-orange-300 bg-orange-50/20' : 'border-slate-200'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          isCritical ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-orange-100 text-orange-800 border border-orange-200'
+                        }`}>
+                          {alert.severity} SEVERITY
+                        </span>
+                        <span className="text-xs text-slate-500 font-mono">
+                          📍 {alert.location_name}, {alert.city}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Valid for next {alert.expected_duration_hours || 6} hours
+                      </span>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
-                      {notif.message}
+                    <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+                      {alert.headline}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      {alert.description}
                     </p>
 
-                    <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-1">
-                      <span className="flex items-center gap-1 font-mono">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatTimeAgo(notif.created_at)}</span>
-                      </span>
-                      <span>Type: <strong className="text-slate-600 capitalize">{notif.type.replace(/_/g, ' ')}</strong></span>
-                    </div>
+                    {alert.recommended_actions && alert.recommended_actions.length > 0 && (
+                      <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 space-y-1.5 text-xs">
+                        <strong className="text-slate-800 font-bold block">NDMA Immediate Protective Actions:</strong>
+                        <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                          {alert.recommended_actions.map((act, i) => (
+                            <li key={i}>{act}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  <Link
-                    to={action.to}
-                    onClick={() => {
-                      if (!notif.is_read) markAsRead(notif.id);
-                    }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
-                  >
-                    <span>{action.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-
-                  {!notif.is_read && (
-                    <button
-                      onClick={() => markAsRead(notif.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors"
-                      title="Mark as read"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Read</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
+          ) : (
+            <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500" />
+              <h4 className="text-sm font-bold text-slate-800">No Severe Heat Warnings Active</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                All monitored urban sectors are currently operating within the seasonal heat safety threshold.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-        {filtered.length === 0 && (
-          <div className="text-center py-16 bg-white border border-slate-200 rounded-xl text-slate-400">
-            <Bell className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
-            <p className="text-sm font-medium text-slate-600">No alerts match the selected criteria.</p>
-            <p className="text-xs text-slate-400 mt-0.5">All community telemetry and welfare check-ins are clear.</p>
+      {/* TAB 2: IN-APP NOTIFICATIONS */}
+      {mainTab === 'notifications' && (
+        <div className="space-y-3">
+          {notifications.length > 0 ? (
+            notifications.map((notif) => (
+              <div
+                key={notif.id}
+                className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                  !notif.is_read ? 'bg-blue-50/40 border-blue-200 border-l-4 border-l-blue-600' : 'bg-white border-slate-200'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">{notif.title}</span>
+                    {!notif.is_read && (
+                      <span className="w-2 h-2 rounded-full bg-blue-600" />
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
+                  <span className="text-[10px] text-slate-400 font-mono block">
+                    {formatTimeAgo(notif.created_at)}
+                  </span>
+                </div>
+
+                {!notif.is_read && (
+                  <button
+                    onClick={() => markAsRead(notif.id)}
+                    className="shrink-0 text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+                  >
+                    Mark Read
+                  </button>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <Bell className="w-10 h-10 mx-auto text-slate-400 opacity-50" />
+              <h4 className="text-sm font-bold text-slate-800">No Notifications Available</h4>
+              <p className="text-xs text-slate-500">Hourly weather updates and welfare alerts will appear here.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: ASSISTANCE REQUESTS */}
+      {mainTab === 'requests' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700">Community Welfare & Hydration Requests</span>
+            <button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Submit Request</span>
+            </button>
           </div>
-        )}
-      </div>
+
+          {requests.length > 0 ? (
+            <div className="space-y-3">
+              {requests.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold uppercase">
+                        {req.category.replace(/_/g, ' ')}
+                      </span>
+                      <strong className="text-slate-900 font-bold">{req.locality_name}</strong>
+                    </div>
+                    <p className="text-slate-600 text-[11px]">{req.description}</p>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Submitted {formatTimeAgo(req.created_at)}
+                    </span>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase self-start sm:self-auto ${
+                    req.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' :
+                    req.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {req.status.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <HelpCircle className="w-10 h-10 mx-auto text-purple-400 opacity-50" />
+              <h4 className="text-sm font-bold text-slate-800">No Assistance Requests Submitted</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Need urgent drinking water delivery, respite transport to a cooling sanctuary, or a welfare visit? Submit an assistance request.
+              </p>
+              <button
+                onClick={() => setIsRequestModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm inline-flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Submit Assistance Request</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
+export default AlertsPage;
