@@ -238,7 +238,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   }[role] || 'Registered Resident';
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col antialiased text-[#0F172A]">
+    <div className="min-h-screen bg-[#F6F9FC] flex flex-col antialiased text-[#0F172A]">
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div 
@@ -249,12 +249,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
       {/* Fixed Left Sidebar (Desktop & Mobile) */}
       <aside 
-        className={`fixed top-0 bottom-0 left-0 z-[1050] w-64 bg-white border-r border-[#E2E8F0] flex flex-col transition-transform duration-200 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-[1050] w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ease-in-out ${
           mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-[#E2E8F0]">
+        <div className="h-16 px-6 flex items-center justify-between border-b border-slate-200/80">
           <Link to="/dashboard" className="flex items-center">
             <BrandLogo size="md" showBadge={true} />
           </Link>
