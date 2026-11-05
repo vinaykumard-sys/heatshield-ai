@@ -53,32 +53,32 @@ export const HeatRiskMapPage: React.FC = () => {
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Compass className="w-6 h-6 text-blue-600" />
-              <span>Explore & Find Help</span>
+              <span>Where Can I Go for Help?</span>
             </h1>
             <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-              UNIFIED RESIDENT MAP
+              HEAT RISK RADAR & RELIEF DIRECTORY
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Interactive heat safety radar combining verified drinking water ATMs, air-conditioned cooling centres, hospital emergency wards, and shaded transit corridors.
+            Interactive heat safety map combining verified drinking water ATMs, air-conditioned cooling centres, hospital emergency ICUs, and shaded walking routes.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
-            to="/water-stations"
+            to="/help"
             className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors"
           >
-            Water ATMs
+            Water & Relief Hub
           </Link>
           <Link
-            to="/cooling-centres"
+            to="/help"
             className="px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
           >
-            Cooling Centres
+            Cooling Shelters
           </Link>
           <Link
-            to="/hospital-directory"
+            to="/help"
             className="px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition-colors"
           >
             Hospitals
@@ -87,7 +87,7 @@ export const HeatRiskMapPage: React.FC = () => {
             to="/safe-routes"
             className="px-3 py-1.5 rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-800 text-xs font-bold hover:bg-cyan-100 transition-colors"
           >
-            Safe Routes
+            Shaded Routes
           </Link>
         </div>
       </div>

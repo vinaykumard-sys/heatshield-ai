@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   Navigation,
   Heart,
+  HeartHandshake,
   GraduationCap,
   Stethoscope,
   Flame,
@@ -93,65 +94,50 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard':
-        return 'Resident Safety Briefing';
+        return 'HeatShield Home Briefing';
       case '/map':
       case '/explore':
       case '/heat-map':
-        return 'Hyperlocal Heat Risk Map';
-      case '/predictions':
-        return 'AI Heatwave Prediction Engine';
+        return 'Heat Risk Map & Relief Finder';
+      case '/alerts':
+      case '/alerts-assistance':
+        return 'Safety Alerts & Bulletins';
+      case '/help':
+        return 'Emergency Help & Relief Hub';
+      case '/my-safety':
+      case '/family-safety':
+        return 'My Safety & Protection Shield';
       case '/cooling-centres':
         return 'Cooling Shelters & Mist Havens';
+      case '/water-stations':
+        return 'Drinking Water ATMs';
+      case '/hospital-directory':
+        return 'Hospital Emergency Directory';
+      case '/safe-routes':
+        return 'Heat-Safe Route Planner';
+      case '/assistant':
+        return 'HeatShield AI Safety Advisor';
+      case '/academy':
+        return 'Heat Illness First-Aid Guides';
+      case '/account':
+        return 'My Account & Preferences';
+      case '/command-centre':
+        return 'Municipal Command Centre';
       case '/residents':
         return 'Vulnerable Residents Directory';
       case '/checkins':
       case '/welfare-checkins':
-        return 'Smart Welfare Check-in System';
-      case '/requests':
-        return 'Assistance Requests';
-      case '/assistant':
-        return 'HeatShield Multilingual AI Voice Assistant';
-      case '/heat-simulator':
-        return 'What-If Heat Simulation Sandbox';
-      case '/alerts':
-      case '/alerts-assistance':
-        return 'Alerts & Assistance';
-      case '/analytics':
-        return 'Health Risk Analytics';
-      case '/settings':
-      case '/admin':
-        return 'Municipal System Settings';
-      case '/account':
-        return 'My Account & Alert Preferences';
-      case '/portal':
-        return 'Resident Safety Portal';
-      case '/heat-alerts':
-        return 'Smart Heat Alert System';
-      case '/water-stations':
-        return 'Public Water Availability Tracker';
+        return 'Welfare Check-in Triage';
       case '/worker-safety':
         return 'Outdoor Worker Safety Manager';
-      case '/command-centre':
-        return 'Municipal Command Centre';
-      case '/safe-routes':
-        return 'Heat-Safe Route Planner';
-      case '/family-safety':
-      case '/my-safety':
-        return 'My Safety & Family Circle';
       case '/school-safety':
         return 'School Heat Safety Protocol';
-      case '/hospital-directory':
-        return 'Hospital Resource Directory';
-      case '/resident-dashboard':
-        return 'Personalized Resident Dashboard';
-      case '/impact-dashboard':
-        return 'HeatShield Impact & Resilience';
-      case '/academy':
-        return 'Heat Awareness Academy';
-      case '/offline-emergency':
-        return 'Offline Emergency Mode';
+      case '/analytics':
+        return 'Health Risk Analytics';
+      case '/admin':
+        return 'Municipal System Administration';
       default:
-        return 'Dashboard';
+        return 'HeatShield AI';
     }
   };
 
@@ -170,42 +156,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   const navGroups: NavGroup[] = [
     {
-      title: 'Resident Safety Services',
+      title: 'Resident Safety',
       items: [
-        { to: '/dashboard', label: 'Home Dashboard', icon: LayoutDashboard },
-        { to: '/map', label: 'Explore & Find Help', icon: MapPin },
-        { to: '/alerts', label: 'Alerts & Assistance', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
-        { to: '/family-safety', label: 'My Safety', icon: Heart },
-        { to: '/academy', label: 'Learn & Prepare', icon: GraduationCap },
-        { to: '/account', label: 'My Account', icon: UserIcon },
+        { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
+        { to: '/map', label: 'Map', icon: MapPin },
+        { to: '/alerts', label: 'Alerts', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+        { to: '/help', label: 'Help', icon: HeartHandshake },
+        { to: '/my-safety', label: 'My Safety', icon: ShieldCheck },
       ]
     },
-    {
-      title: 'Community Lifelines',
-      items: [
-        { to: '/water-stations', label: 'Water Availability', icon: Droplets },
-        { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
-        { to: '/hospital-directory', label: 'Hospital Directory', icon: Stethoscope },
-        { to: '/safe-routes', label: 'Heat-Safe Routes', icon: Navigation },
-        { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
-        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
-      ]
-    },
-    {
-      title: 'Municipal & Officer Tools',
+    ...(isAdmin || isVolunteer ? [{
+      title: 'Municipal & Operations',
       items: [
         { to: '/command-centre', label: 'Command Centre', icon: ShieldAlert, show: isAdmin },
         { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
         { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
-        { to: '/requests', label: 'Assistance Triage', icon: HelpCircle, show: isVolunteer || isAdmin },
         { to: '/worker-safety', label: 'Worker Safety', icon: HardHat, show: isVolunteer || isAdmin },
         { to: '/school-safety', label: 'School Safety', icon: GraduationCap, show: isVolunteer || isAdmin },
-        { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders, show: isAdmin },
-        { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award, show: isVolunteer || isAdmin },
         { to: '/analytics', label: 'Health Analytics', icon: BarChart3, show: isAdmin },
-        { to: '/admin', label: 'Admin Settings', icon: Settings, show: isAdmin },
+        { to: '/admin', label: 'System Admin', icon: Settings, show: isAdmin },
       ]
-    }
+    }] : [])
   ];
 
   const isKarnataka = (currentLocation?.state || '').toLowerCase().includes('karnataka');

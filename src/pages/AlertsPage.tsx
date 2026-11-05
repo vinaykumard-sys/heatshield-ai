@@ -221,11 +221,11 @@ export const AlertsPage: React.FC = () => {
               })}
             </div>
           ) : (
-            <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+            <div className="p-10 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-2 shadow-sm">
               <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500" />
-              <h4 className="text-sm font-bold text-slate-800">No Severe Heat Warnings Active</h4>
+              <h4 className="text-sm font-bold text-slate-800">No Active Community Alerts</h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                All monitored urban sectors are currently operating within the seasonal heat safety threshold.
+                Your area currently has no verified active heat alerts. Temperatures and heat indices are within normal seasonal range.
               </p>
             </div>
           )}

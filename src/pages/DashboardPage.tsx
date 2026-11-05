@@ -205,13 +205,29 @@ export const DashboardPage: React.FC = () => {
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 flex-1">
+            {/* 5-SECOND SAFETY VERDICT PILL */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-cyan-300 text-xs font-mono font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Hyperlocal Resident Heat Briefing</span>
+              <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider border shadow-md ${
+                riskCategory === 'critical' ? 'bg-red-500/20 text-red-200 border-red-400/50' :
+                riskCategory === 'high' ? 'bg-orange-500/20 text-orange-200 border-orange-400/50' :
+                riskCategory === 'moderate' ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' :
+                'bg-emerald-500/20 text-emerald-200 border-emerald-400/50'
+              }`}>
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  riskCategory === 'critical' ? 'bg-red-400 animate-ping' :
+                  riskCategory === 'high' ? 'bg-orange-400 animate-pulse' :
+                  riskCategory === 'moderate' ? 'bg-amber-400' :
+                  'bg-emerald-400'
+                }`} />
+                <span>
+                  {riskCategory === 'critical' ? 'Critical Heat Emergency' :
+                   riskCategory === 'high' ? 'High Heat Danger' :
+                   riskCategory === 'moderate' ? 'Moderate Heat Advisory' :
+                   'Safe Right Now'}
+                </span>
               </span>
-              <span className="text-[11px] font-mono text-slate-400">
-                {currentLocation.localityName || selectedZone?.name || 'Monitored Sector'}
+              <span className="text-[11px] font-mono text-slate-300 bg-white/10 px-2.5 py-1 rounded-full">
+                📍 {currentLocation.localityName || selectedZone?.name || 'Monitored Ward'}
               </span>
             </div>
 
@@ -257,25 +273,25 @@ export const DashboardPage: React.FC = () => {
               className="px-4 py-2.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 btn-interact hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh Telemetry</span>
+              <span>Check Live Weather</span>
             </button>
           </div>
         </div>
 
-        {/* 4 CORE ENVIRONMENTAL TELEMETRY CARDS */}
+        {/* 4 CORE ENVIRONMENTAL CONDITIONS CARDS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-6 pt-6 border-t border-slate-800">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
-              <span>Ambient Temp</span>
+              <span>Current Air Temp</span>
               <Thermometer className="w-4 h-4 text-orange-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{currentTemp}°C</div>
-            <div className="text-[11px] text-slate-400 truncate">Air Temperature (Shaded)</div>
+            <div className="text-[11px] text-slate-400 truncate">Shaded Air Temperature</div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
-              <span>Feels-Like Index</span>
+              <span>Real-Feel Index</span>
               <Flame className="w-4 h-4 text-red-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-red-400 font-mono">{feelsLike}°C</div>
@@ -290,18 +306,18 @@ export const DashboardPage: React.FC = () => {
               <Droplets className="w-4 h-4 text-cyan-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{currentHumidity}%</div>
-            <div className="text-[11px] text-slate-400 truncate">Impairs Sweat Evaporation</div>
+            <div className="text-[11px] text-slate-400 truncate">Moisture & Sweat Factor</div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
-              <span>NDMA Heat Risk</span>
+              <span>Safety Category</span>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-orange-400 font-mono capitalize">
               {riskCategory} <span className="text-sm font-normal text-slate-400">({riskScore}/100)</span>
             </div>
-            <div className="text-[11px] text-slate-400 truncate">Clinical Vulnerability Level</div>
+            <div className="text-[11px] text-slate-400 truncate">Official Safety Level</div>
           </div>
         </div>
       </div>

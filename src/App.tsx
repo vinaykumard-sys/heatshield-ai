@@ -44,6 +44,8 @@ import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
 import { HeatAcademyPage } from './pages/HeatAcademyPage';
 import { OfflineEmergencyPage } from './pages/OfflineEmergencyPage';
 import { MyAccountPage } from './pages/MyAccountPage';
+import { HelpHubPage } from './pages/HelpHubPage';
+import { MySafetyHubPage } from './pages/MySafetyHubPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -325,10 +327,18 @@ export function App() {
                   }
                 />
                 <Route
+                  path="/help"
+                  element={
+                    <ProtectedRoute>
+                      <HelpHubPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/my-safety"
                   element={
                     <ProtectedRoute>
-                      <FamilySafetyPage />
+                      <MySafetyHubPage />
                     </ProtectedRoute>
                   }
                 />

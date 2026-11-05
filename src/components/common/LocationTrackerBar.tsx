@@ -90,18 +90,18 @@ export const LocationTrackerBar: React.FC = () => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                     : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}>
-                  {isLiveWeather ? 'LIVE METEO TELEMETRY' : 'OFFLINE SIMULATED'}
+                  {isLiveWeather ? 'LIVE WEATHER' : 'CACHED WEATHER'}
                 </span>
 
                 <button
                   type="button"
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
-                  title="Telemetry automatically updates every 5 minutes in real time. Click to sync immediately."
+                  title="Weather conditions automatically update every 5 minutes. Click to refresh now."
                   className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-lg font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 btn-press transition-all"
                 >
                   <RefreshCw className={`w-2.5 h-2.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  <span>Auto-sync: 5m</span>
+                  <span>Refresh</span>
                 </button>
 
                 {currentLocation.pincode && (
@@ -122,14 +122,10 @@ export const LocationTrackerBar: React.FC = () => {
 
               {currentLocation.subArea && (
                 <p className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
-                  <span>Zone: <strong className="text-slate-700 font-medium">{currentLocation.subArea}</strong></span>
-                  <span className="text-slate-300">•</span>
-                  <span className="font-mono text-slate-500 text-[11px]">
-                    {currentLocation.latitude.toFixed(4)}°N, {currentLocation.longitude.toFixed(4)}°E
-                  </span>
+                  <span>Monitored Sector: <strong className="text-slate-700 font-medium">{currentLocation.subArea}</strong></span>
                   {currentLocation.accuracyMeters && (
                     <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      ±{currentLocation.accuracyMeters}m accuracy
+                      GPS Active (±{currentLocation.accuracyMeters}m)
                     </span>
                   )}
                 </p>
