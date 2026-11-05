@@ -49,6 +49,12 @@ import { MySafetyHubPage } from './pages/MySafetyHubPage';
 
 import { useAuth } from './context/AuthContext';
 
+// Dynamic Settings Route: Admin panel for administrators, Account & Preferences for residents/volunteers
+const SettingsRoute: React.FC = () => {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <AdminPanelPage /> : <MyAccountPage />;
+};
+
 // Gatekeeper for root path: User MUST log in first before accessing the platform
 const RootRoute: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -203,7 +209,7 @@ export function App() {
                 <Route
                   path="/heat-simulator"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute>
                       <HeatSimulatorPage />
                     </ProtectedRoute>
                   }
@@ -244,7 +250,7 @@ export function App() {
                   path="/settings"
                   element={
                     <ProtectedRoute>
-                      <AdminPanelPage />
+                      <SettingsRoute />
                     </ProtectedRoute>
                   }
                 />
