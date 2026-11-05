@@ -199,7 +199,7 @@ export const HospitalDirectoryPage: React.FC = () => {
           {filteredHospitals.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
               <Stethoscope className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-700">No hospitals matched your filter criteria.</p>
+              <p className="text-sm font-semibold text-slate-700">No verified facilities found nearby</p>
               <button
                 onClick={() => { setSearchQuery(''); setSelectedFilter('all'); }}
                 className="mt-3 text-xs text-blue-600 font-medium hover:underline"

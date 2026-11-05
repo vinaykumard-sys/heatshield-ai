@@ -102,41 +102,35 @@ export function purgeLegacyMockStorage(): void {
     // Always remove developer keys
     localStorage.removeItem('heatshield_developer_keys');
 
-    // Remove legacy fake residents if present
-    const res = localStorage.getItem('heatshield_residents');
-    if (res && (res.includes('Anjinappa') || res.includes('res-blr-1') || res.includes('res-1') || res.includes('Priya'))) {
-      localStorage.removeItem('heatshield_residents');
-    }
+    const demoKeywords = [
+      'Anjinappa', 'Farooq', 'Ramesh', 'Sundaram', 'Kavita', 'Deshmukh', 
+      'Arun Kumar', 'Gowda', 'Sham Lal', 'Muniyappa', 'Parvatiamma', 
+      'Laxmi Bai', 'Rukmini', 'res-blr-1', 'res-1', 'res-2', 'res-3', 'res-4', 'res-5', 'res-6',
+      'usr-admin-1', 'usr-vol-1', 'usr-vol-2', 'usr-res-1',
+      'chk-1', 'chk-2', 'chk-3', 'chk-4', 'chk-blr',
+      'req-1', 'req-2', 'req-3', 'req-blr',
+      'act-1', 'act-2', 'act-3', 'act-4',
+      'notif-1', 'notif-2', 'notif-3',
+      'sit-rep-today'
+    ];
 
-    // Remove legacy fake users
-    const usr = localStorage.getItem('heatshield_users');
-    if (usr && (usr.includes('usr-admin-1') || usr.includes('usr-vol-1') || usr.includes('Ramesh Sundaram'))) {
-      localStorage.removeItem('heatshield_users');
-    }
+    const keysToCheck = [
+      STORAGE_KEYS.RESIDENTS,
+      STORAGE_KEYS.USERS,
+      STORAGE_KEYS.CHECKINS,
+      STORAGE_KEYS.REQUESTS,
+      STORAGE_KEYS.ACTIVITY_LOGS,
+      STORAGE_KEYS.NOTIFICATIONS,
+      STORAGE_KEYS.SITUATION_REPORT,
+      STORAGE_KEYS.SMART_ALERTS
+    ];
 
-    // Remove legacy fake checkins
-    const chk = localStorage.getItem('heatshield_checkins');
-    if (chk && (chk.includes('chk-1') || chk.includes('chk-blr'))) {
-      localStorage.removeItem('heatshield_checkins');
-    }
-
-    // Remove legacy fake requests
-    const req = localStorage.getItem('heatshield_requests');
-    if (req && (req.includes('req-1') || req.includes('Sham Lal'))) {
-      localStorage.removeItem('heatshield_requests');
-    }
-
-    // Remove legacy fake activity logs
-    const act = localStorage.getItem('heatshield_activity_logs');
-    if (act && (act.includes('Priya') || act.includes('Ramesh') || act.includes('Kavita') || act.includes('act-1'))) {
-      localStorage.removeItem('heatshield_activity_logs');
-    }
-
-    // Remove legacy fake situation report
-    const sit = localStorage.getItem('heatshield_situation_report');
-    if (sit && (sit.includes('sit-rep-today') || sit.includes('46.2°C'))) {
-      localStorage.removeItem('heatshield_situation_report');
-    }
+    keysToCheck.forEach(key => {
+      const val = localStorage.getItem(key);
+      if (val && demoKeywords.some(kw => val.includes(kw))) {
+        localStorage.removeItem(key);
+      }
+    });
   } catch (e) {
     // ignore
   }
@@ -150,19 +144,21 @@ function getStorage<T>(key: string, defaultValue: T): T {
     const item = localStorage.getItem(key);
     if (!item) return defaultValue;
 
-    // In production, if the key contains legacy fake fixture IDs, discard it and return defaultValue
-    if (isProduction) {
-      if (
-        (key === STORAGE_KEYS.RESIDENTS && item.includes('res-blr-1')) ||
-        (key === STORAGE_KEYS.USERS && item.includes('usr-admin-1')) ||
-        (key === STORAGE_KEYS.CHECKINS && item.includes('chk-1')) ||
-        (key === STORAGE_KEYS.REQUESTS && item.includes('req-1')) ||
-        (key === STORAGE_KEYS.ACTIVITY_LOGS && item.includes('act-1')) ||
-        (key === STORAGE_KEYS.SITUATION_REPORT && item.includes('sit-rep-today'))
-      ) {
-        localStorage.removeItem(key);
-        return defaultValue;
-      }
+    // Discard any storage item contaminated with legacy demo fixtures
+    const demoKeywords = [
+      'Anjinappa', 'Farooq', 'Ramesh', 'Sundaram', 'Kavita', 'Deshmukh',
+      'Arun Kumar', 'Gowda', 'Sham Lal', 'Muniyappa', 'Parvatiamma',
+      'Laxmi Bai', 'Rukmini', 'res-blr-1', 'res-1', 'res-2', 'res-3',
+      'usr-admin-1', 'usr-vol-1', 'usr-vol-2', 'usr-res-1',
+      'chk-1', 'chk-2', 'chk-3', 'chk-blr',
+      'req-1', 'req-2', 'req-blr',
+      'act-1', 'act-2', 'act-3', 'act-4',
+      'sit-rep-today'
+    ];
+
+    if (demoKeywords.some(kw => item.includes(kw))) {
+      localStorage.removeItem(key);
+      return defaultValue;
     }
 
     return JSON.parse(item);
@@ -383,7 +379,7 @@ export const mockDb = {
   saveRiskConfig(config: RiskThresholdConfig): void {
     setStorage(STORAGE_KEYS.RISK_CONFIG, config);
     this.logActivity({
-      actor_name: 'Dr. Ramesh Sundaram (Admin)',
+      actor_name: 'Administrator',
       action: 'UPDATE_RISK_MODEL_THRESHOLDS',
       target_type: 'risk_thresholds',
       target_id: config.id,
@@ -649,8 +645,7 @@ export const mockDb = {
 
   // --- SMART HEAT ALERTS (PART 3) ---
   getSmartAlerts(): SmartHeatAlert[] {
-    const initial = isProduction ? [] : INITIAL_SMART_ALERTS;
-    return getStorage<SmartHeatAlert[]>(STORAGE_KEYS.SMART_ALERTS, initial);
+    return getStorage<SmartHeatAlert[]>(STORAGE_KEYS.SMART_ALERTS, []);
   },
 
   saveSmartAlert(alert: SmartHeatAlert): void {
@@ -675,18 +670,15 @@ export const mockDb = {
 
   // --- OUTDOOR WORKER SAFETY (PART 5) ---
   getWorkerOrganizations(): WorkerOrganization[] {
-    const initial = isProduction ? [] : INITIAL_WORKER_ORGS;
-    return getStorage<WorkerOrganization[]>(STORAGE_KEYS.WORKER_ORGS, initial);
+    return getStorage<WorkerOrganization[]>(STORAGE_KEYS.WORKER_ORGS, []);
   },
 
   getWorkerWorkplaces(): WorkerWorkplace[] {
-    const initial = isProduction ? [] : INITIAL_WORKPLACES;
-    return getStorage<WorkerWorkplace[]>(STORAGE_KEYS.WORKPLACES, initial);
+    return getStorage<WorkerWorkplace[]>(STORAGE_KEYS.WORKPLACES, []);
   },
 
   getOutdoorWorkers(): OutdoorWorker[] {
-    const initial = isProduction ? [] : INITIAL_OUTDOOR_WORKERS;
-    return getStorage<OutdoorWorker[]>(STORAGE_KEYS.OUTDOOR_WORKERS, initial);
+    return getStorage<OutdoorWorker[]>(STORAGE_KEYS.OUTDOOR_WORKERS, []);
   },
 
   saveOutdoorWorker(worker: OutdoorWorker): void {
@@ -709,8 +701,7 @@ export const mockDb = {
 
   // --- FAMILY SAFETY (PART 9) ---
   getFamilyGroups(): FamilyGroup[] {
-    const initial = isProduction ? [] : INITIAL_FAMILY_GROUPS;
-    return getStorage<FamilyGroup[]>(STORAGE_KEYS.FAMILY_GROUPS, initial);
+    return getStorage<FamilyGroup[]>(STORAGE_KEYS.FAMILY_GROUPS, []);
   },
 
   saveFamilyGroup(group: FamilyGroup): void {

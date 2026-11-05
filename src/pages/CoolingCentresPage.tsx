@@ -273,8 +273,8 @@ export const CoolingCentresPage: React.FC = () => {
         {/* Left 2 Columns: Cooling Centre Cards */}
         <div className="lg:col-span-2 space-y-3.5">
           {filteredCentres.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs">
-              No cooling shelters match your search criteria.
+            <div className="p-12 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
+              No verified facilities found nearby
             </div>
           ) : (
             filteredCentres.map((centre) => {

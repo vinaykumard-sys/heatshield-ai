@@ -162,8 +162,8 @@ export const HeatAlertsPage: React.FC = () => {
 
           <div className="space-y-3">
             {filteredAlerts.length === 0 ? (
-              <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs">
-                No active alerts matching selected severity.
+              <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
+                No active heat alerts
               </div>
             ) : (
               filteredAlerts.map(alert => {

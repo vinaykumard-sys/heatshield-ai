@@ -236,8 +236,8 @@ export const WaterStationsPage: React.FC = () => {
         {/* Stations Directory List (5 Cols) */}
         <div className="lg:col-span-5 space-y-3 max-h-[520px] overflow-y-auto pr-1">
           {filteredStations.length === 0 ? (
-            <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs">
-              No water stations found matching your criteria.
+            <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
+              No verified facilities found nearby
             </div>
           ) : (
             filteredStations.map(st => {

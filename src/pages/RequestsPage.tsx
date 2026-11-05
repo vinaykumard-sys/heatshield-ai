@@ -254,7 +254,7 @@ export const RequestsPage: React.FC = () => {
       {filtered.length === 0 && (
         <div className="text-center py-16 text-slate-400 bg-white border border-slate-200 rounded-xl">
           <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
-          <p className="text-sm">No assistance requests found for selected filter.</p>
+          <p className="text-sm font-medium">No active assistance requests</p>
         </div>
       )}
 

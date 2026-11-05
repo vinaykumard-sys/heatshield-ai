@@ -223,9 +223,9 @@ export const AlertsPage: React.FC = () => {
           ) : (
             <div className="p-10 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-2 shadow-sm">
               <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500" />
-              <h4 className="text-sm font-bold text-slate-800">No Active Community Alerts</h4>
+              <h4 className="text-sm font-bold text-slate-800">No active heat alerts</h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Your area currently has no verified active heat alerts. Temperatures and heat indices are within normal seasonal range.
+                Your monitored area currently has no verified active heat alerts. Temperatures and heat indices are within normal safe ranges.
               </p>
             </div>
           )}
@@ -322,7 +322,7 @@ export const AlertsPage: React.FC = () => {
           ) : (
             <div className="p-10 rounded-3xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
               <HelpCircle className="w-10 h-10 mx-auto text-purple-400 opacity-50" />
-              <h4 className="text-sm font-bold text-slate-800">No Assistance Requests Submitted</h4>
+              <h4 className="text-sm font-bold text-slate-800">No active assistance requests</h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
                 Need urgent drinking water delivery, respite transport to a cooling sanctuary, or a welfare visit? Submit an assistance request.
               </p>
