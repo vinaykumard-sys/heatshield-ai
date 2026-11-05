@@ -16,15 +16,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, role } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) {
-    // Redirect unauthenticated visitors to /login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // If specific staff roles are required (e.g. admin or volunteer), require authentication
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
-  // Check role authorization
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  // Resident & public heat safety routes are directly accessible
   return <AppLayout>{children}</AppLayout>;
 };

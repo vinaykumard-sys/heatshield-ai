@@ -55,13 +55,9 @@ const SettingsRoute: React.FC = () => {
   return isAdmin ? <AdminPanelPage /> : <MyAccountPage />;
 };
 
-// Gatekeeper for root path: User MUST log in first before accessing the platform
+// Root path navigation: directly route residents to the modern climate-safety dashboard
 const RootRoute: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 export function App() {

@@ -408,14 +408,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 transition-all btn-press hover:scale-[1.02]"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                  {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+                  {user?.full_name?.charAt(0).toUpperCase() || 'R'}
                 </div>
                 <div className="hidden sm:block text-left text-xs leading-tight">
                   <div className="font-semibold text-slate-900 truncate max-w-[120px]">
-                    {user?.full_name || 'User'}
+                    {user?.full_name || 'Resident'}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    {roleLabel}
+                    {user ? roleLabel : 'Public Access'}
                   </div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform duration-200" />
@@ -423,14 +423,28 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
               {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-[#E2E8F0] shadow-dropdown py-1.5 text-xs z-50 animate-dropdown-enter">
-                  <div className="px-3.5 py-2 border-b border-[#E2E8F0]">
-                    <p className="font-semibold text-slate-900 truncate">{user?.full_name}</p>
-                    <p className="text-slate-500 truncate text-[11px]">{user?.email}</p>
-                    <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      {roleLabel}
-                    </span>
-                  </div>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-dropdown py-1.5 text-xs z-50 animate-dropdown-enter">
+                  {user ? (
+                    <div className="px-3.5 py-2 border-b border-slate-100">
+                      <p className="font-semibold text-slate-900 truncate">{user.full_name}</p>
+                      <p className="text-slate-500 truncate text-[11px]">{user.email}</p>
+                      <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        {roleLabel}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="px-3.5 py-2.5 border-b border-slate-100 space-y-1.5">
+                      <p className="font-semibold text-slate-900">Resident Guest</p>
+                      <p className="text-slate-500 text-[11px]">Explore hyperlocal heat safety & lifelines</p>
+                      <Link
+                        to="/login"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="block text-center py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition-colors"
+                      >
+                        Sign In / Register
+                      </Link>
+                    </div>
+                  )}
 
                   <div className="py-1">
                     <Link
@@ -461,18 +475,29 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     )}
                   </div>
 
-                  <div className="border-t border-[#E2E8F0] pt-1">
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        logout();
-                        navigate('/login');
-                      }}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-red-600 hover:bg-red-50 text-left font-medium"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Sign Out</span>
-                    </button>
+                  <div className="border-t border-slate-100 pt-1">
+                    {user ? (
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          logout();
+                          navigate('/login');
+                        }}
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-red-600 hover:bg-red-50 text-left font-medium"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out</span>
+                      </button>
+                    ) : (
+                      <Link
+                        to="/login"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-blue-600 hover:bg-blue-50 text-left font-medium"
+                      >
+                        <UserIcon className="w-3.5 h-3.5" />
+                        <span>Sign In</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               )}
