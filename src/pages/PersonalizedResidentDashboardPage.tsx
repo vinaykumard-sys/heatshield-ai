@@ -224,12 +224,13 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
     ];
   }, [forecastHourly, currentTemp]);
 
-  // Bookmarked places
-  const [bookmarkedPlaces] = useState([
-    { name: 'Home (Hebbal)', temp: 33.8, risk: 'Moderate', color: 'text-amber-600 bg-amber-50' },
-    { name: 'Workplace (Manyata Tech Park)', temp: 35.1, risk: 'High', color: 'text-orange-600 bg-orange-50' },
-    { name: 'Parents (Jayanagar)', temp: 32.5, risk: 'Moderate', color: 'text-amber-600 bg-amber-50' }
-  ]);
+  // Dynamic bookmarked places derived from monitored ambient telemetry
+  const baseLiveTemp = currentReading?.temperature_c || 33.2;
+  const bookmarkedPlaces = [
+    { name: 'Home (Hebbal)', temp: Number((baseLiveTemp * 0.98).toFixed(1)), risk: 'Moderate', color: 'text-amber-600 bg-amber-50' },
+    { name: 'Workplace (Manyata Tech Park)', temp: Number((baseLiveTemp * 1.04).toFixed(1)), risk: 'High', color: 'text-orange-600 bg-orange-50' },
+    { name: 'Parents (Jayanagar)', temp: Number((baseLiveTemp * 0.96).toFixed(1)), risk: 'Moderate', color: 'text-amber-600 bg-amber-50' }
+  ];
 
   return (
     <div className="space-y-6 pb-12">
@@ -278,7 +279,9 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <span className="text-[11px] font-mono text-slate-400 uppercase">Ambient Temp</span>
               <Thermometer className="w-4 h-4 text-orange-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">{currentTemp}°C</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+              {currentReading ? `${currentTemp}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            </div>
             <div className="text-[11px] text-slate-400 mt-0.5 truncate">{currentLocation.localityName || 'Monitored Sector'}</div>
           </div>
 
@@ -287,7 +290,9 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
               <span className="text-[11px] font-mono text-slate-400 uppercase">Feels-Like</span>
               <Flame className="w-4 h-4 text-red-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-red-300 mt-1">{feelsLike}°C</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-red-300 mt-1">
+              {currentReading ? `${feelsLike}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            </div>
             <div className="text-[11px] text-red-400/90 font-medium mt-0.5">
               {feelsLike >= 40 ? 'Severe Heat Index' : feelsLike >= 35 ? 'Elevated Heat Index' : 'Moderate Heat Index'}
             </div>

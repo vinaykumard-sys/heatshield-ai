@@ -285,7 +285,9 @@ export const DashboardPage: React.FC = () => {
               <span>Current Air Temp</span>
               <Thermometer className="w-4 h-4 text-orange-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{currentTemp}°C</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+              {currentReading ? `${currentTemp}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            </div>
             <div className="text-[11px] text-slate-400 truncate">Shaded Air Temperature</div>
           </div>
 
@@ -294,7 +296,9 @@ export const DashboardPage: React.FC = () => {
               <span>Real-Feel Index</span>
               <Flame className="w-4 h-4 text-red-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-red-400 font-mono">{feelsLike}°C</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-red-400 font-mono">
+              {currentReading ? `${feelsLike}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            </div>
             <div className="text-[11px] text-red-300 font-medium truncate">
               {feelsLike >= 40 ? 'Severe Heat Index' : feelsLike >= 35 ? 'Elevated Heat Index' : 'Moderate Heat Index'}
             </div>

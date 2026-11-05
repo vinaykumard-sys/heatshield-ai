@@ -15,16 +15,35 @@ import { evaluateHeatRisk } from '../lib/riskEngine';
 import { RiskBadge } from '../components/common/RiskBadge';
 import { NewRequestModal } from '../components/requests/NewRequestModal';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
-import { EnvironmentalReading, HeatRiskAssessment } from '../types';
+import { EnvironmentalReading, HeatRiskAssessment, Resident } from '../types';
 
 export const ResidentPortalPage: React.FC = () => {
   const { user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const locations = mockDb.getLocations();
 
-  const [residentProfile] = useState(() => {
+  const [residentProfile] = useState<Resident>(() => {
     const list = mockDb.getResidents();
-    return list.find(r => r.profile_id === user?.id || r.contact_phone === user?.phone) || list[0];
+    const found = list.find(r => (user?.id && r.profile_id === user.id) || (user?.phone && r.contact_phone === user.phone));
+    if (found) return found;
+    return {
+      id: `res-${user?.id || 'guest'}`,
+      profile_id: user?.id,
+      full_name: user?.full_name || 'Resident',
+      age_range: '18_to_59',
+      contact_phone: user?.phone || '',
+      locality_id: locations[0]?.id || 'loc-1',
+      locality_name: locations[0]?.name || 'Bengaluru Central',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+      address_notes: '',
+      vulnerability_indicators: [],
+      preferred_language: 'en',
+      consent_status: true,
+      consent_date: new Date().toISOString(),
+      last_welfare_checkin: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
   });
 
   const [safeConfirmedRecently, setSafeConfirmedRecently] = useState(false);
@@ -183,15 +202,21 @@ export const ResidentPortalPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
             <span className="text-xs text-slate-500 block mb-1">Current Temperature</span>
-            <span className="text-xl font-bold text-slate-900 font-mono">{reading?.temperature_c ?? 35.8}°C</span>
+            <span className="text-xl font-bold text-slate-900 font-mono">
+              {reading ? `${reading.temperature_c.toFixed(1)}°C` : 'Syncing...'}
+            </span>
           </div>
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
             <span className="text-xs text-slate-500 block mb-1">Humidity</span>
-            <span className="text-xl font-bold text-blue-600 font-mono">{reading?.relative_humidity_pct ?? 54}%</span>
+            <span className="text-xl font-bold text-blue-600 font-mono">
+              {reading ? `${reading.relative_humidity_pct}%` : 'Syncing...'}
+            </span>
           </div>
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
             <span className="text-xs text-slate-500 block mb-1">Feels Like</span>
-            <span className="text-xl font-bold text-orange-600 font-mono">{reading?.feels_like_c ?? 38.1}°C</span>
+            <span className="text-xl font-bold text-orange-600 font-mono">
+              {reading ? `${reading.feels_like_c.toFixed(1)}°C` : 'Syncing...'}
+            </span>
           </div>
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
             <span className="text-xs text-slate-500 block mb-1">Cooling Centers</span>

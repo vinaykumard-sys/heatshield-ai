@@ -258,9 +258,9 @@ async function dispatchEmailUpdate(params: {
     </div>
   `;
 
-  let deliveryStatus: 'sent' | 'delivered' | 'failed' = 'delivered';
-  let providerMessageId = `msg-eml-${Date.now()}`;
-  let errorMsg = undefined;
+  let deliveryStatus: 'queued' | 'sent' | 'delivered' | 'failed' = 'queued';
+  let providerMessageId = `buf-eml-${Date.now()}`;
+  let errorMsg: string | undefined = 'Prepared in resident advisory buffer (Awaiting cloud SMTP relay)';
 
   try {
     const res = await fetch('/api/send-email', {
@@ -273,11 +273,17 @@ async function dispatchEmailUpdate(params: {
         idempotencyKey
       })
     });
-    if (!res.ok) {
-      deliveryStatus = 'sent'; // queued locally
+    if (res.ok) {
+      deliveryStatus = 'delivered';
+      errorMsg = undefined;
+      providerMessageId = `msg-eml-${Date.now()}`;
+    } else {
+      deliveryStatus = 'queued';
+      errorMsg = `Gateway returned HTTP ${res.status}`;
     }
   } catch (err: any) {
-    deliveryStatus = 'sent'; // successfully generated and logged in resilient queue
+    deliveryStatus = 'queued';
+    errorMsg = 'Stored in resident dispatch buffer. Connect transactional provider in Admin settings for live SMTP relay.';
   }
 
   // Mask recipient email (e.g. j***@gmail.com)
@@ -325,9 +331,9 @@ async function dispatchSmsUpdate(params: {
   // TRAI compliant concise format under 160 characters
   const smsBody = `HeatShield [${locality}]: Temp ${tempC}°C (Feels ${feelsLikeC}°C). Risk: ${riskCategory.toUpperCase()}. ${advice.slice(0, 50)}... at ${timeFormatted}. View: heatshield-ai-eight.vercel.app`;
 
-  let deliveryStatus: 'sent' | 'delivered' | 'failed' = 'delivered';
-  let providerMessageId = `msg-sms-${Date.now()}`;
-  let errorMsg = undefined;
+  let deliveryStatus: 'queued' | 'sent' | 'delivered' | 'failed' = 'queued';
+  let providerMessageId = `buf-sms-${Date.now()}`;
+  let errorMsg: string | undefined = 'Prepared in SMS dispatch queue (Awaiting TRAI/DLT telecom gateway)';
 
   try {
     const res = await fetch('/api/send-sms', {
@@ -339,11 +345,17 @@ async function dispatchSmsUpdate(params: {
         idempotencyKey
       })
     });
-    if (!res.ok) {
-      deliveryStatus = 'sent';
+    if (res.ok) {
+      deliveryStatus = 'delivered';
+      errorMsg = undefined;
+      providerMessageId = `msg-sms-${Date.now()}`;
+    } else {
+      deliveryStatus = 'queued';
+      errorMsg = `Gateway returned HTTP ${res.status}`;
     }
   } catch (err: any) {
-    deliveryStatus = 'sent';
+    deliveryStatus = 'queued';
+    errorMsg = 'Stored in resident dispatch buffer. Connect transactional SMS gateway for live cellular delivery.';
   }
 
   const cleanPhone = resident.phone || '';

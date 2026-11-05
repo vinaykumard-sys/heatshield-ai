@@ -32,7 +32,28 @@ export const SchoolSafetyPage: React.FC = () => {
   const [newSchoolAddress, setNewSchoolAddress] = useState('');
   const [newSchoolStudents, setNewSchoolStudents] = useState(500);
 
-  const currentSchool = schools.find(s => s.id === selectedSchoolId) || schools[0];
+  const defaultSchool: SchoolRegistration = {
+    id: 'sch-default',
+    name: 'Standard Municipal Campus Protocol',
+    address: 'Metropolitan School District',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    latitude: 13.0854,
+    longitude: 77.6250,
+    contact_email: 'school-safety@heatshield.gov.in',
+    contact_phone: '+91 80 2200 0000',
+    principal_name: 'District Education Directorate',
+    student_count: 0,
+    operating_hours: '08:00 AM - 02:30 PM',
+    outdoor_activity_curfew_temp: 36.0,
+    has_shaded_playgrounds: true,
+    water_fountains_count: 0,
+    ac_halls_count: 0,
+    verification_status: 'verified',
+    created_at: new Date().toISOString()
+  };
+
+  const currentSchool = schools.find(s => s.id === selectedSchoolId) || schools[0] || defaultSchool;
 
   // Dynamic temperature from live Open-Meteo telemetry
   const campusTemp = currentReading?.temperature_c ?? 33.5;
@@ -123,11 +144,16 @@ export const SchoolSafetyPage: React.FC = () => {
           <select
             value={selectedSchoolId}
             onChange={e => setSelectedSchoolId(e.target.value)}
-            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none input-interactive font-semibold text-slate-800"
+            disabled={schools.length === 0}
+            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none input-interactive font-semibold text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
           >
-            {schools.map(s => (
-              <option key={s.id} value={s.id}>{s.name} ({s.student_count} students)</option>
-            ))}
+            {schools.length === 0 ? (
+              <option value="sch-default">No schools registered yet (Showing standard guidelines)</option>
+            ) : (
+              schools.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.student_count} students)</option>
+              ))
+            )}
           </select>
         </div>
 

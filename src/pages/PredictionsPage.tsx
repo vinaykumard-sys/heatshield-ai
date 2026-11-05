@@ -32,8 +32,10 @@ import { LocationZone, HeatForecast, PredictionComparison } from '../types';
 import { generateLocationForecasts, getPredictionComparisons } from '../lib/predictionEngine';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { RiskBadge } from '../components/common/RiskBadge';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const PredictionsPage: React.FC = () => {
+  const { currentReading, currentRisk } = useLocationTracker();
   const locations = mockDb.getLocations();
   const [selectedLocId, setSelectedLocId] = useState<string>(locations[0]?.id || '');
   const [forecasts, setForecasts] = useState<HeatForecast[]>([]);
@@ -64,9 +66,15 @@ export const PredictionsPage: React.FC = () => {
 
   const activeForecast = forecasts.find(f => f.forecast_horizon_hours === selectedHorizon) || forecasts[0];
 
+  // Live baseline for 'Now'
+  const nowTemp = currentReading?.temperature_c ? Number(currentReading.temperature_c.toFixed(1)) : (forecasts[0] ? Number((forecasts[0].predicted_temperature_c - 1.2).toFixed(1)) : 33.2);
+  const nowFeelsLike = currentReading?.feels_like_c ? Number(currentReading.feels_like_c.toFixed(1)) : (forecasts[0] ? Number((forecasts[0].predicted_feels_like_c - 1.0).toFixed(1)) : 35.4);
+  const nowRisk = currentRisk?.risk_score ?? (forecasts[0] ? Math.max(30, forecasts[0].predicted_risk_score - 4) : 52);
+  const nowHumidity = currentReading?.relative_humidity_pct ?? (forecasts[0] ? forecasts[0].predicted_humidity_pct : 54);
+
   // Chart telemetry data across 24h, 48h, 72h
   const trendChartData = [
-    { period: 'Now', temp: 34.2, feelsLike: 37.0, risk: 62, humidity: 54 },
+    { period: 'Now', temp: nowTemp, feelsLike: nowFeelsLike, risk: nowRisk, humidity: nowHumidity },
     ...forecasts.map(f => ({
       period: `+${f.forecast_horizon_hours}h`,
       temp: f.predicted_temperature_c,
@@ -77,16 +85,18 @@ export const PredictionsPage: React.FC = () => {
   ];
 
   // Highest predicted risk ranking across all monitored localities
+  const baseLiveTemp = currentReading?.temperature_c || 33.0;
   const highRiskNeighbourhoods = locations
     .map(loc => {
       const isNorth = loc.latitude > 25.0;
-      const baseRisk = Math.round(50 + (loc.baseline_vulnerability_score * 0.3) + (isNorth ? 18 : 6));
+      const baseRisk = Math.round(50 + (loc.baseline_vulnerability_score * 0.3) + (isNorth ? 12 : 4));
+      const predT = Number((baseLiveTemp * loc.urban_heat_island_factor).toFixed(1));
       return {
         id: loc.id,
         name: loc.name,
         city: loc.city,
         predictedRisk: Math.min(96, baseRisk),
-        predictedTemp: isNorth ? 40.5 : 35.8,
+        predictedTemp: predT,
         vulnerability: loc.baseline_vulnerability_score,
         uhi: loc.urban_heat_island_factor
       };

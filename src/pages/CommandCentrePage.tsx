@@ -24,11 +24,26 @@ import {
 import { mockDb } from '../lib/mockDb';
 import { SituationReport } from '../types';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const CommandCentrePage: React.FC = () => {
+  const { currentReading, currentRisk, selectedZone, forceTelemetryRefresh } = useLocationTracker();
   const [sitRep, setSitRep] = useState<SituationReport>(() => mockDb.getSituationReport());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
+
+  const locations = mockDb.getLocations();
+  const coolingCentres = mockDb.getCoolingCentres();
+  const waterStations = mockDb.getWaterStations();
+  const hospitals = mockDb.getHospitals();
+  const schools = mockDb.getSchools();
+  const users = mockDb.getUsers();
+
+  const openCoolingCount = coolingCentres.filter(c => c.operating_status === 'open').length;
+  const activeWaterCount = waterStations.filter(w => w.status === 'available').length;
+  const activeVolunteersCount = users.filter(u => u.role === 'volunteer').length;
+  const highRiskWardsCount = locations.filter(l => l.baseline_vulnerability_score >= 70).length;
+  const liveAmbientTemp = currentReading?.temperature_c ? `${currentReading.temperature_c.toFixed(1)}°C` : '32.0°C';
 
   // Layer Toggles
   const [showHeatLayer, setShowHeatLayer] = useState(true);
@@ -94,21 +109,19 @@ export const CommandCentrePage: React.FC = () => {
     hosp.clearLayers();
     sch.clearLayers();
 
-    // 1. Heat Risk Circles
+    // 1. Heat Risk Circles based on true urban vulnerability & heat island factors
     if (showHeatLayer) {
-      const locations = mockDb.getLocations();
       locations.forEach(loc => {
-        const isNorth = loc.latitude > 25.0;
-        const temp = isNorth ? 40.5 : 34.8;
-        if (temp > 35.0) {
+        const isHighVulnerability = loc.baseline_vulnerability_score >= 65;
+        if (isHighVulnerability) {
           L.circle([loc.latitude, loc.longitude], {
-            radius: 2600,
-            color: '#EF4444',
+            radius: 2200,
+            color: loc.baseline_vulnerability_score >= 80 ? '#EF4444' : '#F97316',
             weight: 2,
-            fillColor: '#DC2626',
-            fillOpacity: 0.25,
+            fillColor: loc.baseline_vulnerability_score >= 80 ? '#DC2626' : '#EA580C',
+            fillOpacity: 0.22,
             dashArray: '6, 6'
-          }).bindPopup(`<b>${loc.name}</b><br>Ambient Temp: ${temp}°C`).addTo(heat);
+          }).bindPopup(`<b>${loc.name}</b><br>Baseline Vulnerability: ${loc.baseline_vulnerability_score}/100<br>UHI Factor: ${loc.urban_heat_island_factor}x`).addTo(heat);
         }
       });
     }
@@ -181,9 +194,67 @@ export const CommandCentrePage: React.FC = () => {
   };
 
   const handleExportBriefing = () => {
+    const reportText = `================================================================================
+HEATSHIELD AI — MUNICIPAL SITUATION BRIEFING & HEAT COMMAND DOSSIER
+================================================================================
+Generated: ${new Date().toLocaleString()}
+Jurisdiction: Urban Heat Defense Network (Inter-Agency Municipal Link)
+Data Freshness: ${sitRep.data_freshness_pct}% (Open-Meteo High-Res Telemetry)
+
+1. ATMOSPHERIC & TELEMETRY SUMMARY
+--------------------------------------------------------------------------------
+- Monitored Locality: ${selectedZone?.name || 'Municipal Grid'}
+- Live Ambient Temp: ${liveAmbientTemp}
+- Current Risk Level: ${currentRisk?.risk_category?.toUpperCase() || 'NORMAL'} (Score: ${currentRisk?.risk_score || 'N/A'})
+- High-Risk Wards (Vulnerability >= 70): ${highRiskWardsCount} of ${locations.length} wards
+
+2. MUNICIPAL RESOURCE DEPLOYMENT
+--------------------------------------------------------------------------------
+- Cooling Centres Open: ${openCoolingCount} of ${coolingCentres.length} registered facilities
+- Public Water ATMs Active: ${activeWaterCount} of ${waterStations.length} operational points
+- Field Volunteers Enrolled: ${activeVolunteersCount} active responders
+- Emergency Medical Network: ${hospitals.length} acute care trauma centers linked
+
+3. SITUATION ASSESSMENT
+--------------------------------------------------------------------------------
+${sitRep.summary_text}
+
+Key Vulnerabilities:
+${sitRep.key_concerns.length > 0 ? sitRep.key_concerns.map((kc, i) => `  [${i + 1}] ${kc}`).join('\n') : '  - Baseline telemetry nominal across monitored sectors.'}
+
+Recommended Directives:
+${sitRep.recommended_administrative_actions.map((act, i) => `  [->] ${act}`).join('\n')}
+
+================================================================================
+HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
+================================================================================`;
+
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `HeatShield_Situation_Dossier_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
     setExportNotice(true);
-    setTimeout(() => setExportNotice(false), 3000);
+    setTimeout(() => setExportNotice(false), 4000);
   };
+
+  const priorityLocalities = sitRep.most_affected_localities.length > 0 
+    ? sitRep.most_affected_localities 
+    : locations
+        .slice()
+        .sort((a, b) => b.baseline_vulnerability_score - a.baseline_vulnerability_score)
+        .slice(0, 3)
+        .map(l => ({
+          name: l.name,
+          temperature: currentReading?.temperature_c ? Math.round(currentReading.temperature_c * l.urban_heat_island_factor * 10) / 10 : 33.5,
+          risk_score: l.baseline_vulnerability_score,
+          pending_checkins: 0
+        }));
 
   return (
     <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6">
@@ -229,7 +300,7 @@ export const CommandCentrePage: React.FC = () => {
       {exportNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>Official HeatShield Situation Briefing exported to PDF format.</span>
+          <span>Official HeatShield Situation Briefing dossier (.txt) downloaded successfully.</span>
         </div>
       )}
 
@@ -237,12 +308,14 @@ export const CommandCentrePage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
           <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block font-bold">
-            Peak City Temp
+            Live Monitored Temp
           </span>
           <div className="text-xl font-black text-red-600 font-mono mt-0.5">
-            41.5°C
+            {liveAmbientTemp}
           </div>
-          <span className="text-[10px] text-slate-500 font-medium">Delhi (Old City)</span>
+          <span className="text-[10px] text-slate-500 font-medium truncate block">
+            {selectedZone?.name || 'Monitored Sector'}
+          </span>
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -250,9 +323,9 @@ export const CommandCentrePage: React.FC = () => {
             High-Risk Wards
           </span>
           <div className="text-xl font-black text-orange-600 font-mono mt-0.5">
-            6 Wards
+            {highRiskWardsCount} {highRiskWardsCount === 1 ? 'Ward' : 'Wards'}
           </div>
-          <span className="text-[10px] text-orange-600 font-medium">Threshold &gt; 35°C</span>
+          <span className="text-[10px] text-orange-600 font-medium">Vulnerability &ge; 70</span>
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -260,9 +333,9 @@ export const CommandCentrePage: React.FC = () => {
             Cooling Shelters
           </span>
           <div className="text-xl font-black text-sky-600 font-mono mt-0.5">
-            {sitRep.resource_status.cooling_centres_open} Open
+            {openCoolingCount} Open
           </div>
-          <span className="text-[10px] text-emerald-600 font-medium">100% Operational</span>
+          <span className="text-[10px] text-emerald-600 font-medium">{coolingCentres.length} Total Verified</span>
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -270,9 +343,9 @@ export const CommandCentrePage: React.FC = () => {
             Public Water ATMs
           </span>
           <div className="text-xl font-black text-teal-600 font-mono mt-0.5">
-            {sitRep.resource_status.water_stations_operational} Active
+            {activeWaterCount} Active
           </div>
-          <span className="text-[10px] text-amber-600 font-medium">2 Queued for Refill</span>
+          <span className="text-[10px] text-teal-600 font-medium">{waterStations.length} Total Operational</span>
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -280,17 +353,17 @@ export const CommandCentrePage: React.FC = () => {
             Field Volunteers
           </span>
           <div className="text-xl font-black text-indigo-600 font-mono mt-0.5">
-            {sitRep.resource_status.active_volunteers} Deployed
+            {activeVolunteersCount} Active
           </div>
-          <span className="text-[10px] text-indigo-600 font-medium">Welfare check-ins active</span>
+          <span className="text-[10px] text-indigo-600 font-medium">{users.length} Total Community Users</span>
         </div>
 
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
           <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block font-bold">
-            Data Freshness
+            Telemetry Feed
           </span>
           <div className="text-xl font-black text-emerald-600 font-mono mt-0.5">
-            {sitRep.data_freshness_pct}%
+            {currentReading ? 'Active' : 'Standby'}
           </div>
           <span className="text-[10px] text-slate-400 font-mono">Open-Meteo High-Res</span>
         </div>
@@ -376,14 +449,20 @@ export const CommandCentrePage: React.FC = () => {
             <span className="text-[10px] uppercase font-mono font-bold text-slate-400 tracking-wider block">
               Key Vulnerability Concerns
             </span>
-            <ul className="text-xs text-slate-300 space-y-1.5">
-              {sitRep.key_concerns.map((kc, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-red-400 font-bold shrink-0">⚠️</span>
-                  <span>{kc}</span>
-                </li>
-              ))}
-            </ul>
+            {sitRep.key_concerns.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">
+                Baseline telemetry nominal across all sectors. No active heat casualty emergency alerts triggered.
+              </p>
+            ) : (
+              <ul className="text-xs text-slate-300 space-y-1.5">
+                {sitRep.key_concerns.map((kc, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-red-400 font-bold shrink-0">⚠️</span>
+                    <span>{kc}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="space-y-2 pt-2 border-t border-slate-800">
@@ -409,28 +488,34 @@ export const CommandCentrePage: React.FC = () => {
           </h2>
 
           <div className="space-y-3">
-            {sitRep.most_affected_localities.map((loc, i) => (
-              <div 
-                key={i}
-                className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3"
-              >
-                <div>
-                  <div className="font-bold text-xs text-slate-900">{loc.name}</div>
-                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                    Pending Welfare Check-ins: <b>{loc.pending_checkins}</b>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-base font-black font-mono text-red-600">
-                    {loc.temperature}°C
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-800">
-                    Risk {loc.risk_score}
-                  </span>
-                </div>
+            {priorityLocalities.length === 0 ? (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+                All monitored localities are currently within seasonal baseline ranges. Telemetry synchronizing continuously.
               </div>
-            ))}
+            ) : (
+              priorityLocalities.map((loc, i) => (
+                <div 
+                  key={i}
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <div className="font-bold text-xs text-slate-900">{loc.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      Pending Welfare Check-ins: <b>{loc.pending_checkins}</b>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-base font-black font-mono text-red-600">
+                      {loc.temperature}°C
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-800">
+                      Risk {loc.risk_score}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="pt-2 border-t border-slate-200">

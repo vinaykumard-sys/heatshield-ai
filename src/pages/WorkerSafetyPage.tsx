@@ -42,8 +42,37 @@ export const WorkerSafetyPage: React.FC = () => {
   const [newWorkerRole, setNewWorkerRole] = useState('');
   const [newWorkerIdCode, setNewWorkerIdCode] = useState('');
 
-  const currentOrg = orgs.find(o => o.id === selectedOrgId) || orgs[0];
-  const currentWp = workplaces.find(w => w.id === selectedWpId) || workplaces[0];
+  const defaultOrg: WorkerOrganization = {
+    id: 'org-default',
+    name: 'Municipal & Industrial Workplaces',
+    industry: 'construction',
+    contact_person: 'Occupational Health Officer',
+    contact_phone: '+91 80 2200 1100',
+    contact_email: 'worker-safety@heatshield.gov.in',
+    total_workers: 0,
+    created_at: new Date().toISOString()
+  };
+
+  const defaultWp: WorkerWorkplace = {
+    id: 'wp-default',
+    org_id: 'org-default',
+    org_name: 'Municipal & Industrial Workplaces',
+    name: 'Outdoor Field Operational Zone',
+    address: 'City Worksite Cluster',
+    locality_name: 'Bengaluru Core',
+    latitude: 13.0854,
+    longitude: 77.6250,
+    shift_start: '07:00',
+    shift_end: '16:00',
+    wbgt_threshold: 30.0,
+    rest_interval_minutes: 15,
+    drinking_water_nearby: true,
+    shaded_shelter_available: true,
+    created_at: new Date().toISOString()
+  };
+
+  const currentOrg = orgs.find(o => o.id === selectedOrgId) || orgs[0] || defaultOrg;
+  const currentWp = workplaces.find(w => w.id === selectedWpId) || workplaces[0] || defaultWp;
   const currentWorkers = workers.filter(w => w.workplace_id === selectedWpId);
 
   // Live telemetry from Open-Meteo single source of truth
@@ -131,11 +160,16 @@ export const WorkerSafetyPage: React.FC = () => {
           <select
             value={selectedOrgId}
             onChange={e => setSelectedOrgId(e.target.value)}
-            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none font-semibold text-slate-800"
+            disabled={orgs.length === 0}
+            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none font-semibold text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
           >
-            {orgs.map(o => (
-              <option key={o.id} value={o.id}>{o.name} ({o.industry})</option>
-            ))}
+            {orgs.length === 0 ? (
+              <option value="org-default">Standard Occupational Baseline</option>
+            ) : (
+              orgs.map(o => (
+                <option key={o.id} value={o.id}>{o.name} ({o.industry})</option>
+              ))
+            )}
           </select>
         </div>
 
@@ -145,11 +179,16 @@ export const WorkerSafetyPage: React.FC = () => {
           <select
             value={selectedWpId}
             onChange={e => setSelectedWpId(e.target.value)}
-            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none font-semibold text-slate-800"
+            disabled={workplaces.length === 0}
+            className="text-xs px-2.5 py-1.5 border border-slate-200 rounded-lg focus:outline-none font-semibold text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
           >
-            {workplaces.filter(w => w.org_id === selectedOrgId).map(w => (
-              <option key={w.id} value={w.id}>{w.name}</option>
-            ))}
+            {workplaces.length === 0 ? (
+              <option value="wp-default">Operational Field Site</option>
+            ) : (
+              workplaces.filter(w => w.org_id === selectedOrgId).map(w => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))
+            )}
           </select>
         </div>
       </div>
@@ -221,55 +260,65 @@ export const WorkerSafetyPage: React.FC = () => {
           <span className="text-xs text-slate-400 font-mono">Site: {currentWp?.name}</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {currentWorkers.map(w => {
-            const isSafe = w.last_checkin_status === 'hydrated_safe';
-            const needsRest = w.last_checkin_status === 'needs_rest';
-            return (
-              <div 
-                key={w.id}
-                className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 card-interactive hover:border-slate-300 transition-all"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-bold text-xs text-slate-900">
-                      {w.full_name}
+        {currentWorkers.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <HardHat className="w-8 h-8 text-slate-300 mx-auto" />
+            <h4 className="text-xs font-bold text-slate-800">No Workers Registered on this Site</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Click &quot;Register Worker&quot; above to add on-site employees, track mandatory hydration intervals, and record thermal welfare check-ins.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {currentWorkers.map(w => {
+              const isSafe = w.last_checkin_status === 'hydrated_safe';
+              const needsRest = w.last_checkin_status === 'needs_rest';
+              return (
+                <div 
+                  key={w.id}
+                  className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 card-interactive hover:border-slate-300 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-xs text-slate-900">
+                        {w.full_name}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        {w.worker_id_code} • {w.role_title}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
-                      {w.worker_id_code} • {w.role_title}
-                    </div>
+
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      isSafe ? 'bg-emerald-100 text-emerald-800' :
+                      needsRest ? 'bg-amber-100 text-amber-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {w.last_checkin_status ? w.last_checkin_status.replace('_', ' ') : 'Pending'}
+                    </span>
                   </div>
 
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    isSafe ? 'bg-emerald-100 text-emerald-800' :
-                    needsRest ? 'bg-amber-100 text-amber-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {w.last_checkin_status ? w.last_checkin_status.replace('_', ' ') : 'Pending'}
-                  </span>
-                </div>
+                  <div className="text-[11px] text-slate-600 flex items-center justify-between border-t border-slate-200/60 pt-2 font-mono">
+                    <span>Shift: {w.shift_name}</span>
+                    <span className="text-slate-400">
+                      {w.last_checkin_time ? new Date(w.last_checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No check-in'}
+                    </span>
+                  </div>
 
-                <div className="text-[11px] text-slate-600 flex items-center justify-between border-t border-slate-200/60 pt-2 font-mono">
-                  <span>Shift: {w.shift_name}</span>
-                  <span className="text-slate-400">
-                    {w.last_checkin_time ? new Date(w.last_checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No check-in'}
-                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedWorker(w);
+                      setShowCheckinModal(true);
+                    }}
+                    className="w-full py-1.5 px-3 rounded-lg bg-white border border-slate-200 hover:bg-amber-50 hover:border-amber-200 text-slate-700 hover:text-amber-800 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Update Safety Status</span>
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedWorker(w);
-                    setShowCheckinModal(true);
-                  }}
-                  className="w-full py-1.5 px-3 rounded-lg bg-white border border-slate-200 hover:bg-amber-50 hover:border-amber-200 text-slate-700 hover:text-amber-800 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <UserCheck className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Update Safety Status</span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Safety Compliance & Legal Disclaimer Card */}
