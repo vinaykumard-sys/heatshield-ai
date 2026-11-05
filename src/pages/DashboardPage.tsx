@@ -112,18 +112,6 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-16 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* ======================================== */}
-      {/* DIAGNOSTIC PROOF TEST BANNER (STEP 8) */}
-      <div 
-        id="heatshield-diagnostic-banner-proof"
-        className="w-full bg-red-600 text-white font-mono font-black text-sm sm:text-base p-4 rounded-2xl shadow-2xl border-4 border-yellow-400 text-center space-y-1 animate-pulse z-50"
-      >
-        <div className="text-lg uppercase tracking-widest font-black">HEATSHIELD DEPLOYMENT TEST</div>
-        <div className="text-yellow-200">BUILD: UI-TEST-001</div>
-        <div className="text-xs text-white/90">SOURCE: CURRENT DASHBOARD COMPONENT (src/pages/DashboardPage.tsx)</div>
-      </div>
-      {/* ======================================== */}
-
       {/* Emergency Modal */}
       <EmergencyModal isOpen={isEmergencyOpen} onClose={() => setIsEmergencyOpen(false)} />
 
