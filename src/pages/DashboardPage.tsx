@@ -115,12 +115,6 @@ export const DashboardPage: React.FC = () => {
       {/* Emergency Modal */}
       <EmergencyModal isOpen={isEmergencyOpen} onClose={() => setIsEmergencyOpen(false)} />
 
-      {/* Temporary Deployment Marker */}
-      <div className="px-4 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-bold flex items-center justify-between shadow-2xs">
-        <span>HEATSHIELD UI BUILD TEST — REDESIGN-TEST-2026-11-05-1425</span>
-        <span className="text-[10px] text-blue-500">PROD-VERCEL-SYNC-ACTIVE</span>
-      </div>
-
       {/* Hyperlocal Location Command Bar */}
       <LocationTrackerBar />
 

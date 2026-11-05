@@ -354,11 +354,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               />
             </div>
 
-            {/* Build Identifier Test Marker */}
-            <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-mono text-[10px] font-bold border border-blue-200">
-              UI BUILD: REDESIGN-TEST-2026-11-05
-            </span>
-
             {/* Online / Offline Sync Status Indicator */}
             <Link
               to="/offline-emergency"

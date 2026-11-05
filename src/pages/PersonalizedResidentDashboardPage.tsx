@@ -234,12 +234,6 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Temporary Deployment Marker */}
-      <div className="px-4 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-bold flex items-center justify-between shadow-2xs">
-        <span>HEATSHIELD UI BUILD TEST — REDESIGN-TEST-2026-11-05-1425</span>
-        <span className="text-[10px] text-blue-500">RESIDENT-DASHBOARD-SYNC-ACTIVE</span>
-      </div>
-
       <LocationTrackerBar />
 
       {/* Hero: Personalized Heat Protection Status */}
