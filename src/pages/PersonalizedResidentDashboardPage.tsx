@@ -234,37 +234,41 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Temporary Deployment Marker */}
+      <div className="px-4 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-bold flex items-center justify-between shadow-2xs">
+        <span>HEATSHIELD UI BUILD TEST — REDESIGN-TEST-2026-11-05-1425</span>
+        <span className="text-[10px] text-blue-500">RESIDENT-DASHBOARD-SYNC-ACTIVE</span>
+      </div>
+
       <LocationTrackerBar />
 
       {/* Hero: Personalized Heat Protection Status */}
-      <div className="bg-gradient-to-br from-slate-900 via-navy-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-cyan-300 text-xs font-mono">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Hyperlocal Heat Protection Profile</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>Personalized Resident Heat Profile</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               Hello, {profile.name}
             </h1>
-            <p className="text-sm text-slate-300 max-w-xl">
-              Thermal danger in your area is elevated. HeatShield AI has dynamically generated your hydration targets and hourly outdoor exposure restrictions.
+            <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+              Real-time thermal monitoring is active in your sector. Dynamic hydration targets and outdoor exposure guidelines have been personalized to your profile.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold transition-all btn-interact"
             >
-              <Settings2 className="w-4 h-4 text-cyan-400" />
-              <span>Adjust Health Profile</span>
+              <Settings2 className="w-4 h-4 text-blue-600" />
+              <span>Adjust Profile</span>
             </button>
             <Link
               to="/safe-routes"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/30 transition-all btn-interact hover:scale-[1.03] active:scale-[0.97]"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all btn-interact"
             >
               <Navigation className="w-4 h-4" />
               <span>Plan Shaded Route</span>
@@ -273,53 +277,53 @@ export const PersonalizedResidentDashboardPage: React.FC = () => {
         </div>
 
         {/* Real-time Environmental Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-800">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-slate-400 uppercase">Ambient Temp</span>
-              <Thermometer className="w-4 h-4 text-orange-400" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-100">
+          <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
+              <span>Ambient Temp</span>
+              <Thermometer className="w-4 h-4 text-orange-500" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              {currentReading ? `${currentTemp}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
+              {currentReading ? `${currentTemp}°C` : '--'}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5 truncate">{currentLocation.localityName || 'Monitored Sector'}</div>
+            <div className="text-[11px] text-slate-500 truncate">{currentLocation.localityName || 'Monitored Sector'}</div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-slate-400 uppercase">Feels-Like</span>
-              <Flame className="w-4 h-4 text-red-400" />
+          <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
+              <span>Feels-Like</span>
+              <Flame className="w-4 h-4 text-red-500" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-red-300 mt-1">
-              {currentReading ? `${feelsLike}°C` : <span className="text-xl animate-pulse text-slate-400">Syncing...</span>}
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
+              {currentReading ? `${feelsLike}°C` : '--'}
             </div>
-            <div className="text-[11px] text-red-400/90 font-medium mt-0.5">
+            <div className="text-[11px] text-orange-600 font-medium">
               {feelsLike >= 40 ? 'Severe Heat Index' : feelsLike >= 35 ? 'Elevated Heat Index' : 'Moderate Heat Index'}
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-slate-400 uppercase">UV Radiation</span>
-              <Sun className="w-4 h-4 text-amber-400" />
+          <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
+              <span>UV Index</span>
+              <Sun className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              {currentUv} ({currentUv >= 8 ? 'Very High' : currentUv >= 6 ? 'High' : 'Moderate'})
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
+              {currentUv}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              {currentUv >= 8 ? 'Burn time: ~15 mins' : 'Wear sunscreen outdoors'}
+            <div className="text-[11px] text-slate-500 truncate">
+              {currentUv >= 8 ? 'Very High • Use Shade' : currentUv >= 6 ? 'High • Wear Sunscreen' : 'Moderate UV'}
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-slate-400 uppercase">Personal Risk</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 space-y-1">
+            <div className="flex items-center justify-between text-slate-400 text-[11px] font-mono uppercase">
+              <span>Personal Risk</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-orange-400 mt-1 capitalize">
-              {currentRiskCategory} ({currentRiskScore}/100)
+            <div className="text-2xl sm:text-3xl font-extrabold text-orange-600 font-mono capitalize">
+              {currentRiskCategory} <span className="text-xs text-slate-400 font-normal">({currentRiskScore}/100)</span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-[11px] text-slate-500 truncate">
               {profile.has_ac_at_home ? 'AC active at residence' : 'Natural cross-ventilation'}
             </div>
           </div>
