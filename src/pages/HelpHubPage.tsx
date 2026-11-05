@@ -149,23 +149,23 @@ export const HelpHubPage: React.FC = () => {
       <LocationTrackerBar />
 
       {/* TOP EMERGENCY LIFELINES BANNER */}
-      <div className="bg-gradient-to-r from-rose-900 via-red-900 to-rose-950 text-white p-5 sm:p-6 rounded-3xl shadow-xl border border-red-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-rose-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-rose-300 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
             <PhoneCall className="w-6 h-6 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-200 border border-rose-400/30">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
                 24x7 Rapid Lifeline
               </span>
-              <span className="text-xs text-rose-200">No data connection required</span>
+              <span className="text-xs text-slate-500">No data connection required</span>
             </div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight text-white mt-0.5">
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 mt-0.5">
               Immediate Heat Emergency Response
             </h2>
-            <p className="text-xs text-rose-200">
-              National Emergency: <strong className="text-white">112</strong> &bull; Ambulance: <strong className="text-white">108</strong> &bull; Disaster Helpline: <strong className="text-white">1077</strong>
+            <p className="text-xs text-slate-600">
+              National Emergency: <strong className="text-rose-700">112</strong> &bull; Ambulance: <strong className="text-rose-700">108</strong> &bull; Disaster Helpline: <strong className="text-rose-700">1077</strong>
             </p>
           </div>
         </div>
@@ -173,16 +173,16 @@ export const HelpHubPage: React.FC = () => {
         <div className="flex items-center gap-2.5 shrink-0">
           <a
             href="tel:112"
-            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-rose-50 text-red-900 font-extrabold text-xs shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2"
           >
-            <PhoneCall className="w-4 h-4 text-red-700" />
+            <PhoneCall className="w-4 h-4" />
             <span>Call 112</span>
           </a>
           <button
             onClick={() => setIsNewRequestOpen(true)}
-            className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs shadow-xs transition-all flex items-center gap-2"
           >
-            <PlusCircle className="w-4 h-4" />
+            <PlusCircle className="w-4 h-4 text-slate-600" />
             <span>Request Help</span>
           </button>
         </div>
@@ -506,17 +506,17 @@ export const HelpHubPage: React.FC = () => {
       {/* TAB 5: AI HEAT ADVISOR */}
       {activeTab === 'assistant' && (
         <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col h-[540px]">
-          <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+          <div className="p-4 bg-white text-slate-900 border-b border-slate-200/80 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-xs font-bold">HeatShield Safety AI Assistant</h3>
-                <span className="text-[10px] text-cyan-300">English &bull; हिन्दी &bull; ಕನ್ನಡ</span>
+                <h3 className="text-xs font-bold text-slate-900">HeatShield Safety AI Assistant</h3>
+                <span className="text-[10px] text-blue-600 font-semibold">English &bull; हिन्दी &bull; ಕನ್ನಡ</span>
               </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/50">

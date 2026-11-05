@@ -79,21 +79,21 @@ export const FullLocationReportModal: React.FC<FullLocationReportModalProps> = (
         aria-modal="true"
       >
         {/* Header */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Sparkles className="w-5 h-5 text-white" />
+        <div className="px-6 py-5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+              <Sparkles className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-blue-700 font-bold">
                   GEOSPATIAL INTELLIGENCE REPORT
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-medium">
                   {report.data_source.includes('Open-Meteo') ? '● LIVE TELEMETRY' : '● REGIONAL MODEL'}
                 </span>
               </div>
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-white line-clamp-1">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 line-clamp-1">
                 {report.location_name}
               </h2>
             </div>
@@ -102,32 +102,32 @@ export const FullLocationReportModal: React.FC<FullLocationReportModalProps> = (
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleToggleFavorite}
-              className={`p-2 rounded-lg border transition-colors ${
+              className={`p-2 rounded-xl border transition-colors ${
                 isFavorited
-                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800 border-slate-700'
+                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
               }`}
-              title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+              title={isFavorited ? 'Remove from bookmarks' : 'Save to bookmarks'}
             >
-              <Heart className={`w-4 h-4 ${isFavorited ? 'fill-rose-400' : ''}`} />
+              <Heart className={`w-4 h-4 ${isFavorited ? 'fill-rose-500' : ''}`} />
             </button>
             <button
               onClick={handleCopy}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-700 transition-colors"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
               title="Copy Report to Clipboard"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
             </button>
             <button
               onClick={handleDownload}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-700 transition-colors"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
               title="Download Report Text"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-700 transition-colors ml-1"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors ml-1"
             >
               <X className="w-4 h-4" />
             </button>

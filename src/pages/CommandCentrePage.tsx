@@ -298,7 +298,7 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
 
           <button
             onClick={handleExportBriefing}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Official Dossier</span>
@@ -379,10 +379,10 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
       </div>
 
       {/* Main Command Map with Multi-Layer Radar */}
-      <div className="bg-[#090D16] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl relative">
+      <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm relative">
         {/* Layer Controls Bar */}
-        <div className="p-3 bg-slate-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 text-cyan-400 font-mono font-bold text-[11px] uppercase tracking-wider">
+        <div className="p-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-blue-600 font-mono font-bold text-[11px] uppercase tracking-wider">
             <Layers className="w-4 h-4" />
             <span>Geospatial Radar Layers:</span>
           </div>
@@ -390,40 +390,40 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
             <button
               onClick={() => setShowHeatLayer(!showHeatLayer)}
-              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
-                showHeatLayer ? 'bg-red-950 text-red-300 border-red-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press ${
+                showHeatLayer ? 'bg-red-50 text-red-700 border-red-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}
             >
               ⚠️ Heat Risk Circles
             </button>
             <button
               onClick={() => setShowCoolingLayer(!showCoolingLayer)}
-              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
-                showCoolingLayer ? 'bg-sky-950 text-sky-300 border-sky-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press ${
+                showCoolingLayer ? 'bg-sky-50 text-sky-700 border-sky-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}
             >
               ❄️ Cooling Centres
             </button>
             <button
               onClick={() => setShowWaterLayer(!showWaterLayer)}
-              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
-                showWaterLayer ? 'bg-cyan-950 text-cyan-300 border-cyan-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press ${
+                showWaterLayer ? 'bg-blue-50 text-blue-700 border-blue-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}
             >
               💧 Water ATMs
             </button>
             <button
               onClick={() => setShowHospitalLayer(!showHospitalLayer)}
-              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
-                showHospitalLayer ? 'bg-rose-950 text-rose-300 border-rose-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press ${
+                showHospitalLayer ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}
             >
               🏥 Hospitals
             </button>
             <button
               onClick={() => setShowSchoolLayer(!showSchoolLayer)}
-              className={`px-2.5 py-1 rounded-xl border transition-all btn-press hover:scale-105 active:scale-95 ${
-                showSchoolLayer ? 'bg-amber-950 text-amber-300 border-amber-700 shadow-2xs font-semibold' : 'bg-slate-800 text-slate-400 border-slate-700'
+              className={`px-2.5 py-1 rounded-xl border transition-all btn-press ${
+                showSchoolLayer ? 'bg-amber-50 text-amber-700 border-amber-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}
             >
               🏫 Schools
@@ -437,11 +437,11 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
       {/* AI Daily Situation Briefing & Incident Response Queue */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* AI Operational Situation Report (7 Cols) */}
-        <div className="lg:col-span-7 bg-slate-900 text-white border border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="lg:col-span-7 bg-white text-slate-800 border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
-              <h2 className="font-bold text-sm text-cyan-300 uppercase font-mono tracking-wider">
+              <Sparkles className="w-5 h-5 text-blue-600" />
+              <h2 className="font-bold text-sm text-slate-900 uppercase font-mono tracking-wider">
                 Autonomous AI Situation Briefing
               </h2>
             </div>
@@ -450,12 +450,12 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
             </span>
           </div>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs text-slate-600 leading-relaxed">
             {sitRep.summary_text}
           </p>
 
           <div className="space-y-2">
-            <span className="text-[10px] uppercase font-mono font-bold text-slate-400 tracking-wider block">
+            <span className="text-[10px] uppercase font-mono font-bold text-slate-500 tracking-wider block">
               Key Vulnerability Concerns
             </span>
             {sitRep.key_concerns.length === 0 ? (
@@ -463,10 +463,10 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
                 Baseline telemetry nominal across all sectors. No active heat casualty emergency alerts triggered.
               </p>
             ) : (
-              <ul className="text-xs text-slate-300 space-y-1.5">
+              <ul className="text-xs text-slate-600 space-y-1.5">
                 {sitRep.key_concerns.map((kc, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-red-400 font-bold shrink-0">⚠️</span>
+                    <span className="text-red-500 font-bold shrink-0">⚠️</span>
                     <span>{kc}</span>
                   </li>
                 ))}
@@ -474,14 +474,14 @@ HeatShield AI Emergency Helpline Inter-Agency Network: 112 / 108 / 1070
             )}
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-slate-800">
-            <span className="text-[10px] uppercase font-mono font-bold text-cyan-400 tracking-wider block">
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <span className="text-[10px] uppercase font-mono font-bold text-blue-600 tracking-wider block">
               Recommended Administrative Directives
             </span>
-            <ul className="text-xs text-slate-300 space-y-1.5">
+            <ul className="text-xs text-slate-600 space-y-1.5">
               {sitRep.recommended_administrative_actions.map((act, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold shrink-0">→</span>
+                  <span className="text-blue-600 font-bold shrink-0">→</span>
                   <span>{act}</span>
                 </li>
               ))}

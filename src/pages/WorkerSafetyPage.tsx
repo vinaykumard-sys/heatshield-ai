@@ -322,13 +322,13 @@ export const WorkerSafetyPage: React.FC = () => {
       </div>
 
       {/* Safety Compliance & Legal Disclaimer Card */}
-      <div className="p-4 bg-slate-900 text-white rounded-xl border border-slate-800 flex items-start gap-3 text-xs">
-        <ShieldCheck className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+      <div className="p-4 bg-white text-slate-800 rounded-2xl border border-slate-200/80 flex items-start gap-3 text-xs shadow-xs">
+        <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <span className="font-bold text-cyan-300 block">
+          <span className="font-bold text-slate-900 block">
             Occupational Health & Heat Stress Standard
           </span>
-          <p className="text-slate-300 leading-relaxed">
+          <p className="text-slate-600 leading-relaxed">
             HeatShield AI provides proactive exposure modeling based on meteorological data and workplace microclimates. Mandatory rest breaks, shaded respite, and free hydration comply with international occupational heat safety benchmarks.
           </p>
         </div>

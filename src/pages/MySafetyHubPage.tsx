@@ -282,37 +282,35 @@ Issued by HeatShield AI Community Protection Platform.`;
       <LocationTrackerBar />
 
       {/* QUESTION 5 ANSWER HERO: "How is HeatShield Protecting Me?" */}
-      <div className="bg-gradient-to-br from-slate-900 via-navy-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-cyan-300 text-xs font-mono font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
                 <span>Personal Protection Shield</span>
               </span>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-slate-500">
                 {currentLocation.localityName || selectedZone?.name}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               My Safety & Protection Hub
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-200 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
               HeatShield AI monitors atmospheric heat in your sector, calculates your personal clinical hydration target ({hydrationTarget}L), safeguards your family circle, and delivers timely safety updates.
             </p>
 
-            <div className="flex items-center gap-4 pt-2 text-xs text-slate-400 font-mono">
+            <div className="flex items-center gap-4 pt-2 text-xs text-slate-500 font-mono">
               <span className="flex items-center gap-1.5">
-                <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Habits: <strong className="text-white">{completedHabitsCount}/6 Completed</strong></span>
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Habits: <strong className="text-slate-900">{completedHabitsCount}/6 Completed</strong></span>
               </span>
               <span className="flex items-center gap-1.5">
-                <Droplets className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Target: <strong className="text-white">{hydrationTarget} Litres/day</strong></span>
+                <Droplets className="w-3.5 h-3.5 text-blue-600" />
+                <span>Target: <strong className="text-slate-900">{hydrationTarget} Litres/day</strong></span>
               </span>
             </div>
           </div>
@@ -320,9 +318,9 @@ Issued by HeatShield AI Community Protection Platform.`;
           <div className="shrink-0 flex flex-col sm:flex-row gap-2.5">
             <button
               onClick={handleDownloadCheatsheet}
-              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+              className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
             >
-              <FileText className="w-4 h-4 text-blue-600" />
+              <FileText className="w-4 h-4" />
               <span>Download Safety Plan</span>
             </button>
           </div>

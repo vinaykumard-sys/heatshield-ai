@@ -111,9 +111,9 @@ export const ImpactDashboardPage: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Download className="w-4 h-4 text-cyan-400" />
+            <Download className="w-4 h-4 text-white" />
             <span>Export CSV Report</span>
           </button>
         </div>
@@ -214,25 +214,25 @@ export const ImpactDashboardPage: React.FC = () => {
         </div>
 
         {/* Heat Mitigation Summary Card */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl p-6 shadow-lg border border-slate-800 space-y-5">
+        <div className="lg:col-span-5 bg-white text-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-400" />
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Heat Health Impact Scorecard</h3>
+            <Award className="w-5 h-5 text-amber-500" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-mono">Heat Health Impact Scorecard</h3>
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-              <span className="text-[11px] font-mono text-cyan-300 uppercase">Emergency Assistance Interventions</span>
-              <div className="text-2xl font-extrabold text-white">{metrics.emergencyRequestsResolved} Requests Resolved</div>
-              <p className="text-[11px] text-slate-400">Through early hydration, volunteer shade relocation, and community response.</p>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+              <span className="text-[11px] font-mono text-blue-700 font-semibold uppercase">Emergency Assistance Interventions</span>
+              <div className="text-2xl font-extrabold text-slate-900">{metrics.emergencyRequestsResolved} Requests Resolved</div>
+              <p className="text-[11px] text-slate-500">Through early hydration, volunteer shade relocation, and community response.</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-              <span className="text-[11px] font-mono text-emerald-300 uppercase">Public Awareness Reach</span>
-              <div className="text-2xl font-extrabold text-white">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+              <span className="text-[11px] font-mono text-emerald-700 font-semibold uppercase">Public Awareness Reach</span>
+              <div className="text-2xl font-extrabold text-slate-900">
                 {notifications.length > 0 ? `${notifications.length} Multi-Channel Advisories` : 'Continuous Broadcast Engine'}
               </div>
-              <p className="text-[11px] text-slate-400">Delivered across monitored wards during severe ambient heat conditions.</p>
+              <p className="text-[11px] text-slate-500">Delivered across monitored wards during severe ambient heat conditions.</p>
             </div>
           </div>
         </div>

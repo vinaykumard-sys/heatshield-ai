@@ -107,7 +107,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const waterPointsLayerRef = useRef<L.LayerGroup | null>(null);
 
   // State
-  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'osm'>('dark');
+  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'osm'>('osm');
   const [activeReport, setActiveReport] = useState<LocationHeatReport | null>(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -400,7 +400,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     });
 
     // Initial Tile Layer
-    const tileLayer = createTileLayer('dark');
+    const tileLayer = createTileLayer('osm');
     tileLayer.addTo(map);
     currentTileLayerRef.current = tileLayer;
 
@@ -1108,9 +1108,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* Floating Top-Left Controls Bar (Horizon & Filter Toggles) */}
-          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
-            <span className="text-slate-400 px-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
-              <Clock className="w-3 h-3 text-cyan-400" />
+          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md text-[11px]">
+            <span className="text-slate-500 px-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+              <Clock className="w-3 h-3 text-blue-600" />
               <span>Horizon:</span>
             </span>
 
@@ -1118,23 +1118,23 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               <button
                 key={h}
                 onClick={() => setForecastHorizon(h)}
-                className={`px-2 py-0.5 rounded-lg font-mono font-bold transition-all ${
+                className={`px-2.5 py-1 rounded-xl font-mono font-bold transition-all ${
                   forecastHorizon === h
-                    ? 'bg-cyan-500 text-slate-950 shadow-xs'
-                    : 'text-slate-300 hover:bg-slate-800'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 {h === 'now' ? 'Live' : `+${h}h`}
               </button>
             ))}
 
-            <div className="h-3 w-px bg-slate-700 mx-0.5" />
+            <div className="h-3 w-px bg-slate-200 mx-0.5" />
 
             {/* Layer Filter Toggles */}
             <button
               onClick={() => setShowCoolingCentres(!showCoolingCentres)}
-              className={`px-2 py-0.5 rounded-lg font-medium text-[10px] transition-colors flex items-center gap-1 ${
-                showCoolingCentres ? 'bg-sky-950 text-sky-300 border border-sky-700' : 'text-slate-400 hover:bg-slate-800'
+              className={`px-2.5 py-1 rounded-xl font-medium text-[10px] transition-colors flex items-center gap-1 ${
+                showCoolingCentres ? 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold' : 'text-slate-500 hover:bg-slate-100'
               }`}
               title="Toggle Cooling Centres"
             >
@@ -1143,8 +1143,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
             <button
               onClick={() => setShowWaterPoints(!showWaterPoints)}
-              className={`px-2 py-0.5 rounded-lg font-medium text-[10px] transition-colors flex items-center gap-1 ${
-                showWaterPoints ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'text-slate-400 hover:bg-slate-800'
+              className={`px-2.5 py-1 rounded-xl font-medium text-[10px] transition-colors flex items-center gap-1 ${
+                showWaterPoints ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold' : 'text-slate-500 hover:bg-slate-100'
               }`}
               title="Toggle Water Points"
             >
@@ -1154,24 +1154,24 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             <button
               onClick={() => syncAllLocalitiesTelemetry(true)}
               disabled={isRefreshingAll}
-              className="p-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+              className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors"
               title="Manual 5-Min Sync"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-cyan-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-blue-600' : ''}`} />
             </button>
           </div>
 
           {/* Floating Notice: Analyzed Area vs Genuine Device GPS */}
           {isAnalyzingDifferentLocation && deviceLocation && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-slate-900/95 backdrop-blur-md border border-cyan-500/50 rounded-xl px-3.5 py-1.5 shadow-2xl flex items-center gap-2.5 text-xs text-white max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-md border border-blue-200 rounded-2xl px-4 py-2 shadow-md flex items-center gap-2.5 text-xs text-slate-800 max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
               <span className="truncate">
                 Analyzing <strong>{currentLocation.localityName}</strong> (Device: {deviceLocation.localityName})
               </span>
               <button
                 type="button"
                 onClick={returnToDeviceLocation}
-                className="ml-1 px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] shrink-0 transition-colors"
+                className="ml-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shrink-0 transition-colors shadow-xs"
               >
                 Return to My Location
               </button>
@@ -1181,45 +1181,45 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           {/* Floating Map Actions (Top-Right) */}
           <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
             {/* Style Selector */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl text-[11px]">
+            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md text-[11px]">
               <button
-                onClick={() => setMapStyle('dark')}
-                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
-                  mapStyle === 'dark' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                onClick={() => setMapStyle('osm')}
+                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
+                  mapStyle === 'osm' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Dark Command
+                Street
               </button>
               <button
                 onClick={() => setMapStyle('satellite')}
-                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
-                  mapStyle === 'satellite' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
+                  mapStyle === 'satellite' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Satellite
               </button>
               <button
-                onClick={() => setMapStyle('osm')}
-                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
-                  mapStyle === 'osm' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                onClick={() => setMapStyle('dark')}
+                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
+                  mapStyle === 'dark' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Street
+                Dark
               </button>
             </div>
 
             {/* Action Tools Cluster */}
-            <div className="flex flex-col bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl shadow-xl overflow-hidden">
+            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md overflow-hidden text-slate-700">
               <button
                 onClick={() => mapInstanceRef.current?.zoomIn()}
-                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
                 title="Zoom In"
               >
                 +
               </button>
               <button
                 onClick={() => mapInstanceRef.current?.zoomOut()}
-                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
                 title="Zoom Out"
               >
                 -
@@ -1233,10 +1233,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                     detectLocation();
                   }
                 }}
-                className="p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
                 title="My Location (Device GPS)"
               >
-                <Navigation className="w-3.5 h-3.5 text-cyan-400" />
+                <Navigation className="w-3.5 h-3.5 text-blue-600" />
               </button>
               <button
                 onClick={() => {
@@ -1244,14 +1244,14 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                     mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 15);
                   }
                 }}
-                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
+                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
                 title="Recenter Active Locality"
               >
-                <Compass className="w-3.5 h-3.5" />
+                <Compass className="w-3.5 h-3.5 text-slate-500" />
               </button>
               <button
                 onClick={toggleFullscreen}
-                className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-2 hover:text-blue-600 hover:bg-slate-100 transition-colors"
                 title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -1259,34 +1259,34 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           </div>
 
-          {/* Bottom-Left Floating Legend (Positioned safely away from bottom-right assistant button) */}
-          <div className="absolute bottom-3 left-3 z-20 bg-slate-900/95 backdrop-blur-md border border-slate-700/70 rounded-xl p-2.5 shadow-2xl text-[11px] hidden sm:block">
-            <div className="flex items-center justify-between gap-4 mb-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cyan-400">
+          {/* Bottom-Left Floating Legend */}
+          <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3 shadow-md text-[11px] hidden sm:block">
+            <div className="flex items-center justify-between gap-4 mb-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-900">
                 Heat Risk Radar Legend
               </span>
-              <span className="text-[9px] font-mono text-slate-400">
+              <span className="text-[10px] text-slate-400">
                 Click map to analyze
               </span>
             </div>
             <div className="flex items-center gap-3 font-mono text-[10px]">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="text-slate-300">Low (0–24)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="text-slate-600 font-medium">Low (&lt;25)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="text-slate-300">Mod (25–49)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="text-slate-600 font-medium">Mod (25–49)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-                <span className="text-slate-300">High (50–74)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                <span className="text-slate-600 font-medium">High (50–74)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="font-bold text-red-400">Critical (75–100)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                <span className="font-bold text-red-600">Critical (&ge;75)</span>
               </div>
-              <div className="flex items-center gap-1 text-red-400 pl-2 border-l border-slate-700 font-bold">
+              <div className="flex items-center gap-1 text-red-600 pl-2 border-l border-slate-200 font-bold">
                 <span>⚠️ &gt;35°C Red Circle</span>
               </div>
             </div>
@@ -1296,7 +1296,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         {/* =========================================================================
             RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
             ========================================================================= */}
-        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col relative z-10 overflow-hidden">
+        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col relative z-10 overflow-hidden bg-white">
           <LocationIntelligencePanel
             report={activeReport}
             isLoading={isLoadingReport}

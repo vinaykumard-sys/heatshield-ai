@@ -84,30 +84,30 @@ export const OfflineEmergencyPage: React.FC = () => {
       <LocationTrackerBar />
 
       {/* Network Connectivity Status Hero */}
-      <div className={`rounded-3xl p-6 sm:p-8 border shadow-lg transition-all ${
+      <div className={`rounded-3xl p-6 sm:p-8 border shadow-sm transition-all ${
         isOnline 
-          ? 'bg-slate-900 border-slate-800 text-white' 
-          : 'bg-amber-950/40 border-amber-600/40 text-amber-100'
+          ? 'bg-white border-slate-200/80 text-slate-900' 
+          : 'bg-amber-50 border-amber-200 text-amber-950'
       }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-white/10 border border-white/20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-slate-50 border border-slate-200">
               {isOnline ? (
                 <>
-                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Online & Synchronized</span>
+                  <Wifi className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-700">Online & Synchronized</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="text-amber-400">Offline Safe Mode Active</span>
+                  <WifiOff className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                  <span className="text-amber-700">Offline Safe Mode Active</span>
                 </>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               Offline Emergency Mode & Lifelines
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
               Zero-connectivity resilient emergency centre. Critical phone helplines, first-aid heatstroke stabilization, and cached assistance queues function without internet.
             </p>
           </div>
@@ -117,9 +117,9 @@ export const OfflineEmergencyPage: React.FC = () => {
             <button
               onClick={handlePreCacheData}
               disabled={isPreCaching}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-sm btn-press transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-semibold btn-press transition-all shadow-xs"
             >
-              {isPreCaching ? <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" /> : <DownloadCloud className="w-4 h-4 text-cyan-400" />}
+              {isPreCaching ? <RefreshCw className="w-4 h-4 animate-spin text-blue-600" /> : <DownloadCloud className="w-4 h-4 text-blue-600" />}
               <span>{isPreCaching ? 'Caching Lifelines...' : 'Pre-Cache Offline Data'}</span>
             </button>
 
@@ -127,7 +127,7 @@ export const OfflineEmergencyPage: React.FC = () => {
               <button
                 onClick={syncOfflineQueue}
                 disabled={isSyncing}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md btn-interact"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs btn-interact"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 <span>Sync {pendingCount} Queued Actions</span>
@@ -137,7 +137,7 @@ export const OfflineEmergencyPage: React.FC = () => {
         </div>
 
         {cacheSuccess && (
-          <div className="mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs flex items-center gap-2 font-mono">
+          <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-mono">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>Emergency phone directory and medical stabilization guides successfully stored offline!</span>
           </div>

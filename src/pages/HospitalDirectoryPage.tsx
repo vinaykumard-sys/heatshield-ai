@@ -83,7 +83,7 @@ export const HospitalDirectoryPage: React.FC = () => {
           </a>
           <a
             href="tel:112"
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-all btn-interact hover:scale-[1.03] active:scale-[0.97]"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-all btn-interact hover:scale-[1.02] active:scale-[0.98]"
           >
             <PhoneCall className="w-4 h-4" />
             Call 112
@@ -350,44 +350,44 @@ export const HospitalDirectoryPage: React.FC = () => {
                 href={`https://www.google.com/maps/dir/?api=1&destination=${selectedHospital.latitude},${selectedHospital.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
               >
-                <Navigation className="w-4 h-4 text-cyan-400" />
+                <Navigation className="w-4 h-4 text-white" />
                 Navigate in Google Maps ({selectedHospital.distance_km || '2.4'} km)
               </a>
             </div>
           ) : null}
 
           {/* First-Aid Pre-Hospital Protocol Guide Card */}
-          <div className="bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4">
+          <div className="bg-white text-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Pre-Hospital Heat Emergency Protocol</h4>
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-mono">Pre-Hospital Heat Emergency Protocol</h4>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300">
+            <div className="space-y-3 text-xs text-slate-600">
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">1</span>
+                <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] border border-blue-200">1</span>
                 <div>
-                  <strong className="text-white">Rapid Cooling is Critical:</strong> Move person out of sunlight immediately into shade or AC. Loosen tight clothing.
+                  <strong className="text-slate-900">Rapid Cooling is Critical:</strong> Move person out of sunlight immediately into shade or AC. Loosen tight clothing.
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">2</span>
+                <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] border border-blue-200">2</span>
                 <div>
-                  <strong className="text-white">Active Evaporative Cooling:</strong> Douse clothes with cool (not ice cold) water and aggressively fan. Apply ice packs to armpits, groin, and back of neck.
+                  <strong className="text-slate-900">Active Evaporative Cooling:</strong> Douse clothes with cool (not ice cold) water and aggressively fan. Apply ice packs to armpits, groin, and back of neck.
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">3</span>
+                <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] border border-blue-200">3</span>
                 <div>
-                  <strong className="text-white">Never Force Fluids:</strong> Do NOT administer oral water if patient is confused, vomiting, or semi-conscious to prevent aspiration.
+                  <strong className="text-slate-900">Never Force Fluids:</strong> Do NOT administer oral water if patient is confused, vomiting, or semi-conscious to prevent aspiration.
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">4</span>
+                <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] border border-blue-200">4</span>
                 <div>
-                  <strong className="text-white">Tell 108 Dispatcher:</strong> Report "Suspected heatstroke with altered mental state" for highest ambulance triage priority.
+                  <strong className="text-slate-900">Tell 108 Dispatcher:</strong> Report "Suspected heatstroke with altered mental state" for highest ambulance triage priority.
                 </div>
               </div>
             </div>

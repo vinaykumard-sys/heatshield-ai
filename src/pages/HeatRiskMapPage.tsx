@@ -92,10 +92,10 @@ export const HeatRiskMapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Interactive Futuristic Map Canvas */}
+      {/* Main Interactive Map Canvas */}
       <HeatRiskMap
         locations={locations}
-        className="h-auto lg:h-[740px] xl:h-[780px] rounded-2xl border border-slate-800 shadow-2xl"
+        className="h-auto lg:h-[740px] xl:h-[780px] rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden bg-white"
       />
 
       {/* Map Guidance Footer */}

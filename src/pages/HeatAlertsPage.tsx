@@ -287,13 +287,13 @@ export const HeatAlertsPage: React.FC = () => {
           </div>
 
           {/* Quiet Hours & Policy Card */}
-          <div className="bg-slate-900 text-white border border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold font-mono uppercase tracking-wider">
+          <div className="bg-white text-slate-800 border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 text-blue-600 text-xs font-bold font-mono uppercase tracking-wider">
               <Clock className="w-4 h-4" />
               <span>Quiet Hours Safeguard</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Quiet hours are active between <b>10:00 PM and 06:00 AM</b>. Standard advisories are queued and delivered at dawn, while life-threatening <b>Critical</b> alerts will bypass quiet hours for immediate resident safety.
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Quiet hours are active between <b className="text-slate-900">10:00 PM and 06:00 AM</b>. Standard advisories are queued and delivered at dawn, while life-threatening <b className="text-red-600">Critical</b> alerts will bypass quiet hours for immediate resident safety.
             </p>
           </div>
         </div>

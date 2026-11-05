@@ -247,10 +247,10 @@ export const SchoolSafetyPage: React.FC = () => {
       </div>
 
       {/* Student Privacy Banner */}
-      <div className="p-4 bg-slate-900 text-white rounded-xl border border-slate-800 flex items-start gap-3 text-xs">
-        <Lock className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-        <p className="text-slate-300 leading-relaxed">
-          <b>Child Privacy Guarantee:</b> HeatShield School Safety operates strictly at the aggregated campus level. No child location data, student biometric profiles, or personal records are collected or stored.
+      <div className="p-4 bg-white text-slate-800 rounded-2xl border border-slate-200/80 flex items-start gap-3 text-xs shadow-xs">
+        <Lock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+        <p className="text-slate-600 leading-relaxed">
+          <b className="text-slate-900">Child Privacy Guarantee:</b> HeatShield School Safety operates strictly at the aggregated campus level. No child location data, student biometric profiles, or personal records are collected or stored.
         </p>
       </div>
 

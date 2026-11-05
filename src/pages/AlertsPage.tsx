@@ -68,15 +68,15 @@ export const AlertsPage: React.FC = () => {
       />
 
       {/* TOP EMERGENCY SOS BANNER */}
-      <div className="bg-gradient-to-r from-rose-900 via-red-900 to-rose-950 text-white p-4 sm:p-5 rounded-3xl shadow-lg border border-red-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-rose-200/80 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-rose-300">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
             <PhoneCall className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold tracking-tight">Need Immediate Heat Emergency Assistance?</h3>
-            <p className="text-xs text-rose-200">
-              National Emergency Hotline: <strong>112</strong> &bull; Ambulance Medical Response: <strong>108</strong> &bull; NDMA Disaster Helpline: <strong>1077</strong>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Need Immediate Heat Emergency Assistance?</h3>
+            <p className="text-xs text-slate-600">
+              National Emergency Hotline: <strong className="text-rose-700">112</strong> &bull; Ambulance Response: <strong className="text-rose-700">108</strong> &bull; NDMA Disaster Helpline: <strong className="text-rose-700">1077</strong>
             </p>
           </div>
         </div>
@@ -84,16 +84,16 @@ export const AlertsPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsEmergencyModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-white text-rose-900 font-bold text-xs shadow-md hover:bg-rose-50 transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5"
           >
-            <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+            <PhoneCall className="w-3.5 h-3.5" />
             <span>Emergency SOS Desk</span>
           </button>
           <button
             onClick={() => setIsRequestModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-rose-700/80 hover:bg-rose-700 text-white font-bold text-xs border border-rose-600 shadow-md transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition-all flex items-center gap-1.5"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
+            <PlusCircle className="w-3.5 h-3.5 text-slate-600" />
             <span>Request Aid</span>
           </button>
         </div>
