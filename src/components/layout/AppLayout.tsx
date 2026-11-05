@@ -172,53 +172,47 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   const navGroups: NavGroup[] = [
     {
-      title: 'Resident Safety',
+      title: 'Main',
       items: [
-        { to: '/dashboard', label: 'Home / Overview', icon: LayoutDashboard },
-        { to: '/map', label: 'Heat Risk Map', icon: MapPin },
-        { to: '/predictions', label: 'Predictions', icon: TrendingUp },
-        { to: '/heat-alerts', label: 'Smart Heat Alerts', icon: Flame },
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/map', label: 'Heat Map', icon: MapPin },
+        { to: '/predictions', label: 'Forecast', icon: TrendingUp },
       ]
     },
     {
-      title: 'Community Protection',
+      title: 'Safety',
       items: [
-        { to: '/resident-dashboard', label: 'Resident Dashboard', icon: ShieldCheck },
-        { to: '/water-stations', label: 'Water Availability', icon: Droplets },
+        { to: '/heat-alerts', label: 'Alerts', icon: Flame },
+        { to: '/resident-dashboard', label: 'My Safety', icon: ShieldCheck },
+        { to: '/water-stations', label: 'Nearby Help', icon: Droplets },
         { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
         { to: '/safe-routes', label: 'Heat-Safe Routes', icon: Navigation },
-        { to: '/family-safety', label: 'Family Safety', icon: Heart },
         { to: '/requests', label: 'Assistance Requests', icon: HelpCircle },
       ]
     },
     {
-      title: 'Institutions & Workplace',
+      title: 'Personal',
       items: [
-        { to: '/worker-safety', label: 'Worker Safety', icon: HardHat },
+        { to: '/family-safety', label: 'Family Safety', icon: Heart },
         { to: '/school-safety', label: 'School Safety', icon: GraduationCap },
+        { to: '/worker-safety', label: 'Worker Safety', icon: HardHat },
         { to: '/hospital-directory', label: 'Hospital Directory', icon: Stethoscope },
-      ]
-    },
-    {
-      title: 'Command & Intelligence',
-      items: [
+        { to: '/academy', label: 'Heat Academy', icon: Sparkles },
         { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders },
         { to: '/assistant', label: 'AI Voice Assistant', icon: Bot },
-        { to: '/impact-dashboard', label: 'Impact Dashboard', icon: Award },
-        { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
       ]
     },
     {
-      title: 'Academy & Tools',
+      title: 'Preferences',
       items: [
-        { to: '/academy', label: 'Heat Academy', icon: Sparkles },
-        { to: '/offline-emergency', label: 'Offline Emergency', icon: WifiOff },
         { to: '/alerts', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
         { to: '/settings', label: 'Settings', icon: Settings },
+        { to: '/account', label: 'Profile', icon: UserIcon },
       ]
     },
     ...(isAdmin || isVolunteer ? [{
-      title: 'Municipal & Operations',
+      title: 'Municipal Operations',
       items: [
         { to: '/command-centre', label: 'Command Centre', icon: ShieldAlert, show: isAdmin },
         { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },

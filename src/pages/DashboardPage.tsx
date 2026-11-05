@@ -6,13 +6,16 @@ import {
   CheckCircle2, 
   ArrowRight,
   ShieldCheck,
-  Clock
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { RiskBadge } from '../components/common/RiskBadge';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { WeatherHeroCard } from '../components/common/WeatherHeroCard';
+import { HeatRiskCard } from '../components/common/HeatRiskCard';
+import { TemperatureGraph } from '../components/common/TemperatureGraph';
+import { UpcomingHeatList } from '../components/common/UpcomingHeatList';
 import { ActionAdviceCard } from '../components/common/ActionAdviceCard';
-import { HeatTimeline } from '../components/common/HeatTimeline';
 import { EmergencyHelpSection } from '../components/common/EmergencyHelpSection';
 import { DashboardHeroSkeleton } from '../components/common/SkeletonLoader';
 import { HeatRiskMap } from '../components/map/HeatRiskMap';
@@ -62,6 +65,7 @@ export const DashboardPage: React.FC = () => {
 
   const currentTemp = currentReading?.temperature_c ?? 32.5;
   const feelsLike = currentReading?.feels_like_c ?? 35.0;
+  const riskScore = currentRisk?.risk_score ?? 58;
   const riskCategory = currentRisk?.risk_category ?? 'moderate';
 
   // Peak Heat Period calculation
@@ -114,145 +118,177 @@ export const DashboardPage: React.FC = () => {
       {/* Hyperlocal Location Command Bar */}
       <LocationTrackerBar />
 
-      {/* 1. HERO WEATHER & HEAT-RISK STATUS CARD (Apple Weather + Health style) */}
-      {!currentReading && !currentRisk ? (
-        <DashboardHeroSkeleton />
-      ) : (
-        <WeatherHeroCard
-          currentLocation={currentLocation}
-          currentReading={currentReading}
-          currentRisk={currentRisk}
-          peakHeatPeriod={peakHeatPeriod}
-          lastSyncTime={lastSyncTime}
-          isRefreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          selectedZone={selectedZone}
-          locations={locations}
-          onSelectLocality={selectCustomLocality}
-          userName={user?.full_name}
-        />
-      )}
+      {/* 3-COLUMN / 2-ZONE COMPOSITION: CENTER & RIGHT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* CENTER COLUMN: Main HeatShield Telemetry & Actions (7 / 12 on lg, 8 / 12 on xl) */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* 1. Hero Weather Card (Apple Weather Style) */}
+          {!currentReading && !currentRisk ? (
+            <DashboardHeroSkeleton />
+          ) : (
+            <WeatherHeroCard
+              currentLocation={currentLocation}
+              currentReading={currentReading}
+              currentRisk={currentRisk}
+              peakHeatPeriod={peakHeatPeriod}
+              lastSyncTime={lastSyncTime}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              selectedZone={selectedZone}
+              locations={locations}
+              onSelectLocality={selectCustomLocality}
+              userName={user?.full_name}
+              showGauge={false}
+            />
+          )}
 
-      {/* 2. "WHAT SHOULD I DO NOW?" SECTION */}
-      <ActionAdviceCard
-        riskCategory={riskCategory}
-        feelsLikeTemp={feelsLike}
-      />
+          {/* 2. Temperature & Thermal Stress Curve (Recharts AreaChart) */}
+          {forecastHourly && forecastHourly.length > 0 && (
+            <TemperatureGraph
+              hourly={forecastHourly}
+            />
+          )}
 
-      {/* 3. TODAY'S HEAT TIMELINE (HOURLY) */}
-      {forecastHourly && forecastHourly.length > 0 && (
-        <HeatTimeline
-          hourly={forecastHourly}
-          currentTemp={currentTemp}
-        />
-      )}
+          {/* 3. Safety Recommendations ("What should you do now?") */}
+          <ActionAdviceCard
+            riskCategory={riskCategory}
+            feelsLikeTemp={feelsLike}
+          />
 
-      {/* 4. WHERE CAN I GET HELP? (NEAREST LIFELINES & EMERGENCY SOS) */}
-      <EmergencyHelpSection
-        nearestWater={nearestWater}
-        nearestCooling={nearestCooling}
-        nearestHospital={nearestHospital}
-        onOpenEmergencyModal={() => setIsEmergencyOpen(true)}
-        stateName={currentLocation.state}
-      />
-
-      {/* 5. ACTIVE LOCAL HEAT WARNINGS OR VERIFIED BASELINE */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
-            <h3 className="text-sm font-bold text-slate-900">Active Heat Warnings & Bulletins</h3>
-          </div>
-          <Link to="/alerts" className="text-xs text-blue-600 font-semibold hover:underline">
-            View All Advisories
-          </Link>
-        </div>
-
-        {smartAlerts.length > 0 ? (
-          <div className="space-y-2.5">
-            {smartAlerts.slice(0, 2).map((alert) => (
-              <div
-                key={alert.id}
-                className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+          {/* 4. Neighbourhood Heat Risk Map */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Neighbourhood Heat Risk Map
+                </h3>
+                <span className="text-xs text-slate-400 hidden sm:inline">
+                  • Live Water ATMs & Cooling Sanctuaries
+                </span>
+              </div>
+              <Link 
+                to="/map" 
+                className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold uppercase text-[10px]">
-                      {alert.severity}
-                    </span>
-                    <strong className="text-slate-900 font-bold">{alert.headline}</strong>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed text-[11px]">
-                    {alert.description}
-                  </p>
-                </div>
-                <Link
-                  to="/alerts"
-                  className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] shadow-sm text-center transition-colors btn-interact"
+                <span>Open Full Interactive Map</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <HeatRiskMap 
+              locations={locations} 
+              selectedLocationId={selectedZone?.id} 
+              onSelectLocation={selectCustomLocality}
+              className="h-[380px] rounded-3xl shadow-[0_2px_12px_rgba(15,23,42,0.04)] border border-slate-200" 
+            />
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Upcoming Heat, Risk Gauge, Forecast, Lifelines (5 / 12 on lg, 4 / 12 on xl) */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+          {/* 1. Dedicated Heat Risk Gauge Card */}
+          <HeatRiskCard
+            score={riskScore}
+            category={riskCategory}
+            peakWindow={peakHeatPeriod}
+          />
+
+          {/* 2. Upcoming Heat (Next Few Hours Strip) */}
+          {forecastHourly && forecastHourly.length > 0 && (
+            <UpcomingHeatList
+              hourly={forecastHourly}
+            />
+          )}
+
+          {/* 3. 7-Day Ward Heat Forecast */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">7-Day Ward Outlook</h3>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">High / Low</span>
+            </div>
+
+            <div className="space-y-2">
+              {forecastDaily.map((day, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 rounded-2xl bg-slate-50/60 border border-slate-100 flex items-center justify-between gap-2 text-xs hover:bg-slate-50 transition-colors"
                 >
-                  Read Actions
-                </Link>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>No severe heatwave warnings currently active in your sector. Thermal conditions are within normal seasonal range.</span>
+                  <span className="text-[11px] font-mono font-semibold text-slate-600 w-16 truncate">
+                    {day.date}
+                  </span>
+                  <div className="flex items-center gap-2 font-mono">
+                    <span className="font-bold text-slate-900">{day.max_temp_c}°</span>
+                    <span className="text-[11px] text-slate-400">/ {day.min_temp_c}°</span>
+                  </div>
+                  <RiskBadge category={day.risk_level} size="sm" showPulse={false} />
+                </div>
+              ))}
             </div>
-            <span className="text-[10px] font-mono text-emerald-700 font-bold px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 shrink-0">
-              NORMAL
-            </span>
           </div>
-        )}
-      </div>
 
-      {/* 6. INTERACTIVE NEIGHBOURHOOD HEAT MAP */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-900">Interactive Neighbourhood Heat Map</h3>
-            <span className="text-xs text-slate-400 hidden sm:inline">• Live Water ATMs & Cooling Sanctuaries</span>
-          </div>
-          <Link to="/map" className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1">
-            <span>Open Full Interactive Map</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+          {/* 4. Verified Nearby Lifelines (Water, Cooling, Clinics) */}
+          <EmergencyHelpSection
+            nearestWater={nearestWater}
+            nearestCooling={nearestCooling}
+            nearestHospital={nearestHospital}
+            onOpenEmergencyModal={() => setIsEmergencyOpen(true)}
+            stateName={currentLocation.state}
+          />
 
-        <HeatRiskMap 
-          locations={locations} 
-          selectedLocationId={selectedZone?.id} 
-          onSelectLocation={selectCustomLocality}
-          className="h-[440px] rounded-3xl shadow-[0_2px_12px_rgba(15,23,42,0.04)] border border-slate-200" 
-        />
-      </div>
-
-      {/* 7. 7-DAY WARD HEAT OUTLOOK */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">7-Day Ward Heat Outlook</h3>
-            <p className="text-xs text-slate-500">Predicted daily high/low temperatures & heat safety category</p>
-          </div>
-          <Calendar className="w-4 h-4 text-slate-400" />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
-          {forecastDaily.map((day, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 text-center space-y-1.5 cursor-default hover:bg-slate-50 hover:border-slate-200 transition-colors"
-            >
-              <span className="text-[11px] font-mono font-semibold text-slate-500 block truncate">{day.date}</span>
-              <div className="text-base font-bold text-slate-900 font-mono">{day.max_temp_c}°C</div>
-              <div className="text-xs text-slate-400 font-mono">Min {day.min_temp_c}°C</div>
-              <div className="pt-1">
-                <RiskBadge category={day.risk_level} size="sm" showPulse={false} />
+          {/* 5. Active Heat Warnings & Bulletins or Verified Baseline */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">Active Heat Warnings</h3>
               </div>
+              <Link to="/alerts" className="text-xs text-blue-600 font-semibold hover:underline">
+                View All
+              </Link>
             </div>
-          ))}
+
+            {smartAlerts.length > 0 ? (
+              <div className="space-y-2.5">
+                {smartAlerts.slice(0, 2).map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-col justify-between gap-2.5 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold uppercase text-[10px]">
+                          {alert.severity}
+                        </span>
+                        <strong className="text-slate-900 font-bold truncate">{alert.headline}</strong>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed text-[11px] line-clamp-2">
+                        {alert.description}
+                      </p>
+                    </div>
+                    <Link
+                      to="/alerts"
+                      className="self-start px-3 py-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] shadow-sm transition-colors btn-interact"
+                    >
+                      Read Advisory
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-[11px]">No active heatwave warnings in this ward. Normal seasonal range.</span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-700 font-bold px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 shrink-0">
+                  NORMAL
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

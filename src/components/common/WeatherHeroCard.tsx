@@ -34,6 +34,7 @@ interface WeatherHeroCardProps {
   locations: LocationZone[];
   onSelectLocality: (loc: LocationZone) => void;
   userName?: string;
+  showGauge?: boolean;
   className?: string;
 }
 
@@ -49,6 +50,7 @@ export const WeatherHeroCard: React.FC<WeatherHeroCardProps> = ({
   locations,
   onSelectLocality,
   userName = 'Resident',
+  showGauge = true,
   className = '',
 }) => {
   const currentTemp = currentReading?.temperature_c ?? 32;
@@ -171,14 +173,16 @@ export const WeatherHeroCard: React.FC<WeatherHeroCardProps> = ({
         </div>
 
         {/* Right: Modern SVG Heat-Risk Gauge */}
-        <div className="self-center lg:self-auto shrink-0 pt-2 lg:pt-0">
-          <HeatRiskGauge
-            score={riskScore}
-            category={riskCategory}
-            peakWindow={peakHeatPeriod}
-            size="lg"
-          />
-        </div>
+        {showGauge && (
+          <div className="self-center lg:self-auto shrink-0 pt-2 lg:pt-0">
+            <HeatRiskGauge
+              score={riskScore}
+              category={riskCategory}
+              peakWindow={peakHeatPeriod}
+              size="lg"
+            />
+          </div>
+        )}
       </div>
 
       {/* 4 Apple Weather Minimalist Environmental Factor Tiles */}
