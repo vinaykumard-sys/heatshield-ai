@@ -128,6 +128,39 @@ export interface CommunityIssueReport {
   resolution_notes?: string;
 }
 
+export type LocationSource = 'gps' | 'search' | 'saved' | 'default';
+
+export interface CanonicalLocation {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  locality: string;
+  localityName: string; // alias for backward compatibility
+  subArea: string;
+  city: string;
+  district: string;
+  state: string;
+  country: string;
+  pincode?: string;
+  source: LocationSource;
+  locationSource: LocationSource; // alias
+  accuracy?: number; // accuracy in meters
+  accuracyMeters?: number; // alias
+  timestamp: string; // ISO 8601 string
+  detectedAt?: string; // alias
+  isRealDeviceLocation: boolean;
+}
+
+export type TrackedLocation = CanonicalLocation;
+
+export function isValidCoordinate(latitude: any, longitude: any): boolean {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return false;
+  if (isNaN(latitude) || isNaN(longitude)) return false;
+  if (latitude < -90 || latitude > 90) return false;
+  if (longitude < -180 || longitude > 180) return false;
+  return true;
+}
+
 export interface LocationZone {
   id: string;
   name: string;

@@ -19,8 +19,10 @@ import {
 import { mockDb } from '../lib/mockDb';
 import { WaterStation, WaterStationStatus, WaterType } from '../types';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const WaterStationsPage: React.FC = () => {
+  const { currentLocation } = useLocationTracker();
   const [stations, setStations] = useState<WaterStation[]>(() => mockDb.getWaterStations());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | WaterStationStatus>('all');
@@ -54,8 +56,8 @@ export const WaterStationsPage: React.FC = () => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
-      center: [13.0100, 77.6000],
-      zoom: 12,
+      center: [currentLocation.latitude || 13.0854, currentLocation.longitude || 77.6250],
+      zoom: 13,
       zoomControl: true,
       attributionControl: false
     });

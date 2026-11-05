@@ -27,7 +27,7 @@ import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { useLocationTracker } from '../context/LocationContext';
 
 export const CommandCentrePage: React.FC = () => {
-  const { currentReading, currentRisk, selectedZone, forceTelemetryRefresh } = useLocationTracker();
+  const { currentLocation, currentReading, currentRisk, selectedZone, forceTelemetryRefresh } = useLocationTracker();
   const [sitRep, setSitRep] = useState<SituationReport>(() => mockDb.getSituationReport());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
@@ -66,8 +66,11 @@ export const CommandCentrePage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
+    const initialLat = currentLocation?.latitude || 13.0854;
+    const initialLon = currentLocation?.longitude || 77.6250;
+
     const map = L.map(mapContainerRef.current, {
-      center: [13.0100, 77.6000],
+      center: [initialLat, initialLon],
       zoom: 12,
       zoomControl: false,
       attributionControl: false
@@ -92,6 +95,12 @@ export const CommandCentrePage: React.FC = () => {
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Reactively pan map if currentLocation coordinates change
+  useEffect(() => {
+    if (!mapInstanceRef.current || !currentLocation?.latitude || !currentLocation?.longitude) return;
+    mapInstanceRef.current.panTo([currentLocation.latitude, currentLocation.longitude]);
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
 
   // Update Layers based on toggles
   useEffect(() => {

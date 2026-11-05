@@ -20,8 +20,10 @@ import { mockDb } from '../lib/mockDb';
 import { HeatSafeRoute } from '../types';
 import { calculateHeatSafeRoutes } from '../lib/safeRoutingService';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { useLocationTracker } from '../context/LocationContext';
 
 export const SafeRoutesPage: React.FC = () => {
+  const { currentLocation } = useLocationTracker();
   const [startPlace, setStartPlace] = useState('Hebbal Flyover');
   const [endPlace, setEndPlace] = useState('Yelahanka Old Town');
   const [startCoords, setStartCoords] = useState<[number, number]>([13.0358, 77.5970]);
@@ -70,8 +72,8 @@ export const SafeRoutesPage: React.FC = () => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
-      center: [13.0600, 77.6000],
-      zoom: 12,
+      center: [currentLocation.latitude || 13.0600, currentLocation.longitude || 77.6000],
+      zoom: 13,
       zoomControl: true,
       attributionControl: false
     });

@@ -13,6 +13,9 @@ import { RiskBadge } from './RiskBadge';
 export const LocationTrackerBar: React.FC = () => {
   const { 
     currentLocation, 
+    deviceLocation,
+    isAnalyzingDifferentLocation,
+    returnToDeviceLocation,
     currentReading, 
     currentRisk, 
     isTracking, 
@@ -69,19 +72,20 @@ export const LocationTrackerBar: React.FC = () => {
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
                     Acquiring Device Position...
                   </span>
-                ) : currentLocation.locationSource === 'gps' ? (
+                ) : currentLocation.locationSource === 'gps' && currentLocation.isRealDeviceLocation ? (
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase font-bold tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                     Live Device GPS Fix
                   </span>
-                ) : currentLocation.locationSource === 'ip' ? (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase font-bold tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    City IP Geolocation
+                ) : currentLocation.locationSource === 'search' ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase font-bold tracking-wider text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+                    Searched Locality
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase font-bold tracking-wider text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                    {currentLocation.locationSource === 'search' ? 'Searched Locality' : 'Default Ward Baseline'}
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase font-bold tracking-wider text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    Default Location (GPS Not Active)
                   </span>
                 )}
                 
@@ -132,10 +136,19 @@ export const LocationTrackerBar: React.FC = () => {
               )}
 
               {trackingError && (
-                <p className="text-xs text-amber-800 font-medium flex items-center gap-1.5 mt-1 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>{trackingError}</span>
-                </p>
+                <div className="text-xs text-amber-900 font-medium flex items-center justify-between gap-2 mt-1.5 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{trackingError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={detectLocation}
+                    className="px-2.5 py-1 rounded bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold text-[10px] uppercase font-mono transition-colors shrink-0"
+                  >
+                    Retry GPS
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -200,8 +213,19 @@ export const LocationTrackerBar: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Buttons: GPS Auto-Fix & Preset Bengaluru Spots */}
+          {/* Quick Buttons: GPS Auto-Fix, Return to My Location & Presets */}
           <div className="flex items-center gap-2 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
+            {isAnalyzingDifferentLocation && deviceLocation && (
+              <button
+                type="button"
+                onClick={returnToDeviceLocation}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-900 text-xs font-bold border border-cyan-300 btn-interact whitespace-nowrap shadow-sm"
+              >
+                <Navigation className="w-3.5 h-3.5 text-cyan-600" />
+                <span>Return to My Location ({deviceLocation.localityName})</span>
+              </button>
+            )}
+
             <button
               onClick={detectLocation}
               disabled={isTracking}

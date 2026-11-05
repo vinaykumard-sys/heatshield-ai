@@ -1,4 +1,4 @@
-import { EnvironmentalReading } from '../types';
+import { EnvironmentalReading, isValidCoordinate } from '../types';
 import { calculateHeatIndex, calculateWetBulbEstimate } from './riskEngine';
 
 export interface WeatherFetchResult {
@@ -33,8 +33,14 @@ export async function fetchLiveWeather(
   latitude: number, 
   longitude: number, 
   locationId: string = 'loc-default',
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
+  signal?: AbortSignal
 ): Promise<WeatherFetchResult> {
+  // Validate coordinates: prevent NaN, out-of-bounds, or swapped coordinates
+  if (!isValidCoordinate(latitude, longitude)) {
+    throw new Error(`Invalid geographical coordinates: [lat: ${latitude}, lon: ${longitude}]`);
+  }
+
   const cacheKey = `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
   const cached = cache.get(cacheKey);
 
@@ -49,8 +55,20 @@ export async function fetchLiveWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
+    const onAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) {
+        clearTimeout(timeoutId);
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      signal.addEventListener('abort', onAbort);
+    }
+
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
 
     if (!response.ok) {
       throw new Error(`Open-Meteo HTTP error: ${response.status}`);

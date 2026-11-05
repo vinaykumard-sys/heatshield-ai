@@ -84,7 +84,15 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   className = 'h-[720px]'
 }) => {
   const { t } = useLanguage();
-  const { currentLocation, selectCustomLocality } = useLocationTracker();
+  const { 
+    currentLocation, 
+    deviceLocation, 
+    isAnalyzingDifferentLocation, 
+    returnToDeviceLocation, 
+    detectLocation, 
+    analyzeCoordinates, 
+    selectCustomLocality 
+  } = useLocationTracker();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const outerWrapperRef = useRef<HTMLDivElement>(null);
@@ -234,17 +242,17 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     L.marker([lat, lon], { icon: sonarIcon, zIndexOffset: 1000 }).addTo(targetLayer);
   }, []);
 
-  // Handle Location Selection (from Search or Map Click)
+  // Handle Location Selection (from Search or Selection)
   const handleSelectPlace = useCallback(async (place: GeocodedPlace) => {
     setIsSearchOpen(false);
     setSearchQuery('');
     setIsLoadingReport(true);
 
-    // 1. Move Map smoothly to chosen location
+    // 1. Move Map smoothly to chosen location using precision zoom
     if (mapInstanceRef.current) {
-      const targetZoom = place.type === 'city' ? 12 : 14;
+      const targetZoom = place.type === 'city' ? 13 : 16;
       mapInstanceRef.current.flyTo([place.latitude, place.longitude], targetZoom, {
-        duration: 1.2,
+        duration: 1.0,
         easeLinearity: 0.25
       });
     }
@@ -287,15 +295,15 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
       if (onSelectLocation) {
         onSelectLocation(targetZone);
-      } else if (selectCustomLocality) {
-        selectCustomLocality(targetZone);
+      } else if (analyzeCoordinates) {
+        analyzeCoordinates(place.latitude, place.longitude, place.shortName);
       }
     } catch (err) {
       console.error('Error generating location heat report:', err);
     } finally {
       setIsLoadingReport(false);
     }
-  }, [dropSonarTargetMarker, locations, onSelectLocation, selectCustomLocality]);
+  }, [dropSonarTargetMarker, locations, onSelectLocation, analyzeCoordinates]);
 
   // Handle Clicking Anywhere on the Map
   const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
@@ -303,7 +311,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     const lon = e.latlng.lng;
 
     // Drop instant sonar marker at clicked coordinates
-    dropSonarTargetMarker(lat, lon, `Selected (${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E)`);
+    dropSonarTargetMarker(lat, lon, `Selected (${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E)`);
     setIsLoadingReport(true);
 
     try {
@@ -322,7 +330,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         weatherResult.reading.temperature_c
       );
 
-      // 3. Synchronize clicked coordinates to global LocationContext
+      // 3. Synchronize clicked coordinates to global LocationContext as analyzed area
       const clickedZone: LocationZone = {
         id: `loc-click-${Date.now()}`,
         name: geocoded.shortName,
@@ -340,15 +348,15 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
       if (onSelectLocation) {
         onSelectLocation(clickedZone);
-      } else if (selectCustomLocality) {
-        selectCustomLocality(clickedZone);
+      } else if (analyzeCoordinates) {
+        analyzeCoordinates(lat, lon, geocoded.shortName);
       }
     } catch (err) {
       console.error('Error handling map click report:', err);
     } finally {
       setIsLoadingReport(false);
     }
-  }, [dropSonarTargetMarker, onSelectLocation, selectCustomLocality]);
+  }, [dropSonarTargetMarker, onSelectLocation, analyzeCoordinates]);
 
   // Helper to build tile layer
   const createTileLayer = useCallback((style: 'dark' | 'satellite' | 'osm'): L.TileLayer => {
@@ -376,16 +384,17 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     });
   }, []);
 
-  // Initialize Leaflet Map
+  // Initialize Leaflet Map (Created once, updated reactively)
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const initialLat = currentLocation.latitude || 12.9716;
-    const initialLon = currentLocation.longitude || 77.5946;
+    const initialLat = currentLocation.latitude || 13.0854;
+    const initialLon = currentLocation.longitude || 77.6250;
+    const initialZoom = currentLocation.locationSource === 'gps' ? 15 : 13;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLon],
-      zoom: 12,
+      zoom: initialZoom,
       zoomControl: false,
       attributionControl: true
     });
@@ -416,7 +425,26 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, [currentLocation.latitude, currentLocation.longitude, handleMapClick, createTileLayer]);
+  }, [handleMapClick, createTileLayer]);
+
+  // Reactively track canonical location changes (GPS, search, click) and move map smoothly
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !currentLocation.latitude || !currentLocation.longitude) return;
+
+    const targetZoom = currentLocation.locationSource === 'gps'
+      ? 15
+      : currentLocation.locationSource === 'search'
+      ? 15
+      : 13;
+
+    map.flyTo([currentLocation.latitude, currentLocation.longitude], targetZoom, {
+      duration: 1.0,
+      easeLinearity: 0.25
+    });
+
+    map.invalidateSize();
+  }, [currentLocation.latitude, currentLocation.longitude, currentLocation.locationSource]);
 
   // Switch Tile Style on selection change
   useEffect(() => {
@@ -480,18 +508,18 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     coolingLayer.clearLayers();
     waterLayer.clearLayers();
 
-    // 1. Current GPS Location Marker with glowing cyan pill
-    if (currentLocation.latitude && currentLocation.longitude) {
-      const userLocName = currentLocation.localityName || 'Your Location';
-      const userMarkerHtml = `
+    // 1. Device GPS Location Pin (Rendered only when real GPS device position is available)
+    if (deviceLocation && deviceLocation.isRealDeviceLocation) {
+      const deviceName = deviceLocation.localityName || 'Your Device';
+      const deviceMarkerHtml = `
         <div style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
           <div style="
             display: inline-flex;
             align-items: center;
             gap: 6px;
             background: #0B132B;
-            border: 1.5px solid #00F0FF;
-            box-shadow: 0 4px 16px rgba(0, 240, 255, 0.4);
+            border: 2px solid #00F0FF;
+            box-shadow: 0 4px 16px rgba(0, 240, 255, 0.5);
             padding: 4px 10px;
             border-radius: 9999px;
             font-family: 'Inter', system-ui, sans-serif;
@@ -505,22 +533,80 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               height: 8px;
               border-radius: 50%;
               background-color: #00F0FF;
-              box-shadow: 0 0 8px #00F0FF;
+              box-shadow: 0 0 10px #00F0FF;
               display: inline-block;
             "></span>
-            <span>📍 YOU: ${userLocName}</span>
+            <span>📍 YOU: ${deviceName}</span>
           </div>
         </div>
       `;
 
-      const userIcon = L.divIcon({
-        html: userMarkerHtml,
-        className: 'heatshield-user-pin',
+      const deviceIcon = L.divIcon({
+        html: deviceMarkerHtml,
+        className: 'heatshield-device-pin',
         iconSize: [160, 32],
         iconAnchor: [80, 16],
       });
 
-      L.marker([currentLocation.latitude, currentLocation.longitude], { icon: userIcon, zIndexOffset: 800 }).addTo(markersLayer);
+      L.marker([deviceLocation.latitude, deviceLocation.longitude], { icon: deviceIcon, zIndexOffset: 900 }).addTo(markersLayer);
+    }
+
+    // Active Analyzed / Current Location Marker (placed at active coordinates if different from deviceLocation or if GPS not active)
+    if (currentLocation.latitude && currentLocation.longitude) {
+      const isSameAsDevice = deviceLocation && 
+        Math.abs(currentLocation.latitude - deviceLocation.latitude) < 0.001 &&
+        Math.abs(currentLocation.longitude - deviceLocation.longitude) < 0.001;
+
+      if (!isSameAsDevice) {
+        const isDefault = currentLocation.locationSource === 'default';
+        const isGps = currentLocation.locationSource === 'gps' && currentLocation.isRealDeviceLocation;
+        const activeLabel = isGps 
+          ? `📍 YOU: ${currentLocation.localityName || 'Your Location'}`
+          : isDefault
+          ? `📍 Default Area: ${currentLocation.localityName || 'Bengaluru Urban'}`
+          : `🎯 Analyzed: ${currentLocation.localityName || 'Selected Area'}`;
+
+        const activeBorderColor = isGps ? '#00F0FF' : isDefault ? '#F59E0B' : '#38BDF8';
+        const activeDotColor = isGps ? '#00F0FF' : isDefault ? '#F59E0B' : '#38BDF8';
+
+        const activeMarkerHtml = `
+          <div style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+            <div style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              background: #0B132B;
+              border: 1.5px solid ${activeBorderColor};
+              box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+              padding: 4px 10px;
+              border-radius: 9999px;
+              font-family: 'Inter', system-ui, sans-serif;
+              font-size: 11px;
+              font-weight: 800;
+              color: #FFFFFF;
+              white-space: nowrap;
+            ">
+              <span style="
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background-color: ${activeDotColor};
+                display: inline-block;
+              "></span>
+              <span>${activeLabel}</span>
+            </div>
+          </div>
+        `;
+
+        const activeIcon = L.divIcon({
+          html: activeMarkerHtml,
+          className: 'heatshield-active-pin',
+          iconSize: [170, 32],
+          iconAnchor: [85, 16],
+        });
+
+        L.marker([currentLocation.latitude, currentLocation.longitude], { icon: activeIcon, zIndexOffset: 850 }).addTo(markersLayer);
+      }
     }
 
     // 2. Cooling Centres Layer (rendered at zoom >= 12 to avoid clutter)
@@ -851,25 +937,34 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     handleSelectPlace
   ]);
 
-  // Initial Load: Auto-generate report for current location or Hebbal, Bengaluru
+  // Initial Load: Auto-generate report for current canonical location without overwriting location state
   useEffect(() => {
-    if (!activeReport && locations.length > 0) {
+    if (!activeReport && locations.length > 0 && currentLocation.latitude && currentLocation.longitude) {
       const initialPlace: GeocodedPlace = {
         id: 'initial-loc',
-        displayName: currentLocation.localityName 
-          ? `${currentLocation.localityName}, ${currentLocation.city || 'Bengaluru'}` 
-          : 'Hebbal, Bengaluru, Karnataka (560024)',
-        shortName: currentLocation.localityName || 'Hebbal',
-        city: currentLocation.city || 'Bengaluru',
-        state: currentLocation.state || 'Karnataka',
-        pincode: currentLocation.pincode || '560024',
-        latitude: currentLocation.latitude || 13.0358,
-        longitude: currentLocation.longitude || 77.5970,
+        displayName: currentLocation.displayName || `${currentLocation.localityName}, ${currentLocation.city}`,
+        shortName: currentLocation.localityName || currentLocation.locality,
+        city: currentLocation.city,
+        state: currentLocation.state,
+        pincode: currentLocation.pincode || '',
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
         type: 'locality'
       };
-      handleSelectPlace(initialPlace);
+      
+      generateLocationHeatReport(initialPlace)
+        .then(({ report, weatherResult }) => {
+          setActiveReport(report);
+          dropSonarTargetMarker(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            currentLocation.localityName,
+            weatherResult.reading.temperature_c
+          );
+        })
+        .catch(() => {});
     }
-  }, [currentLocation, activeReport, locations, handleSelectPlace]);
+  }, [currentLocation.latitude, currentLocation.longitude, activeReport, locations, dropSonarTargetMarker]);
 
   // Fullscreen Toggle with Map Size Invalidation
   const toggleFullscreen = () => {
@@ -1066,6 +1161,23 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </button>
           </div>
 
+          {/* Floating Notice: Analyzed Area vs Genuine Device GPS */}
+          {isAnalyzingDifferentLocation && deviceLocation && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-slate-900/95 backdrop-blur-md border border-cyan-500/50 rounded-xl px-3.5 py-1.5 shadow-2xl flex items-center gap-2.5 text-xs text-white max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span className="truncate">
+                Analyzing <strong>{currentLocation.localityName}</strong> (Device: {deviceLocation.localityName})
+              </span>
+              <button
+                type="button"
+                onClick={returnToDeviceLocation}
+                className="ml-1 px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] shrink-0 transition-colors"
+              >
+                Return to My Location
+              </button>
+            </div>
+          )}
+
           {/* Floating Map Actions (Top-Right) */}
           <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
             {/* Style Selector */}
@@ -1114,23 +1226,26 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               </button>
               <button
                 onClick={() => {
-                  if (currentLocation.latitude && currentLocation.longitude && mapInstanceRef.current) {
-                    mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 14);
+                  if (deviceLocation && mapInstanceRef.current) {
+                    mapInstanceRef.current.flyTo([deviceLocation.latitude, deviceLocation.longitude], 15);
+                    returnToDeviceLocation();
+                  } else {
+                    detectLocation();
                   }
                 }}
                 className="p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-800 border-b border-slate-800 transition-colors"
-                title="My Location"
+                title="My Location (Device GPS)"
               >
-                <Navigation className="w-3.5 h-3.5" />
+                <Navigation className="w-3.5 h-3.5 text-cyan-400" />
               </button>
               <button
                 onClick={() => {
-                  if (mapInstanceRef.current) {
-                    mapInstanceRef.current.flyTo([12.9716, 77.5946], 12);
+                  if (mapInstanceRef.current && currentLocation.latitude && currentLocation.longitude) {
+                    mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 15);
                   }
                 }}
                 className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 border-b border-slate-800 transition-colors"
-                title="Reset View"
+                title="Recenter Active Locality"
               >
                 <Compass className="w-3.5 h-3.5" />
               </button>
