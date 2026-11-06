@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Building2,
+  Cpu,
   Bot,
   Sliders,
   Droplets,
@@ -191,6 +192,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         return { title: 'Welfare Check-ins', desc: 'Community volunteer outreach and wellbeing checks' };
       case '/admin':
         return { title: 'System Administration', desc: 'Platform configuration and settings' };
+      case '/developer':
+      case '/diagnostics':
+        return { title: 'Developer Diagnostics', desc: 'Real-time reliability health check across 16 subsystems' };
       default:
         return { title: 'HeatShield AI', desc: 'Modern soft-UI climate safety operating system' };
     }
@@ -252,6 +256,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
         { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
         { to: '/admin', label: 'System Admin', icon: Settings, show: isAdmin },
+        { to: '/developer', label: 'Developer Diagnostics', icon: Cpu, show: isAdmin },
       ]
     }] : [])
   ];

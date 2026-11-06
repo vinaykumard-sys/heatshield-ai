@@ -47,6 +47,7 @@ import { OfflineEmergencyPage } from './pages/OfflineEmergencyPage';
 import { MyAccountPage } from './pages/MyAccountPage';
 import { HelpHubPage } from './pages/HelpHubPage';
 import { MySafetyHubPage } from './pages/MySafetyHubPage';
+import { DeveloperDiagnosticsPage } from './pages/DeveloperDiagnosticsPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -335,7 +336,19 @@ export function App() {
                 />
                 <Route
                   path="/developer"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <DeveloperDiagnosticsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/diagnostics"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <DeveloperDiagnosticsPage />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route
                   path="/account"

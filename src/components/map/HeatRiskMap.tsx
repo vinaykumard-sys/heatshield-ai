@@ -120,8 +120,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchAbortRef = useRef<AbortController | null>(null);
 
-  // Horizon Controls
+  // Horizon Controls & Interactive Modes (Section 9: Heat Risk, Temperature, Water, Cooling, Medical, Safe Routes)
   const [forecastHorizon, setForecastHorizon] = useState<'now' | 24 | 48 | 72>('now');
+  const [mapMode, setMapMode] = useState<'heat_risk' | 'temperature' | 'water' | 'cooling' | 'medical' | 'routes'>('heat_risk');
   const [showCoolingCentres, setShowCoolingCentres] = useState(true);
   const [showWaterPoints, setShowWaterPoints] = useState(true);
   const [showMonitoringStations, setShowMonitoringStations] = useState(true);
@@ -1170,52 +1171,49 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
             <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
-            {/* Custom Layer Filter Pills: Thermal Heatmap, Cooling Sanctuaries, Water Points */}
+            {/* Smart Map Modes (Section 9: Heat Risk, Temperature, Water, Cooling, Medical, Safe Routes) */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                onClick={() => setShowMonitoringStations(!showMonitoringStations)}
-                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
-                  showMonitoringStations 
-                    ? 'bg-amber-50 text-amber-800 border-amber-200 shadow-amber-500/10' 
-                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
-                }`}
-                title="Toggle Thermal Monitoring Stations & Heat Risk"
-              >
-                <Flame className={`w-3.5 h-3.5 ${showMonitoringStations ? 'text-amber-600' : 'text-slate-400'}`} />
-                <span>Thermal Heatmap</span>
-              </button>
+              {[
+                { id: 'heat_risk', label: 'Heat Risk', icon: '🔥' },
+                { id: 'temperature', label: 'Temperature', icon: '🌡️' },
+                { id: 'water', label: 'Water', icon: '💧' },
+                { id: 'cooling', label: 'Cooling', icon: '🧊' },
+                { id: 'medical', label: 'Medical', icon: '🏥' },
+                { id: 'routes', label: 'Safe Routes', icon: '🧭' },
+              ].map((m) => {
+                const isSelected = mapMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setMapMode(m.id as any);
+                      if (m.id === 'water') {
+                        setShowWaterPoints(true);
+                      } else if (m.id === 'cooling') {
+                        setShowCoolingCentres(true);
+                      } else if (m.id === 'heat_risk' || m.id === 'temperature') {
+                        setShowMonitoringStations(true);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border shadow-2xs ${
+                      isSelected
+                        ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{m.icon}</span>
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
 
               <button
-                onClick={() => setShowCoolingCentres(!showCoolingCentres)}
-                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
-                  showCoolingCentres 
-                    ? 'bg-sky-50 text-sky-800 border-sky-200 shadow-sky-500/10' 
-                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
-                }`}
-                title="Toggle Cooling Sanctuaries & Shelters"
-              >
-                <span>❄️</span>
-                <span>Cooling Sanctuaries</span>
-              </button>
-
-              <button
-                onClick={() => setShowWaterPoints(!showWaterPoints)}
-                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
-                  showWaterPoints 
-                    ? 'bg-blue-50 text-blue-800 border-blue-200 shadow-blue-500/10' 
-                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
-                }`}
-                title="Toggle Public Water Points"
-              >
-                <span>💧</span>
-                <span>Water Points</span>
-              </button>
-
-              <button
+                type="button"
                 onClick={() => syncAllLocalitiesTelemetry(true)}
                 disabled={isRefreshingAll}
-                className="p-1.5 rounded-xl bg-white text-slate-500 hover:text-[#1E60F2] hover:bg-blue-50 border border-[#E5EDF5] transition-colors shadow-xs"
-                title="Manual 5-Min Telemetry Refresh"
+                className="p-1.5 rounded-xl bg-white text-slate-500 hover:text-[#1E60F2] hover:bg-blue-50 border border-slate-200 transition-colors shadow-2xs"
+                title="Refresh Map Telemetry"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-[#1E60F2]' : ''}`} />
               </button>
