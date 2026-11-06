@@ -8,17 +8,17 @@ import {
   ArrowRight, 
   CheckCircle2, 
   AlertCircle, 
-  HelpCircle,
-  ExternalLink,
-  ChevronDown,
-  Info,
   Phone,
-  BellRing
+  Sun,
+  Droplets,
+  HeartHandshake
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { BrandLogo } from '../components/common/BrandLogo';
 import { PhoneVerificationModal } from '../components/auth/PhoneVerificationModal';
+import { Card } from '../components/common/Card';
+import { Badge } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 
 export const AuthPage: React.FC = () => {
   const { isAuthenticated, user, needsPhoneVerification, login, loginWithGoogle, signup, resetPassword } = useAuth();
@@ -42,7 +42,6 @@ export const AuthPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showOAuthConfigGuide, setShowOAuthConfigGuide] = useState(false);
   const [showPhoneVerifyModal, setShowPhoneVerifyModal] = useState(false);
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -137,7 +136,7 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-8">
+    <div className="min-h-screen bg-[#F5F8FC] flex flex-col justify-center py-10 px-4 sm:px-6">
       {/* Phone OTP Verification Modal */}
       <PhoneVerificationModal
         isOpen={showPhoneVerifyModal}
@@ -148,64 +147,64 @@ export const AuthPage: React.FC = () => {
         }}
       />
 
-      <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-card overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="bg-white rounded-[24px] border border-[#E5EDF5] shadow-card overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
           
-          {/* Left Section: Resident Platform Brand Deck */}
-          <div className="lg:col-span-5 bg-[#0F172A] p-8 sm:p-12 text-white flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 space-y-6">
+          {/* Left Section: Friendly Brand Presentation */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-[#1E60F2] to-blue-700 p-8 sm:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+            <div className="space-y-6 relative z-10">
               <Link to="/" className="inline-block">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
-                    <Shield className="w-5 h-5 text-white" />
+                  <div className="w-9 h-9 rounded-xl bg-white text-[#1E60F2] flex items-center justify-center font-bold shadow-xs">
+                    <Shield className="w-5 h-5 fill-current" />
                   </div>
-                  <span className="text-xl font-bold tracking-tight text-white">HeatShield <span className="text-cyan-400 font-mono text-sm">AI</span></span>
+                  <span className="text-xl font-bold tracking-tight text-white">HeatShield <span className="text-blue-200 text-sm font-semibold">AI</span></span>
                 </div>
               </Link>
 
               <div className="space-y-3 pt-6">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-cyan-300 text-xs font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Resident Community Heat Safety Ecosystem
-                </span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  Community Protection Network
+                </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                  Protecting citizen lives from extreme heatwaves.
+                  Protecting communities from extreme heat.
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-                  Receive verified hourly temperature & heat-risk updates on Email and SMS, find nearby drinking water and cooling sanctuaries, and protect your loved ones.
+                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed font-normal">
+                  Receive personalized heat-risk advisories, find clean drinking water kiosks and public cooling shelters, and protect your loved ones.
                 </p>
               </div>
 
-              {/* Minimalist Graphic Representation */}
+              {/* Graphic Highlights */}
               <div className="pt-4">
-                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3 text-xs">
-                  <div className="flex items-center justify-between text-slate-400 border-b border-slate-700 pb-2">
-                    <span className="font-mono text-[11px] uppercase">Community Safety Services</span>
-                    <span className="text-emerald-400 font-mono font-medium">NDMA Protocol</span>
+                <div className="p-4 rounded-2xl bg-white/10 border border-white/20 space-y-3 text-xs">
+                  <div className="flex items-center justify-between text-blue-100 pb-2 border-b border-white/15">
+                    <span className="font-semibold text-[11px]">Safety Features</span>
+                    <span className="text-emerald-300 font-semibold">Verified</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/50">
-                      <span className="text-slate-400 text-[10px] block">Hourly Alerts</span>
-                      <strong className="text-white text-xs font-mono">SMS & Email</strong>
+                    <div className="p-2.5 rounded-xl bg-white/10">
+                      <Sun className="w-4 h-4 mx-auto mb-1 text-amber-300" />
+                      <span className="text-[10px] block text-blue-100">Heat Alerts</span>
+                      <strong className="text-white text-xs">Live</strong>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/50">
-                      <span className="text-slate-400 text-[10px] block">Water & Cool</span>
-                      <strong className="text-cyan-400 text-xs font-mono">GPS Mapped</strong>
+                    <div className="p-2.5 rounded-xl bg-white/10">
+                      <Droplets className="w-4 h-4 mx-auto mb-1 text-sky-200" />
+                      <span className="text-[10px] block text-blue-100">Water Points</span>
+                      <strong className="text-white text-xs">Mapped</strong>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/50">
-                      <span className="text-slate-400 text-[10px] block">Verification</span>
-                      <strong className="text-emerald-400 text-xs font-mono">Compulsory</strong>
+                    <div className="p-2.5 rounded-xl bg-white/10">
+                      <HeartHandshake className="w-4 h-4 mx-auto mb-1 text-emerald-300" />
+                      <span className="text-[10px] block text-blue-100">Aid Request</span>
+                      <strong className="text-white text-xs">Rapid</strong>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 pt-6 border-t border-slate-800 text-xs text-slate-400">
-              National Disaster Management Authority (NDMA) & IMD Guidelines Compliant.
+            <div className="relative z-10 pt-6 border-t border-white/15 text-xs text-blue-200">
+              National Disaster Management Authority (NDMA) Guideline Aligned.
             </div>
           </div>
 
@@ -215,30 +214,30 @@ export const AuthPage: React.FC = () => {
               
               {/* Form Title */}
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                  {mode === 'login' ? 'Sign in to HeatShield' : mode === 'signup' ? 'Resident Registration' : 'Reset your password'}
+                <h2 className="text-2xl font-bold tracking-tight text-[#0F172A]">
+                  {mode === 'login' ? 'Sign in to HeatShield' : mode === 'signup' ? 'Create Resident Account' : 'Reset Password'}
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#64748B] mt-1">
                   {mode === 'login' 
-                    ? 'Access your hyperlocal heat telemetry, alerts, and emergency lifelines.'
+                    ? 'Access your local heat risk, alerts, and emergency support.'
                     : mode === 'signup'
-                    ? 'Register as a verified resident to receive hourly thermal briefings and water locator.'
-                    : 'Enter your registered email address to receive recovery instructions.'}
+                    ? 'Register to receive localized heat advisories and water point locations.'
+                    : 'Enter your registered email address to receive password recovery instructions.'}
                 </p>
               </div>
 
-              {/* PRIMARY METHOD: Official Google Sign-In Button */}
+              {/* Google Sign-In Button */}
               <div className="space-y-3">
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting || isGoogleLoading}
-                  className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-sm border border-slate-300 flex items-center justify-center gap-3 hover:border-slate-400 active:bg-slate-100 disabled:opacity-75 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-50 text-[#0F172A] font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-xs border border-[#E5EDF5] flex items-center justify-center gap-3 hover:border-slate-300 active:bg-slate-100 disabled:opacity-75"
                 >
                   {isGoogleLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-slate-700">Connecting Google Account...</span>
+                      <div className="w-4 h-4 border-2 border-[#1E60F2] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[#64748B]">Connecting with Google...</span>
                     </div>
                   ) : (
                     <>
@@ -266,9 +265,9 @@ export const AuthPage: React.FC = () => {
                 </button>
 
                 <div className="relative flex items-center justify-center">
-                  <div className="border-t border-[#E2E8F0] w-full" />
-                  <span className="bg-white px-3 text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-                    or continue with email & phone
+                  <div className="border-t border-[#E5EDF5] w-full" />
+                  <span className="bg-white px-3 text-[11px] text-[#64748B] font-medium uppercase tracking-wider">
+                    or continue with email
                   </span>
                 </div>
               </div>
@@ -287,49 +286,48 @@ export const AuthPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Email / Password / Phone Form */}
+              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                    <label className="block text-xs font-semibold text-[#0F172A] mb-1">Full Name</label>
                     <input
                       type="text"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Anand Murthy"
-                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#1E60F2]"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">Email Address</label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#1E60F2]"
                   />
                 </div>
 
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Phone Number (For Emergency Alerts)</label>
+                    <label className="block text-xs font-semibold text-[#0F172A] mb-1">Mobile Phone (For SMS Heat Warnings)</label>
                     <div className="flex gap-2">
                       <select
                         value={countryCode}
                         onChange={(e) => setCountryCode(e.target.value)}
-                        className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="px-2.5 py-2 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-xs font-semibold text-[#0F172A] focus:outline-none"
                       >
                         <option value="+91">🇮🇳 +91</option>
                         <option value="+1">🇺🇸 +1</option>
                         <option value="+44">🇬🇧 +44</option>
                         <option value="+971">🇦🇪 +971</option>
                         <option value="+65">🇸🇬 +65</option>
-                        <option value="+61">🇦🇺 +61</option>
                       </select>
                       <input
                         type="tel"
@@ -337,7 +335,7 @@ export const AuthPage: React.FC = () => {
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder="98450 12345"
-                        className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="flex-1 bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#1E60F2]"
                       />
                     </div>
                   </div>
@@ -346,12 +344,12 @@ export const AuthPage: React.FC = () => {
                 {mode !== 'forgot' && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-slate-700">Password</label>
+                      <label className="text-xs font-semibold text-[#0F172A]">Password</label>
                       {mode === 'login' && (
                         <button
                           type="button"
                           onClick={() => setMode('forgot')}
-                          className="text-[11px] text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-[11px] text-[#1E60F2] hover:underline font-medium"
                         >
                           Forgot password?
                         </button>
@@ -363,35 +361,35 @@ export const AuthPage: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#1E60F2]"
                     />
                   </div>
                 )}
 
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Confirm Password</label>
+                    <label className="block text-xs font-semibold text-[#0F172A] mb-1">Confirm Password</label>
                     <input
                       type="password"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#1E60F2]"
                     />
                   </div>
                 )}
 
                 {mode === 'signup' && (
-                  <div className="space-y-2 pt-1 text-[11px] text-slate-600">
+                  <div className="space-y-2 pt-1 text-[11px] text-[#64748B]">
                     <label className="flex items-start gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={hourlyConsent}
                         onChange={(e) => setHourlyConsent(e.target.checked)}
-                        className="rounded text-blue-600 mt-0.5"
+                        className="rounded text-[#1E60F2] mt-0.5"
                       />
-                      <span>I explicitly consent to receive hourly personalized heat updates and emergency advisories via Email and SMS.</span>
+                      <span>I consent to receive localized heat advisories via Email and SMS.</span>
                     </label>
 
                     <label className="flex items-start gap-2 cursor-pointer">
@@ -400,39 +398,39 @@ export const AuthPage: React.FC = () => {
                         required
                         checked={termsAccepted}
                         onChange={(e) => setTermsAccepted(e.target.checked)}
-                        className="rounded text-blue-600 mt-0.5"
+                        className="rounded text-[#1E60F2] mt-0.5"
                       />
-                      <span>I agree to the <Link to="/terms" className="text-blue-600 hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>.</span>
+                      <span>I agree to the <Link to="/terms" className="text-[#1E60F2] hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-[#1E60F2] hover:underline">Privacy Policy</Link>.</span>
                     </label>
                   </div>
                 )}
 
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="md"
+                  className="w-full justify-center"
                   disabled={isSubmitting}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-75"
+                  icon={<ArrowRight className="w-4 h-4" />}
                 >
-                  <span>
-                    {isSubmitting
-                      ? 'Processing...'
-                      : mode === 'login'
-                      ? 'Sign In to Dashboard'
-                      : mode === 'signup'
-                      ? 'Create Verified Resident Account'
-                      : 'Send Reset Link'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  {isSubmitting
+                    ? 'Processing...'
+                    : mode === 'login'
+                    ? 'Sign In to Dashboard'
+                    : mode === 'signup'
+                    ? 'Create Resident Account'
+                    : 'Send Reset Link'}
+                </Button>
               </form>
 
               {/* Mode Switcher */}
-              <div className="text-center text-xs text-slate-500 pt-2 border-t border-[#E2E8F0]">
+              <div className="text-center text-xs text-[#64748B] pt-2 border-t border-[#E5EDF5]">
                 {mode === 'login' ? (
                   <p>
                     Don't have an account?{' '}
                     <button 
                       onClick={() => setMode('signup')} 
-                      className="font-bold text-blue-600 hover:text-blue-700"
+                      className="font-bold text-[#1E60F2] hover:underline"
                     >
                       Register as Resident
                     </button>
@@ -442,57 +440,13 @@ export const AuthPage: React.FC = () => {
                     Already registered?{' '}
                     <button 
                       onClick={() => setMode('login')} 
-                      className="font-bold text-blue-600 hover:text-blue-700"
+                      className="font-bold text-[#1E60F2] hover:underline"
                     >
                       Sign In
                     </button>
                   </p>
                 )}
               </div>
-
-              {/* Collapsible Supabase Google OAuth Setup Guide */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowOAuthConfigGuide(!showOAuthConfigGuide)}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 mx-auto"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Google OAuth Configuration Guide</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showOAuthConfigGuide ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showOAuthConfigGuide && (
-                  <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-[#E2E8F0] text-xs text-slate-600 space-y-2 text-left">
-                    <p className="font-semibold text-slate-900">
-                      Step-by-Step Google OAuth Setup with Supabase:
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600">
-                      <li>Go to <strong>Google Cloud Console</strong> &gt; APIs &amp; Services &gt; Credentials.</li>
-                      <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web Application).</li>
-                      <li>
-                        Add Supabase Authorized Redirect URI: <br />
-                        <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px] select-all font-mono">
-                          {isSupabaseConfigured && import.meta.env.VITE_SUPABASE_URL 
-                            ? `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback` 
-                            : 'https://<your-project-ref>.supabase.co/auth/v1/callback'}
-                        </code>
-                      </li>
-                      <li>In <strong>Supabase Dashboard</strong> &gt; Authentication &gt; Providers &gt; <strong>Google</strong>: paste your Client ID &amp; Secret.</li>
-                      <li>Set Authorized Redirect URL to <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px] font-mono">{window.location.origin}</code></li>
-                    </ol>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Terms and Privacy Footer */}
-            <div className="pt-6 text-center text-xs text-slate-400">
-              By continuing, you agree to HeatShield AI's{' '}
-              <Link to="/terms" className="text-slate-600 hover:underline">Terms of Service</Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-slate-600 hover:underline">Privacy Policy</Link>.
             </div>
           </div>
 
@@ -501,4 +455,3 @@ export const AuthPage: React.FC = () => {
     </div>
   );
 };
-export default AuthPage;

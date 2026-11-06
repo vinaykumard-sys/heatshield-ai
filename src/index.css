@@ -5,26 +5,43 @@
 
 :root {
   color-scheme: light;
+  --hs-bg: #F5F8FC;
+  --hs-surface: #FFFFFF;
+  --hs-primary: #1E60F2;
+  --hs-primary-hover: #184FD0;
+  --hs-primary-light: #EFF6FF;
+  --hs-text: #0F172A;
+  --hs-muted: #64748B;
+  --hs-border: #E5EDF5;
+  --hs-border-subtle: #EEF3F8;
+  --hs-radius-card: 20px;
+  --hs-radius-btn: 12px;
 }
 
 body {
-  background-color: #F6F9FC;
-  color: #0F172A;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--hs-bg);
+  color: var(--hs-text);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: #0F172A;
+  font-weight: 700;
 }
 
-/* Enterprise Leaflet Map Styling (Light Theme) */
+/* Modern Clean Leaflet Map Styling (Google Maps / Apple Weather style) */
 .leaflet-container {
   font-family: inherit;
-  background-color: #F1F5F9 !important;
+  background-color: #EBF1F7 !important;
+}
+
+/* Clean, modern natural map tiles filter - crisp, light, friendly */
+.heatshield-clean-tiles {
+  filter: contrast(102%) brightness(101%) saturate(105%) !important;
 }
 
 .heatshield-place-pill-icon {
@@ -40,9 +57,9 @@ h1, h2, h3, h4, h5, h6 {
 .heatshield-climate-popup .leaflet-popup-content-wrapper {
   background: #FFFFFF !important;
   color: #0F172A !important;
-  border-radius: 12px !important;
-  border: 1px solid #E2E8F0 !important;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.16), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 16px !important;
+  border: 1px solid #E5EDF5 !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03) !important;
   padding: 0 !important;
   overflow: hidden !important;
 }
@@ -57,22 +74,22 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .leaflet-control-zoom {
-  border: 1px solid #E2E8F0 !important;
-  border-radius: 8px !important;
+  border: 1px solid #E5EDF5 !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
 }
 
 .leaflet-control-zoom a {
   background-color: #FFFFFF !important;
   color: #475569 !important;
-  border-bottom: 1px solid #E2E8F0 !important;
-  transition: all 0.15s ease !important;
+  border-bottom: 1px solid #E5EDF5 !important;
+  transition: all 0.15s ease-out !important;
 }
 
 .leaflet-control-zoom a:hover {
   background-color: #F8FAFC !important;
-  color: #0F172A !important;
+  color: #1E60F2 !important;
 }
 
 /* Clean minimal scrollbars */
@@ -82,7 +99,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F8FAFC;
+  background: #F5F8FC;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -94,16 +111,7 @@ h1, h2, h3, h4, h5, h6 {
   background: #94A3B8;
 }
 
-/* Dark Navy Futuristic Map Filter on OpenStreetMap Tiles */
-.heatshield-dark-tiles {
-  filter: invert(100%) hue-rotate(195deg) brightness(88%) contrast(115%) saturate(75%) !important;
-}
-
-.heatshield-satellite-tiles {
-  filter: brightness(90%) contrast(105%) !important;
-}
-
-/* Cluster Marker Styling */
+/* Friendly Map Marker Cluster Pill */
 .heatshield-cluster-icon {
   background: transparent !important;
   border: none !important;
@@ -113,139 +121,75 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(11, 19, 43, 0.95);
-  border: 1.5px solid #38BDF8;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.35);
-  color: #FFFFFF;
+  background: #FFFFFF;
+  border: 1.5px solid #1E60F2;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  color: #0F172A;
   padding: 4px 10px;
   border-radius: 9999px;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: inherit;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
 }
 
 .heatshield-cluster-pill:hover {
-  transform: scale(1.08);
-  border-color: #00F0FF;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 18px rgba(30, 96, 242, 0.18);
 }
 
 .heatshield-cluster-badge {
-  background: #0284C7;
+  background: #1E60F2;
   color: #FFFFFF;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
   padding: 1px 6px;
   border-radius: 9999px;
 }
 
-/* Futuristic Command Center Map Pin & Sonar Animations */
-@keyframes sonar-wave {
-  0% {
-    transform: scale(0.5);
-    opacity: 0.95;
-  }
-  100% {
-    transform: scale(2.6);
-    opacity: 0;
-  }
+/* Universal 2.0 Card System */
+.hs-card {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid #E5EDF5;
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.03), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
 }
 
-.heatshield-sonar-marker {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.hs-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  border-color: #D6E3F0;
 }
 
-.heatshield-sonar-ring {
-  position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid #38BDF8;
-  animation: sonar-wave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-}
-
-.heatshield-sonar-ring-2 {
-  position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid #00F0FF;
-  animation: sonar-wave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-  animation-delay: 0.7s;
-}
-
-/* Dark Command Center Leaflet Popup */
-.heatshield-dark-popup .leaflet-popup-content-wrapper {
-  background: #0B132B !important;
-  color: #F8FAFC !important;
-  border-radius: 12px !important;
-  border: 1px solid #334155 !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.2) !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-.heatshield-dark-popup .leaflet-popup-content {
-  margin: 14px 16px !important;
-  line-height: 1.4 !important;
-}
-
-.heatshield-dark-popup .leaflet-popup-tip {
-  background: #0B132B !important;
-}
-
-/* Staggered Entrance Utilities */
-.stagger-1 { animation-delay: 30ms; }
-.stagger-2 { animation-delay: 60ms; }
-.stagger-3 { animation-delay: 90ms; }
-.stagger-4 { animation-delay: 120ms; }
-.stagger-5 { animation-delay: 150ms; }
-.stagger-6 { animation-delay: 180ms; }
-.stagger-7 { animation-delay: 210ms; }
-.stagger-8 { animation-delay: 240ms; }
-
-/* Subtle Apple-style Hover & Interaction Utilities */
-.hover-elevate {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
-  will-change: transform;
-}
-.hover-elevate:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-}
-
+/* Universal Button Micro-interactions (120-160ms) */
 .btn-press {
-  transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.14s ease-out, background-color 0.16s ease-out, box-shadow 0.16s ease-out;
 }
 .btn-press:active {
-  transform: scale(0.975);
+  transform: scale(0.97);
 }
 
-/* Universal Button Micro-interactions */
 .btn-interact {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), 
-              background-color 0.15s ease, 
-              border-color 0.15s ease, 
-              color 0.15s ease;
+  transition: transform 0.15s ease-out, 
+              box-shadow 0.15s ease-out, 
+              background-color 0.15s ease-out, 
+              border-color 0.15s ease-out, 
+              color 0.15s ease-out;
   will-change: transform;
 }
 .btn-interact:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.015);
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
 }
 .btn-interact:active:not(:disabled) {
-  transform: translateY(0px) scale(0.975);
-  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  transform: scale(0.975);
 }
 .btn-interact:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #1E60F2;
 }
 .btn-interact:disabled {
   opacity: 0.5;
@@ -254,83 +198,54 @@ h1, h2, h3, h4, h5, h6 {
   transform: none;
 }
 
-/* Card Interactive Elevate & Glow */
-.card-interactive {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.2s ease,
-              background-color 0.2s ease;
-  will-change: transform;
-}
-.card-interactive:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-  border-color: #CBD5E1;
-}
-
-/* Interactive Input States */
+/* Inputs */
 .input-interactive {
-  transition: border-color 0.2s ease, 
-              box-shadow 0.2s ease, 
-              background-color 0.2s ease;
+  transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out, background-color 0.18s ease-out;
 }
 .input-interactive:focus {
-  border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  border-color: #1E60F2 !important;
+  box-shadow: 0 0 0 3px rgba(30, 96, 242, 0.12) !important;
   background-color: #FFFFFF !important;
 }
 
-/* Sidebar Nav Item Micro-Interactions */
+/* Sidebar Nav Item Styling */
 .nav-item-interactive {
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
-              background-color 0.18s ease, 
-              color 0.18s ease,
-              box-shadow 0.18s ease;
+  transition: background-color 0.16s ease-out, color 0.16s ease-out, transform 0.16s ease-out;
 }
 .nav-item-interactive:hover {
-  transform: translateX(4px);
   background-color: #F8FAFC;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
-}
-.nav-item-interactive:active {
-  transform: translateX(2px) scale(0.99);
+  transform: translateX(2px);
 }
 .nav-item-interactive .nav-icon {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+  transition: transform 0.16s ease-out, color 0.16s ease-out;
 }
 .nav-item-interactive:hover .nav-icon {
-  transform: scale(1.12);
-  color: #2563EB;
+  transform: scale(1.08);
+  color: #1E60F2;
 }
 .nav-item-interactive.active-nav {
-  background: linear-gradient(90deg, #EFF6FF 0%, #F8FAFC 100%);
-  color: #1D4ED8;
+  background-color: #EFF6FF;
+  color: #1E60F2;
   font-weight: 600;
-  border-left: 3px solid #2563EB;
-  box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08);
 }
 .nav-item-interactive.active-nav .nav-icon {
-  color: #2563EB;
+  color: #1E60F2;
 }
 
-/* Subtle SOS Helpline Breathing Animation */
-@keyframes sos-breathe {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 1px 2px 0 rgba(225, 29, 72, 0.1);
-  }
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 0 10px 2px rgba(225, 29, 72, 0.22);
-  }
+/* Subtle SOS Call Button */
+.sos-btn {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  transition: transform 0.14s ease-out, box-shadow 0.14s ease-out, background-color 0.14s ease-out;
 }
-.sos-breathe-subtle {
-  animation: sos-breathe 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.sos-btn:hover {
+  background-color: #DC2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
 }
-.sos-breathe-subtle:hover {
-  animation-play-state: paused;
-  transform: scale(1.03);
+.sos-btn:active {
+  transform: scale(0.96);
 }
 
 /* Skeleton Loading Shimmer */
@@ -339,16 +254,16 @@ h1, h2, h3, h4, h5, h6 {
   100% { background-position: 200% 0; }
 }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background: linear-gradient(90deg, #EDF2F7 25%, #E2E8F0 50%, #EDF2F7 75%);
   background-size: 200% 100%;
-  animation: shimmer-wave 1.8s infinite ease-in-out;
+  animation: shimmer-wave 1.6s infinite ease-in-out;
 }
 
-/* Animated Modal & Dropdown Entrances */
+/* Animated Modal & Dropdown Entrances (180-250ms) */
 @keyframes modal-scale-up {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(6px);
+    transform: scale(0.97) translateY(4px);
   }
   100% {
     opacity: 1;
@@ -356,13 +271,13 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 .animate-modal-enter {
-  animation: modal-scale-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modal-scale-up 0.2s ease-out forwards;
 }
 
 @keyframes dropdown-slide-down {
   0% {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-4px) scale(0.98);
   }
   100% {
     opacity: 1;
@@ -370,24 +285,30 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 .animate-dropdown-enter {
-  animation: dropdown-slide-down 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dropdown-slide-down 0.16s ease-out forwards;
 }
 
-/* Selected Location Pulse Ring (Apple-grade subtle rhythm) */
-@keyframes pin-selected-glow {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5);
+/* Page entrance (180-250ms) */
+@keyframes page-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
   }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
+.animate-page-enter {
+  animation: page-fade-up 0.2s ease-out forwards;
 }
 
-.heatshield-selected-pin {
-  animation: pin-selected-glow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+/* Staggered Entrance Utilities */
+.stagger-1 { animation-delay: 20ms; }
+.stagger-2 { animation-delay: 40ms; }
+.stagger-3 { animation-delay: 60ms; }
+.stagger-4 { animation-delay: 80ms; }
+.stagger-5 { animation-delay: 100ms; }
 
 /* Strict Reduced Motion Accessibility */
 @media (prefers-reduced-motion: reduce) {
@@ -398,5 +319,3 @@ h1, h2, h3, h4, h5, h6 {
     scroll-behavior: auto !important;
   }
 }
-
-

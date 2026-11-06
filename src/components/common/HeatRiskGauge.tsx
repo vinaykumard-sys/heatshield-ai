@@ -18,7 +18,6 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
 }) => {
   const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
 
-  // Severity configurations with calm, restrained tones (Apple/Health standard)
   const config = (() => {
     switch (category) {
       case 'critical':
@@ -27,19 +26,15 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
           stroke: '#EF4444',
           bgTrack: '#FEE2E2',
           pillBg: 'bg-red-50 text-red-700 border-red-200',
-          dotBg: 'bg-red-500',
-          label: 'Extreme Heat Risk',
-          shortLabel: 'Extreme',
-          advice: 'Emergency precautions active'
+          label: 'CRITICAL',
+          advice: 'Extreme caution active'
         };
       case 'high':
         return {
           stroke: '#F97316',
           bgTrack: '#FFEDD5',
           pillBg: 'bg-orange-50 text-orange-700 border-orange-200',
-          dotBg: 'bg-orange-500',
-          label: 'High Heat Risk',
-          shortLabel: 'High',
+          label: 'HIGH',
           advice: 'Seek shade and hydrate'
         };
       case 'moderate':
@@ -47,9 +42,7 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
           stroke: '#F59E0B',
           bgTrack: '#FEF3C7',
           pillBg: 'bg-amber-50 text-amber-700 border-amber-200',
-          dotBg: 'bg-amber-500',
-          label: 'Moderate Heat Advisory',
-          shortLabel: 'Moderate',
+          label: 'MODERATE',
           advice: 'Routine caution advised'
         };
       case 'low':
@@ -59,25 +52,21 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
           stroke: '#10B981',
           bgTrack: '#D1FAE5',
           pillBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-          dotBg: 'bg-emerald-500',
-          label: 'Normal Heat Range',
-          shortLabel: 'Normal',
-          advice: 'Optimal thermal comfort'
+          label: 'LOW',
+          advice: 'Safe conditions'
         };
     }
   })();
 
-  // Semi-circle gauge geometry
-  // Radius: 54, Arc length for 220 degree arc
-  const radius = size === 'sm' ? 42 : size === 'lg' ? 68 : 56;
+  const radius = size === 'sm' ? 44 : size === 'lg' ? 68 : 56;
   const strokeWidth = size === 'sm' ? 8 : size === 'lg' ? 12 : 10;
-  const viewBoxSize = (radius + strokeWidth) * 2 + 10;
+  const viewBoxSize = (radius + strokeWidth) * 2 + 12;
   const center = viewBoxSize / 2;
 
-  // 240-degree arc from 150 deg to 390 deg (-30 deg)
+  // 240-degree arc
   const startAngle = 150;
   const endAngle = 390;
-  const totalAngle = endAngle - startAngle; // 240 deg
+  const totalAngle = endAngle - startAngle;
   const circumference = 2 * Math.PI * radius;
   const arcLength = (totalAngle / 360) * circumference;
   const strokeDashoffset = arcLength - (normalizedScore / 100) * arcLength;
@@ -86,8 +75,8 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
     <div className={`flex flex-col items-center justify-center text-center ${className}`}>
       <div className="relative inline-flex items-center justify-center">
         <svg
-          width={size === 'sm' ? 110 : size === 'lg' ? 170 : 140}
-          height={size === 'sm' ? 110 : size === 'lg' ? 170 : 140}
+          width={size === 'sm' ? 120 : size === 'lg' ? 180 : 150}
+          height={size === 'sm' ? 120 : size === 'lg' ? 180 : 150}
           viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
           className="transform -rotate-60"
         >
@@ -97,13 +86,13 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#E2E8F0"
+            stroke="#EEF3F8"
             strokeWidth={strokeWidth}
             strokeDasharray={`${arcLength} ${circumference}`}
             strokeLinecap="round"
-            className="transition-all duration-500"
           />
-          {/* Active progress track */}
+
+          {/* Value Progress Arc */}
           <circle
             cx={center}
             cy={center}
@@ -118,34 +107,18 @@ export const HeatRiskGauge: React.FC<HeatRiskGaugeProps> = ({
           />
         </svg>
 
-        {/* Center Score Display */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
+        {/* Center Metric Display */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="flex items-baseline">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
-              <CountUp value={normalizedScore} durationMs={700} />
+            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
+              <CountUp value={normalizedScore} durationMs={600} />
             </span>
-            <span className="text-xs font-semibold text-slate-400 font-mono ml-0.5">/100</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-400 ml-0.5">/100</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
-            Heat Risk
+          <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 border ${config.pillBg}`}>
+            {config.label}
           </span>
         </div>
-      </div>
-
-      {/* Category Pill */}
-      <div className="mt-1 flex flex-col items-center gap-1">
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.pillBg} shadow-2xs`}
-        >
-          <span className={`w-2 h-2 rounded-full ${config.dotBg}`} />
-          <span>{config.label}</span>
-        </span>
-
-        {peakWindow && (
-          <span className="text-[11px] text-slate-500 font-medium">
-            Peak heat: <strong className="text-slate-700">{peakWindow}</strong>
-          </span>
-        )}
       </div>
     </div>
   );

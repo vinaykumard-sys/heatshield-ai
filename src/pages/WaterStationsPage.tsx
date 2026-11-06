@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   X,
   Droplet,
-  Compass
+  Compass,
+  Navigation
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { WaterStation, WaterStationStatus, WaterType } from '../types';
@@ -25,16 +26,14 @@ export const WaterStationsPage: React.FC = () => {
   const { currentLocation } = useLocationTracker();
   const [stations, setStations] = useState<WaterStation[]>(() => mockDb.getWaterStations());
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | WaterStationStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'limited' | 'maintenance'>('all');
   const [selectedStation, setSelectedStation] = useState<WaterStation | null>(null);
 
-  // Modals
   const [showReportModal, setShowReportModal] = useState(false);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [issueType, setIssueType] = useState<'empty' | 'broken' | 'unhygienic' | 'working_properly'>('empty');
   const [reportComment, setReportComment] = useState('');
 
-  // Suggest Form
   const [newStationName, setNewStationName] = useState('');
   const [newStationAddress, setNewStationAddress] = useState('');
   const [newStationType, setNewStationType] = useState<WaterType>('mineral_water_atm');
@@ -58,13 +57,16 @@ export const WaterStationsPage: React.FC = () => {
     const map = L.map(mapContainerRef.current, {
       center: [currentLocation.latitude || 13.0854, currentLocation.longitude || 77.6250],
       zoom: 13,
-      zoomControl: true,
-      attributionControl: false
+      zoomControl: false
     });
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+      className: 'heatshield-clean-tiles'
     }).addTo(map);
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
     const layerGroup = L.layerGroup().addTo(map);
     markersRef.current = layerGroup;
@@ -76,48 +78,58 @@ export const WaterStationsPage: React.FC = () => {
     };
   }, []);
 
-  // Update Map Markers on filter change
+  // Update Markers
   useEffect(() => {
-    const markers = markersRef.current;
-    if (!markers) return;
+    if (!markersRef.current || !mapInstanceRef.current) return;
 
-    markers.clearLayers();
+    markersRef.current.clearLayers();
 
     filteredStations.forEach(st => {
-      const isAvail = st.status === 'available';
-      const isMaint = st.status === 'maintenance' || st.status === 'unavailable';
-      const color = isAvail ? '#0284C7' : isMaint ? '#EF4444' : '#F59E0B';
-
+      const isOperational = st.status === 'available' || (st.status as string) === 'operational';
       const icon = L.divIcon({
+        className: 'heatshield-place-pill-icon',
         html: `
           <div style="
-            background: ${color};
-            color: white;
-            padding: 3px 7px;
+            background: ${isOperational ? '#1E60F2' : '#F59E0B'};
+            color: #FFFFFF;
+            padding: 4px 8px;
             border-radius: 9999px;
-            font-size: 10px;
-            font-weight: 800;
+            font-size: 11px;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 3px;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 1.5px solid white;
+            gap: 4px;
+            box-shadow: 0 4px 12px rgba(15,23,42,0.18);
+            border: 2px solid #FFFFFF;
             cursor: pointer;
+            white-space: nowrap;
           ">
-            <span>💧</span>
-            <span>${st.name.split(' ')[0]}</span>
+            💧 ${st.name.split(' ')[0]}
           </div>
         `,
-        className: 'water-atm-icon',
-        iconSize: [85, 24],
-        iconAnchor: [42, 12]
+        iconSize: [80, 26],
+        iconAnchor: [40, 13]
       });
 
-      const m = L.marker([st.latitude, st.longitude], { icon }).addTo(markers);
-      m.on('click', () => {
+      const marker = L.marker([st.latitude, st.longitude], { icon })
+        .bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; padding: 2px;">
+            <strong style="color: #0F172A; font-size: 13px;">${st.name}</strong><br/>
+            <span style="color: #64748B;">${st.address}</span><br/>
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: ${isOperational ? '#10B981' : '#F59E0B'}; font-weight: 700;">
+                ${isOperational ? '● Working' : '● Maintenance'}
+              </span>
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${st.latitude},${st.longitude}" target="_blank" style="color: #1E60F2; font-weight: 600; text-decoration: underline;">Directions</a>
+            </div>
+          </div>
+        `, { className: 'heatshield-climate-popup' });
+
+      marker.on('click', () => {
         setSelectedStation(st);
       });
+
+      markersRef.current?.addLayer(marker);
     });
   }, [filteredStations]);
 
@@ -132,27 +144,26 @@ export const WaterStationsPage: React.FC = () => {
 
   const handleSuggestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newWs: WaterStation = {
+    const newSt: WaterStation = {
       id: `ws-${Date.now()}`,
       name: newStationName,
       address: newStationAddress,
-      locality_name: 'Bengaluru Urban',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      latitude: 13.0150 + (Math.random() - 0.5) * 0.05,
-      longitude: 77.6050 + (Math.random() - 0.5) * 0.05,
+      locality_name: currentLocation.localityName || 'Local Ward',
+      city: currentLocation.city || 'Bengaluru',
+      state: currentLocation.state || 'Karnataka',
+      latitude: (currentLocation.latitude || 13.0854) + (Math.random() - 0.5) * 0.02,
+      longitude: (currentLocation.longitude || 77.6250) + (Math.random() - 0.5) * 0.02,
       status: 'available',
       water_type: newStationType,
-      operating_hours: '06:00 AM - 10:00 PM',
+      operating_hours: '24x7',
       free_access: true,
-      price_per_litre: 0.00,
+      price_per_litre: 0,
       wheelchair_accessible: true,
       reported_empty_count: 0,
-      verified_by: 'Community Submitted (Pending Verification)',
       last_verified_at: new Date().toISOString(),
       created_at: new Date().toISOString()
     };
-    mockDb.saveWaterStation(newWs);
+    mockDb.saveWaterStation(newSt);
     setStations(mockDb.getWaterStations());
     setShowSuggestModal(false);
     setNewStationName('');
@@ -160,212 +171,180 @@ export const WaterStationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 pb-20 max-w-7xl mx-auto px-2 sm:px-4">
       <LocationTrackerBar />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Droplets className="w-6 h-6 text-sky-600" />
-              <span>Drinking Water Availability Tracker</span>
-            </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
-              COMMUNITY VERIFIED
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Real-time public water ATMs, chilled dispensers, and crowdsourced empty/broken station reporting.
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <Droplets className="w-6 h-6 text-[#1E60F2]" />
+            <span>Public Water & Hydration Points</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Verified drinking water ATMs, purified refilling kiosks, and community hydration points
           </p>
         </div>
 
         <button
           onClick={() => setShowSuggestModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 btn-interact"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto btn-press"
         >
           <Plus className="w-4 h-4" />
-          <span>Suggest New Water Point</span>
+          <span>Add Water Point</span>
         </button>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by locality, street or landmark..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none input-interactive"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 sm:pb-0">
-          {(['all', 'available', 'limited', 'unavailable', 'maintenance'] as const).map(st => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl capitalize font-medium whitespace-nowrap btn-press transition-all ${
-                statusFilter === st
-                  ? 'bg-sky-600 text-white shadow-xs font-semibold'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Map & List Layout */}
+      {/* Map & List Split View */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Interactive Map (7 Cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-          <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 text-xs">
-            <span className="font-bold text-slate-700 font-mono flex items-center gap-1.5">
-              <Compass className="w-4 h-4 text-sky-600" />
-              <span>Interactive Water Point Radar</span>
-            </span>
-            <span className="text-slate-400 font-mono text-[11px]">{filteredStations.length} Water Points Visible</span>
-          </div>
-          <div ref={mapContainerRef} className="w-full h-[460px]" />
+        {/* Map Canvas */}
+        <div className="lg:col-span-7 bg-white rounded-[24px] border border-[#E5EDF5] overflow-hidden shadow-xs h-[420px] sm:h-[480px] lg:h-[620px] relative">
+          <div ref={mapContainerRef} className="w-full h-full" />
         </div>
 
-        {/* Stations Directory List (5 Cols) */}
-        <div className="lg:col-span-5 space-y-3 max-h-[520px] overflow-y-auto pr-1">
-          {filteredStations.length === 0 ? (
-            <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
-              No verified facilities found nearby
+        {/* Stations Sidebar List */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Search & Filter */}
+          <div className="bg-white rounded-[20px] border border-[#E5EDF5] p-4 shadow-xs space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search water points or areas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E5EDF5] text-xs bg-[#F5F8FC] focus:bg-white focus:outline-none input-interactive"
+              />
             </div>
-          ) : (
-            filteredStations.map(st => {
-              const isAvail = st.status === 'available';
-              const isLim = st.status === 'limited';
-              return (
-                <div 
-                  key={st.id}
-                  onClick={() => {
-                    setSelectedStation(st);
-                    if (mapInstanceRef.current) {
-                      mapInstanceRef.current.flyTo([st.latitude, st.longitude], 15);
-                    }
-                  }}
-                  className={`p-4 rounded-xl border bg-white transition-all cursor-pointer hover:border-sky-300 card-interactive shadow-xs ${
-                    selectedStation?.id === st.id ? 'border-sky-500 ring-2 ring-sky-100 shadow-sm' : 'border-slate-200'
+
+            <div className="flex items-center gap-1.5 text-xs">
+              {(['all', 'available', 'limited', 'maintenance'] as const).map(st => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all capitalize ${
+                    statusFilter === st
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-[#F5F8FC] text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      isAvail ? 'bg-emerald-100 text-emerald-800' :
-                      isLim ? 'bg-amber-100 text-amber-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {st.status}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Verified {new Date(st.last_verified_at).toLocaleDateString()}
+                  {st === 'all' ? 'All' : st.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cards List */}
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {filteredStations.map(st => {
+              const isWorking = st.status === 'available' || (st.status as string) === 'operational';
+              return (
+                <div
+                  key={st.id}
+                  className="bg-white rounded-[20px] border border-[#E5EDF5] p-4 shadow-xs space-y-3 hover:border-slate-300 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          isWorking ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {isWorking ? 'Operational' : 'Maintenance'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 truncate">{st.name}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 line-clamp-1">{st.address}</p>
+                    </div>
+
+                    <span className="text-[11px] font-bold text-[#1E60F2] bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                      {st.free_access ? 'Free' : st.price_per_litre ? `₹${st.price_per_litre}/L` : 'Paid'}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 mb-0.5">
-                    {st.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mb-2 truncate">
-                    {st.address}
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600 bg-slate-50 p-2 rounded-lg mb-2.5">
-                    <div>⏰ Hours: <b>{st.operating_hours}</b></div>
-                    <div>💧 Type: <b>{st.water_type.replace('_', ' ')}</b></div>
-                    <div>♿ Accessible: <b>{st.wheelchair_accessible ? 'Yes' : 'No'}</b></div>
-                    <div>🪙 Cost: <b>{st.free_access ? 'Free' : `₹${st.price_per_litre}/L`}</b></div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 text-xs">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedStation(st);
-                        setShowReportModal(true);
-                      }}
-                      className="text-red-600 hover:text-red-700 font-bold text-[11px] flex items-center gap-1"
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>Report Empty / Broken</span>
-                    </button>
-
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${st.latitude},${st.longitude}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="px-2.5 py-1 rounded bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-[11px] flex items-center gap-1"
-                    >
-                      <span>Directions</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <span className="text-[11px] text-slate-400">
+                      Hours: {st.operating_hours}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedStation(st);
+                          setShowReportModal(true);
+                        }}
+                        className="text-slate-500 hover:text-red-600 transition-colors"
+                      >
+                        Report issue
+                      </button>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${st.latitude},${st.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1E60F2] font-semibold transition-colors flex items-center gap-1"
+                      >
+                        <span>Directions</span>
+                        <Navigation className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
         </div>
       </div>
 
       {/* Report Modal */}
       {showReportModal && selectedStation && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-sm text-slate-900">Report Water Station Status</h3>
-              <button onClick={() => setShowReportModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[20px] max-w-md w-full p-6 border border-[#E5EDF5] shadow-modal space-y-4 animate-modal-enter">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Report Water Station Status</h3>
+              <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="text-xs text-slate-600">
-              Reporting for: <b>{selectedStation.name}</b>
-            </div>
+            <form onSubmit={handleReportSubmit} className="space-y-3.5 text-xs">
+              <p className="text-slate-600">
+                Reporting condition for <strong>{selectedStation.name}</strong>:
+              </p>
 
-            <form onSubmit={handleReportSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Issue Encountered</label>
+                <label className="font-semibold text-slate-700 block mb-1">Status Issue</label>
                 <select
                   value={issueType}
-                  onChange={e => setIssueType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  onChange={(e: any) => setIssueType(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-slate-900 focus:outline-none"
                 >
-                  <option value="empty">Empty / No Water Flowing</option>
-                  <option value="broken">Broken Tap / ATM Hardware Error</option>
-                  <option value="unhygienic">Unhygienic / Cloudy Water</option>
-                  <option value="working_properly">Restored / Working Normally</option>
+                  <option value="empty">Out of Water / Empty</option>
+                  <option value="broken">Broken ATM / Machine Error</option>
+                  <option value="unhygienic">Unhygienic Surroundings</option>
+                  <option value="working_properly">Working Properly (Verify Good)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Comments (Optional)</label>
+                <label className="font-semibold text-slate-700 block mb-1">Comments (Optional)</label>
                 <textarea
                   value={reportComment}
-                  onChange={e => setReportComment(e.target.value)}
-                  placeholder="e.g. Dispenser card reader not reading, tank empty since 1 PM..."
+                  onChange={(e) => setReportComment(e.target.value)}
+                  placeholder="Additional details..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-slate-900 focus:outline-none input-interactive"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowReportModal(false)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-semibold"
+                  className="px-4 py-2 rounded-xl border border-[#E5EDF5] text-slate-600 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold"
+                  className="px-4 py-2 rounded-xl bg-[#1E60F2] text-white font-semibold shadow-xs hover:bg-[#184FD0]"
                 >
                   Submit Report
                 </button>
@@ -377,67 +356,53 @@ export const WaterStationsPage: React.FC = () => {
 
       {/* Suggest Modal */}
       {showSuggestModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-modal-enter">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-sm text-slate-900">Suggest New Drinking Water Point</h3>
-              <button onClick={() => setShowSuggestModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[20px] max-w-md w-full p-6 border border-[#E5EDF5] shadow-modal space-y-4 animate-modal-enter">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Add New Water Point</h3>
+              <button onClick={() => setShowSuggestModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSuggestSubmit} className="space-y-3 text-xs">
+            <form onSubmit={handleSuggestSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Facility Name</label>
+                <label className="font-semibold text-slate-700 block mb-1">Water Point Name</label>
                 <input
                   type="text"
-                  required
+                  placeholder="e.g., Metro Water ATM, Bus Stand Fountain"
                   value={newStationName}
-                  onChange={e => setNewStationName(e.target.value)}
-                  placeholder="e.g. Metro Pillar 128 Drinking Water ATM"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  onChange={(e) => setNewStationName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-slate-900 focus:outline-none input-interactive"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Street Address</label>
+                <label className="font-semibold text-slate-700 block mb-1">Full Address / Location</label>
                 <input
                   type="text"
-                  required
+                  placeholder="e.g., Near Hebbal BMTC Bus Stop"
                   value={newStationAddress}
-                  onChange={e => setNewStationAddress(e.target.value)}
-                  placeholder="e.g. Near Bus Stand, Thanisandra Main Road"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
+                  onChange={(e) => setNewStationAddress(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-slate-900 focus:outline-none input-interactive"
+                  required
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Water Dispenser Type</label>
-                <select
-                  value={newStationType}
-                  onChange={e => setNewStationType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none"
-                >
-                  <option value="mineral_water_atm">Mineral Water ATM</option>
-                  <option value="purified_chilled">Purified Chilled Cooler</option>
-                  <option value="filtered_tap">Filtered Municipal Tap</option>
-                  <option value="tanker_point">Emergency Tanker Respite Point</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowSuggestModal(false)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-semibold"
+                  className="px-4 py-2 rounded-xl border border-[#E5EDF5] text-slate-600 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold"
+                  className="px-4 py-2 rounded-xl bg-[#1E60F2] text-white font-semibold shadow-xs hover:bg-[#184FD0]"
                 >
-                  Save & Queue for Verification
+                  Save Water Point
                 </button>
               </div>
             </form>
@@ -447,3 +412,5 @@ export const WaterStationsPage: React.FC = () => {
     </div>
   );
 };
+
+export default WaterStationsPage;

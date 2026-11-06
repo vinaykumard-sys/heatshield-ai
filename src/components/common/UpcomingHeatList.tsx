@@ -22,7 +22,6 @@ export const UpcomingHeatList: React.FC<UpcomingHeatListProps> = ({
     return null;
   }
 
-  // Find peak heat point
   const maxHeatPoint = hourly.reduce(
     (max, curr) => {
       const currStress = curr.heat_index_c || curr.temperature_c;
@@ -54,30 +53,30 @@ export const UpcomingHeatList: React.FC<UpcomingHeatListProps> = ({
     const isNight = hourNum >= 19 || hourNum < 6;
 
     if (isNight) return <Moon className="w-4 h-4 text-indigo-400 shrink-0" />;
-    if (temp >= 36) return <Sun className="w-4 h-4 text-amber-500 animate-[spin_12s_linear_infinite] shrink-0" />;
+    if (temp >= 36) return <Sun className="w-4 h-4 text-amber-500 shrink-0" />;
     return <CloudSun className="w-4 h-4 text-amber-400 shrink-0" />;
   };
 
   return (
-    <div className={`bg-white border border-slate-200/80 rounded-3xl p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-3.5 ${className}`}>
+    <div className={`bg-white rounded-[20px] border border-[#E5EDF5] p-5 shadow-xs space-y-3.5 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
             <Clock className="w-4 h-4" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              Upcoming Heat (Next Hours)
+              Upcoming Hours
             </h3>
             <p className="text-[11px] text-slate-500">
-              Thermal trajectory for your immediate sector
+              Next expected temperature shifts
             </p>
           </div>
         </div>
 
         {maxHeatPoint && (
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-700 bg-amber-50 border border-amber-200">
             Peak: {maxHeatPoint.time}
           </span>
         )}
@@ -94,37 +93,32 @@ export const UpcomingHeatList: React.FC<UpcomingHeatListProps> = ({
           return (
             <div
               key={idx}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs transition-colors ${
+              className={`p-2.5 rounded-xl flex items-center justify-between gap-3 text-xs transition-colors ${
                 isPeak
                   ? 'bg-amber-50/70 border border-amber-200'
-                  : 'bg-slate-50/60 border border-slate-100 hover:bg-slate-50'
+                  : 'bg-[#F5F8FC] border border-[#E5EDF5] hover:bg-slate-100/60'
               }`}
             >
-              <div className="flex items-center gap-2.5 min-w-[70px]">
+              <div className="flex items-center gap-2.5 min-w-[80px]">
                 {getWeatherIcon(hour.time, temp)}
-                <span className="font-semibold text-slate-700 font-mono text-xs">{label}</span>
+                <span className="font-semibold text-slate-700">
+                  {label}
+                </span>
               </div>
 
-              {isPeak ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                  <Flame className="w-3 h-3 text-amber-600" />
-                  Peak Stress
-                </span>
-              ) : heatIndex >= 38 ? (
-                <span className="text-[10px] font-mono text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                  High Index
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono text-slate-500">
-                  {hour.relative_humidity_pct ?? 50}% humidity
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <span className="font-bold text-slate-900">{temp}°C</span>
+                  <span className="text-[11px] text-slate-400 ml-1.5">
+                    feels {heatIndex}°C
+                  </span>
+                </div>
 
-              <div className="flex items-baseline gap-1.5 font-mono">
-                <span className="text-sm font-extrabold text-slate-900">{temp}°</span>
-                <span className="text-[11px] text-slate-400">
-                  {heatIndex > temp ? `(${heatIndex}°)` : ''}
-                </span>
+                {isPeak && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                    Peak
+                  </span>
+                )}
               </div>
             </div>
           );

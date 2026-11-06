@@ -2,26 +2,30 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, 
   MapPin, 
-  CheckCircle2, 
-  AlertTriangle, 
   Clock, 
   Phone, 
   Navigation, 
-  Droplets, 
-  Wind, 
   Users, 
   Plus, 
   ShieldCheck, 
   Flag, 
   Filter,
   X,
-  ExternalLink
+  ExternalLink,
+  Snowflake,
+  Droplets,
+  Accessibility,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { CoolingCentre, CoolingCentreVerificationStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useLocationTracker } from '../context/LocationContext';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
+import { Card } from '../components/common/Card';
+import { Badge } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -152,7 +156,6 @@ export const CoolingCentresPage: React.FC = () => {
     mockDb.saveCoolingCentre(newCentre);
     setCentres(mockDb.getCoolingCentres());
     setIsRegisterModalOpen(false);
-    // Reset form
     setFormName('');
     setFormAddress('');
   };
@@ -180,102 +183,104 @@ export const CoolingCentresPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
       <LocationTrackerBar />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Verified Public Cooling Shelters
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+              Public Cooling Shelters
             </h1>
-            <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
-              HEAT RESPITE NETWORK
-            </span>
+            <Badge variant="brand" size="sm">Verified Network</Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Locate verified government and civic cooling shelters, misting pavilions, and public air-conditioned relief hubs.
+          <p className="text-sm text-[#64748B] mt-1">
+            Find air-conditioned public relief hubs, community centres, and shaded misting pavilions near you.
           </p>
         </div>
 
         {/* Action Button for Admins/Volunteers */}
-        <div className="flex items-center gap-2">
-          {(isAdmin || isVolunteer) && (
-            <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm btn-interact"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Register New Shelter</span>
-            </button>
-          )}
-        </div>
+        {(isAdmin || isVolunteer) && (
+          <Button
+            variant="primary"
+            onClick={() => setIsRegisterModalOpen(true)}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            Register Shelter
+          </Button>
+        )}
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search shelter name, locality, or address..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:bg-white input-interactive focus:border-blue-500 transition-colors"
-          />
-        </div>
+      <Card padding="md">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search shelter name, locality, or address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] text-sm text-[#0F172A] pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:bg-white focus:border-[#1E60F2] transition-colors"
+            />
+          </div>
 
-        {/* Facility Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto text-xs">
-          <span className="text-slate-400 font-medium px-1 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-slate-500" />
-            <span>Facility:</span>
-          </span>
-          {[
-            { id: 'all', label: 'All Shelters' },
-            { id: 'ac', label: '❄️ AC / Cooler' },
-            { id: 'water', label: '💧 Drinking Water' },
-            { id: 'wheelchair', label: '♿ Wheelchair Accessible' }
-          ].map(fac => (
+          {/* Facility Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[#64748B] font-medium px-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-[#64748B]" />
+              <span>Filter:</span>
+            </span>
+            {[
+              { id: 'all', label: 'All Shelters' },
+              { id: 'ac', label: 'AC / Air Cooled' },
+              { id: 'water', label: 'Drinking Water' },
+              { id: 'wheelchair', label: 'Wheelchair Ramp' }
+            ].map(fac => (
+              <button
+                key={fac.id}
+                onClick={() => setSelectedFacility(fac.id)}
+                className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
+                  selectedFacility === fac.id 
+                    ? 'bg-[#1E60F2] text-white shadow-xs font-semibold' 
+                    : 'bg-[#F5F8FC] text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A]'
+                }`}
+              >
+                {fac.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Verification Status Filter */}
+          <div className="flex items-center gap-1 text-xs">
             <button
-              key={fac.id}
-              onClick={() => setSelectedFacility(fac.id)}
-              className={`px-2.5 py-1 rounded-lg font-medium btn-press transition-all ${
-                selectedFacility === fac.id 
-                  ? 'bg-blue-600 text-white shadow-xs font-semibold' 
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              onClick={() => setVerificationFilter(verificationFilter === 'verified' ? 'all' : 'verified')}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                verificationFilter === 'verified'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold'
+                  : 'bg-white text-[#64748B] border-[#E5EDF5] hover:bg-[#F5F8FC]'
               }`}
             >
-              {fac.label}
+              ✓ Verified Only ({centres.filter(c => c.verification_status === 'verified').length})
             </button>
-          ))}
+          </div>
         </div>
-
-        {/* Verification Status Filter */}
-        <div className="flex items-center gap-1 text-xs">
-          <button
-            onClick={() => setVerificationFilter(verificationFilter === 'verified' ? 'all' : 'verified')}
-            className={`px-2.5 py-1 rounded-lg border font-medium btn-press transition-all ${
-              verificationFilter === 'verified'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            ✓ Verified Only ({centres.filter(c => c.verification_status === 'verified').length})
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* Main Content Layout: List Cards + Detail Drawer */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Columns: Cooling Centre Cards */}
-        <div className="lg:col-span-2 space-y-3.5">
+        <div className="lg:col-span-2 space-y-4">
           {filteredCentres.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
-              No verified facilities found nearby
-            </div>
+            <Card padding="lg" className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-[#64748B]">
+                <Search className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-semibold text-[#0F172A]">No shelters match your criteria</h3>
+              <p className="text-xs text-[#64748B] mt-1">Try clearing filters or searching for another locality.</p>
+            </Card>
           ) : (
             filteredCentres.map((centre) => {
               const isSelected = selectedCentre?.id === centre.id;
@@ -285,35 +290,32 @@ export const CoolingCentresPage: React.FC = () => {
                 <div
                   key={centre.id}
                   onClick={() => setSelectedCentre(centre)}
-                  className={`p-4 sm:p-5 rounded-xl border transition-all cursor-pointer bg-white shadow-sm space-y-3 card-interactive ${
-                    isSelected ? 'border-blue-600 ring-2 ring-blue-600/10' : 'border-slate-200 hover:border-slate-300'
+                  className={`p-5 rounded-[20px] border transition-all cursor-pointer bg-white shadow-card space-y-3.5 hover:shadow-card-hover ${
+                    isSelected ? 'border-[#1E60F2] ring-2 ring-[#1E60F2]/10' : 'border-[#E5EDF5] hover:border-slate-300'
                   }`}
                 >
                   {/* Top Badges & Status */}
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${
-                          isVerified ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          <ShieldCheck className="w-3 h-3" />
-                          <span className="capitalize">{centre.verification_status.replace('_', ' ')}</span>
-                        </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant={isVerified ? 'success' : 'warning'} size="sm">
+                          {isVerified ? 'Verified Shelter' : 'Community Reported'}
+                        </Badge>
 
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                          ● {centre.operating_status.toUpperCase()}
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                          ● {centre.operating_status === 'open' ? 'Open now' : centre.operating_status}
                         </span>
 
                         {centre.distance_km !== undefined && (
-                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-bold">
+                          <span className="text-[11px] font-medium text-[#64748B] bg-[#F5F8FC] px-2 py-0.5 rounded-full">
                             📍 {centre.distance_km} km away
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-base font-bold text-slate-900">{centre.name}</h3>
-                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <h3 className="text-base font-bold text-[#0F172A] pt-1">{centre.name}</h3>
+                      <p className="text-xs text-[#64748B] flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#1E60F2] shrink-0" />
                         <span>{centre.address} ({centre.locality_name})</span>
                       </p>
                     </div>
@@ -324,40 +326,43 @@ export const CoolingCentresPage: React.FC = () => {
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors flex items-center gap-1 shrink-0 border border-blue-200"
+                      className="px-3.5 py-1.5 rounded-xl bg-[#F5F8FC] hover:bg-blue-50 text-[#1E60F2] text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0 border border-[#E5EDF5] hover:border-[#1E60F2]/30"
                     >
-                      <Navigation className="w-3 h-3" />
+                      <Navigation className="w-3.5 h-3.5" />
                       <span>Directions</span>
                     </a>
                   </div>
 
                   {/* Amenities Strip */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-[#E5EDF5] text-xs text-[#64748B]">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-[#64748B]" />
                       <span>{centre.operating_hours}</span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Cap: ~{centre.capacity_estimate}</span>
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <Users className="w-3.5 h-3.5 text-[#64748B]" />
+                      <span>Capacity ~{centre.capacity_estimate}</span>
                     </div>
 
                     {centre.air_conditioned && (
-                      <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-                        ❄️ AC Air-Cooled
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1E60F2] bg-blue-50 px-2 py-0.5 rounded-full">
+                        <Snowflake className="w-3 h-3" />
+                        <span>Air Conditioned</span>
                       </span>
                     )}
 
                     {centre.drinking_water_available && (
-                      <span className="text-[11px] font-medium text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">
-                        💧 Clean Water
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
+                        <Droplets className="w-3 h-3" />
+                        <span>Clean Water</span>
                       </span>
                     )}
 
                     {centre.wheelchair_accessible && (
-                      <span className="text-[11px] font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                        ♿ Accessible
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
+                        <Accessibility className="w-3 h-3" />
+                        <span>Wheelchair Ramp</span>
                       </span>
                     )}
                   </div>
@@ -368,77 +373,77 @@ export const CoolingCentresPage: React.FC = () => {
         </div>
 
         {/* Right Column: Selected Centre Detail Card & Verification Workflow */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 h-fit">
+        <div className="space-y-4">
           {selectedCentre ? (
-            <div className="space-y-4">
+            <Card padding="lg" className="space-y-5 sticky top-24">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Shelter Inspection Profile
+                <span className="text-[11px] uppercase font-bold text-[#64748B] tracking-wider">
+                  Shelter Details
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">{selectedCentre.name}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{selectedCentre.address}</p>
+                <h3 className="text-lg font-bold text-[#0F172A] mt-1">{selectedCentre.name}</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">{selectedCentre.address}</p>
               </div>
 
               {/* Operating Status Info */}
-              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-2">
+              <div className="p-4 rounded-2xl bg-[#F5F8FC] border border-[#E5EDF5] text-xs space-y-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Operating Status:</span>
-                  <span className="font-bold text-emerald-700 uppercase">
-                    ● {selectedCentre.operating_status}
+                  <span className="text-[#64748B]">Operating Status</span>
+                  <span className="font-bold text-emerald-700">
+                    ● {selectedCentre.operating_status === 'open' ? 'Open now' : selectedCentre.operating_status}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Daily Hours:</span>
-                  <span className="font-bold text-slate-800">{selectedCentre.operating_hours}</span>
+                  <span className="text-[#64748B]">Daily Hours</span>
+                  <span className="font-semibold text-[#0F172A]">{selectedCentre.operating_hours}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Contact Telephone:</span>
-                  <span className="font-mono font-bold text-blue-600">{selectedCentre.contact_phone || 'None recorded'}</span>
+                  <span className="text-[#64748B]">Contact Phone</span>
+                  <span className="font-medium text-[#1E60F2]">{selectedCentre.contact_phone || 'None listed'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Last Verified:</span>
-                  <span className="font-mono text-slate-700">
+                  <span className="text-[#64748B]">Last Verified</span>
+                  <span className="text-[#0F172A] font-medium">
                     {selectedCentre.last_verified_at 
                       ? new Date(selectedCentre.last_verified_at).toLocaleDateString()
-                      : 'Pending Initial Verification'}
+                      : 'Recently updated'}
                   </span>
                 </div>
                 {selectedCentre.verified_by && (
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Verified By:</span>
-                    <span className="font-medium text-slate-800">{selectedCentre.verified_by}</span>
+                    <span className="text-[#64748B]">Verified By</span>
+                    <span className="font-medium text-[#0F172A]">{selectedCentre.verified_by}</span>
                   </div>
                 )}
               </div>
 
               {/* Verified Facilities Checklist */}
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-                  Verified Safety Amenities
+                <p className="text-[11px] uppercase font-bold text-[#64748B] tracking-wider mb-2.5">
+                  Available Amenities
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className={`p-2 rounded border flex items-center gap-1.5 ${
-                    selectedCentre.drinking_water_available ? 'bg-sky-50/60 border-sky-200 text-sky-800 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    selectedCentre.drinking_water_available ? 'bg-sky-50/70 border-sky-200 text-sky-900 font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
-                    <span>💧</span>
+                    <Droplets className="w-4 h-4 text-sky-600" />
                     <span>Drinking Water</span>
                   </div>
-                  <div className={`p-2 rounded border flex items-center gap-1.5 ${
-                    selectedCentre.air_conditioned ? 'bg-blue-50/60 border-blue-200 text-blue-800 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    selectedCentre.air_conditioned ? 'bg-blue-50/70 border-blue-200 text-[#1E60F2] font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
-                    <span>❄️</span>
+                    <Snowflake className="w-4 h-4 text-[#1E60F2]" />
                     <span>Indoor AC</span>
                   </div>
-                  <div className={`p-2 rounded border flex items-center gap-1.5 ${
-                    selectedCentre.wheelchair_accessible ? 'bg-slate-50 border-slate-200 text-slate-800 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    selectedCentre.wheelchair_accessible ? 'bg-slate-50 border-slate-200 text-[#0F172A] font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
-                    <span>♿</span>
-                    <span>Wheelchair Access</span>
+                    <Accessibility className="w-4 h-4 text-slate-600" />
+                    <span>Ramp Access</span>
                   </div>
-                  <div className={`p-2 rounded border flex items-center gap-1.5 ${
-                    selectedCentre.medical_kit_available ? 'bg-rose-50/60 border-rose-200 text-rose-800 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    selectedCentre.medical_kit_available ? 'bg-rose-50/70 border-rose-200 text-rose-900 font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
-                    <span>🩹</span>
+                    <CheckCircle2 className="w-4 h-4 text-rose-600" />
                     <span>First Aid Kit</span>
                   </div>
                 </div>
@@ -446,21 +451,21 @@ export const CoolingCentresPage: React.FC = () => {
 
               {/* Verification Controls for Admins and Volunteers */}
               {(isAdmin || isVolunteer) && (
-                <div className="p-3.5 rounded-lg bg-blue-50/60 border border-blue-200 space-y-2">
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2.5">
                   <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <ShieldCheck className="w-4 h-4 text-[#1E60F2]" />
                     <span>Staff Verification Actions</span>
                   </p>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleVerifyCentre(selectedCentre.id, 'verified')}
-                      className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+                      className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs"
                     >
                       Confirm Verified
                     </button>
                     <button
                       onClick={() => handleVerifyCentre(selectedCentre.id, 'temporarily_unavailable')}
-                      className="flex-1 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors"
+                      className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-colors shadow-xs"
                     >
                       Mark Unavailable
                     </button>
@@ -468,84 +473,84 @@ export const CoolingCentresPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Citizen Reporting Option */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              {/* Citizen Reporting Option & External Link */}
+              <div className="pt-3 border-t border-[#E5EDF5] flex items-center justify-between">
                 <button
                   onClick={() => {
                     setReportingCentre(selectedCentre);
                     setIsReportModalOpen(true);
                   }}
-                  className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
+                  className="text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1.5 transition-colors"
                 >
                   <Flag className="w-3.5 h-3.5" />
-                  <span>Report Incorrect Info</span>
+                  <span>Report issue</span>
                 </button>
 
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCentre.latitude},${selectedCentre.longitude}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-[#1E60F2] hover:underline flex items-center gap-1"
                 >
-                  <span>Open in Navigation</span>
+                  <span>Open Maps</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
-            </div>
+            </Card>
           ) : (
-            <div className="text-center text-slate-400 text-xs py-8">
-              Select any shelter card to inspect verification and amenities.
-            </div>
+            <Card padding="md" className="text-center text-[#64748B] text-xs py-8">
+              Select any shelter card to view details and facilities.
+            </Card>
           )}
         </div>
       </div>
 
       {/* Register New Centre Modal */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-600" />
-                <span>Register Public Cooling Centre</span>
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] border border-[#E5EDF5] max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E5EDF5] pb-3">
+              <h3 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#1E60F2]" />
+                <span>Register Public Cooling Shelter</span>
               </h3>
-              <button onClick={() => setIsRegisterModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setIsRegisterModalOpen(false)} className="text-[#64748B] hover:text-[#0F172A]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-3 text-xs">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Centre / Facility Name</label>
+                <label className="font-semibold text-[#0F172A] block mb-1">Facility Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Indiranagar Civic Air-Cooled Community Hall"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Physical Street Address</label>
+                <label className="font-semibold text-[#0F172A] block mb-1">Street Address</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Near 100ft Road Metro Pillar 42, Indiranagar"
                   value={formAddress}
                   onChange={(e) => setFormAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">City</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">City</label>
                   <select
                     value={formCity}
                     onChange={(e) => setFormCity(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A]"
                   >
                     <option value="Bengaluru">Bengaluru</option>
                     <option value="Delhi">Delhi</option>
@@ -553,67 +558,60 @@ export const CoolingCentresPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Contact Telephone</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Operating Hours</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">Operating Hours</label>
                   <input
                     type="text"
                     value={formHours}
                     onChange={(e) => setFormHours(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A]"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Estimated Capacity</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">Estimated Capacity</label>
                   <input
                     type="number"
                     value={formCapacity}
                     onChange={(e) => setFormCapacity(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A]"
                   />
                 </div>
               </div>
 
               {/* Amenities Checkboxes */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={formAC} onChange={(e) => setFormAC(e.target.checked)} />
+              <div className="pt-2 border-t border-[#E5EDF5] flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer font-medium text-[#0F172A]">
+                  <input type="checkbox" checked={formAC} onChange={(e) => setFormAC(e.target.checked)} className="rounded text-[#1E60F2]" />
                   <span>Air Conditioning</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={formWater} onChange={(e) => setFormWater(e.target.checked)} />
+                <label className="flex items-center gap-2 cursor-pointer font-medium text-[#0F172A]">
+                  <input type="checkbox" checked={formWater} onChange={(e) => setFormWater(e.target.checked)} className="rounded text-[#1E60F2]" />
                   <span>Clean Water</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={formWheelchair} onChange={(e) => setFormWheelchair(e.target.checked)} />
+                <label className="flex items-center gap-2 cursor-pointer font-medium text-[#0F172A]">
+                  <input type="checkbox" checked={formWheelchair} onChange={(e) => setFormWheelchair(e.target.checked)} className="rounded text-[#1E60F2]" />
                   <span>Wheelchair Ramp</span>
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsRegisterModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium"
-                >
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5EDF5]">
+                <Button variant="ghost" size="sm" onClick={() => setIsRegisterModalOpen(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                >
-                  Save & Register
-                </button>
+                </Button>
+                <Button variant="primary" size="sm" type="submit">
+                  Save Shelter
+                </Button>
               </div>
             </form>
           </div>
@@ -622,68 +620,61 @@ export const CoolingCentresPage: React.FC = () => {
 
       {/* Citizen Report Modal */}
       {isReportModalOpen && reportingCentre && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] border border-[#E5EDF5] max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E5EDF5] pb-3">
+              <h3 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
                 <Flag className="w-4 h-4 text-rose-600" />
-                <span>Report Discrepancy</span>
+                <span>Report Shelter Issue</span>
               </h3>
-              <button onClick={() => setIsReportModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setIsReportModalOpen(false)} className="text-[#64748B] hover:text-[#0F172A]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {reportSuccess ? (
-              <div className="p-4 rounded-lg bg-emerald-50 text-emerald-800 text-center font-bold text-xs">
-                Thank you. Report filed successfully for admin verification.
+              <div className="p-4 rounded-xl bg-emerald-50 text-emerald-800 text-center font-bold text-xs">
+                Thank you. Your report has been submitted for verification.
               </div>
             ) : (
-              <form onSubmit={handleReportSubmit} className="space-y-3 text-xs">
-                <p className="text-slate-600">
-                  Reporting information for <b>{reportingCentre.name}</b>:
+              <form onSubmit={handleReportSubmit} className="space-y-3.5 text-xs">
+                <p className="text-[#64748B]">
+                  Reporting issue for <b className="text-[#0F172A]">{reportingCentre.name}</b>:
                 </p>
 
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Observed Issue</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">Observed Issue</label>
                   <select
                     value={reportIssueType}
                     onChange={(e: any) => setReportIssueType(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900 font-medium"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A] font-medium"
                   >
                     <option value="closed_unexpectedly">Closed During Advertised Hours</option>
                     <option value="no_water">Drinking Water Unavailable / Broken</option>
-                    <option value="overcrowded">Overcrowded / Over Capacity</option>
-                    <option value="incorrect_location">Incorrect Address / Coordinates</option>
-                    <option value="other">Other Facility Defect</option>
+                    <option value="overcrowded">Overcrowded / Full Capacity</option>
+                    <option value="incorrect_location">Incorrect Address or Location</option>
+                    <option value="other">Other Issue</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Details & Context</label>
+                  <label className="font-semibold text-[#0F172A] block mb-1">Details & Notes</label>
                   <textarea
                     rows={3}
-                    placeholder="Provide specific notes to assist municipal verifiers..."
+                    placeholder="Provide details to assist community verifiers..."
                     value={reportNotes}
                     onChange={(e) => setReportNotes(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-900"
+                    className="w-full bg-[#F5F8FC] border border-[#E5EDF5] p-2.5 rounded-xl text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
                   />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setIsReportModalOpen(false)}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold"
-                  >
+                  </Button>
+                  <Button variant="danger" size="sm" type="submit">
                     Submit Report
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}

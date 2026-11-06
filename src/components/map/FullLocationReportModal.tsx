@@ -86,11 +86,11 @@ export const FullLocationReportModal: React.FC<FullLocationReportModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-blue-700 font-bold">
-                  GEOSPATIAL INTELLIGENCE REPORT
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E60F2]">
+                  HEAT SAFETY REPORT
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-medium">
-                  {report.data_source.includes('Open-Meteo') ? '● LIVE TELEMETRY' : '● REGIONAL MODEL'}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                  {report.data_source.includes('Open-Meteo') ? '● Live weather' : '● Regional model'}
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 line-clamp-1">

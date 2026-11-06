@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Clock, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { HeatRiskGauge } from './HeatRiskGauge';
 import { RiskCategory } from '../../types';
 
@@ -8,54 +8,56 @@ interface HeatRiskCardProps {
   score: number;
   category: RiskCategory | string;
   peakWindow?: string;
+  trend?: 'Increasing' | 'Stable' | 'Decreasing';
   className?: string;
 }
 
 export const HeatRiskCard: React.FC<HeatRiskCardProps> = ({
   score,
   category,
-  peakWindow,
+  peakWindow = '2:00 PM',
+  trend = 'Increasing',
   className = '',
 }) => {
   const getRiskDescription = () => {
     switch (category) {
       case 'critical':
       case 'extreme':
-        return 'Critical thermal threshold reached. Danger of heat stroke with prolonged exposure. Stay indoors in cooled or shaded spaces.';
+        return 'Severe thermal threshold reached. Danger of heat stroke with continuous exposure. Stay in shaded or cooled rooms.';
       case 'high':
-        return 'Elevated heat stress expected. Limit outdoor exertion between 11:30 AM and 3:30 PM. Hydrate before feeling thirsty.';
+        return 'Elevated daytime heat stress. Avoid strenuous activity during peak solar hours and drink water frequently.';
       case 'moderate':
-        return 'Noticeable daytime warmth with elevated solar radiation. Routine hydration and sun protection recommended.';
+        return 'Warm conditions with elevated sun exposure. Routine hydration and light cotton clothing advised.';
       case 'low':
       case 'normal':
       default:
-        return 'Conditions are within the safe seasonal baseline. Comfortable for all standard outdoor activities.';
+        return 'Conditions are within a safe seasonal range. Comfortable for standard outdoor activities.';
     }
   };
 
   return (
-    <div className={`bg-white border border-slate-200/80 rounded-3xl p-6 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-4 ${className}`}>
+    <div className={`bg-white rounded-[20px] border border-[#E5EDF5] p-6 shadow-xs space-y-4 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1E60F2] flex items-center justify-center">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-              Community Heat Risk
+              Heat Risk Index
             </h3>
             <p className="text-[11px] text-slate-500">
-              NDMA & IMD health safety index
+              Health & safety assessment
             </p>
           </div>
         </div>
 
         <Link
           to="/predictions"
-          className="text-xs text-blue-600 hover:text-blue-700 font-semibold inline-flex items-center gap-1"
+          className="text-xs text-[#1E60F2] hover:underline font-semibold inline-flex items-center gap-1"
         >
-          <span>AI Forecast</span>
+          <span>Forecast</span>
           <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
@@ -70,18 +72,40 @@ export const HeatRiskCard: React.FC<HeatRiskCardProps> = ({
         />
       </div>
 
-      {/* Human Guidance Description */}
-      <div className="pt-2 border-t border-slate-100 space-y-2">
+      {/* Peak Heat & Trend Details */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="p-3 rounded-xl bg-[#F5F8FC] border border-[#E5EDF5] space-y-0.5">
+          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>Peak heat</span>
+          </div>
+          <div className="text-xs font-bold text-slate-900">
+            {peakWindow}
+          </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-[#F5F8FC] border border-[#E5EDF5] space-y-0.5">
+          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+            {trend === 'Increasing' ? (
+              <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+            ) : trend === 'Decreasing' ? (
+              <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
+            ) : (
+              <Minus className="w-3.5 h-3.5 text-slate-400" />
+            )}
+            <span>Risk trend</span>
+          </div>
+          <div className="text-xs font-bold text-slate-900">
+            {trend}
+          </div>
+        </div>
+      </div>
+
+      {/* Guidance Description */}
+      <div className="pt-2 border-t border-slate-100">
         <p className="text-xs text-slate-600 leading-relaxed">
           {getRiskDescription()}
         </p>
-
-        {peakWindow && (
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Peak window: <strong className="text-slate-800">{peakWindow}</strong></span>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -717,6 +717,138 @@ export const INITIAL_ACADEMY_COURSES: AcademyCourse[] = [
         explanation: 'Evaporative cooling is the primary mechanism humans use to dissipate metabolic heat. High humidity blocks evaporation, causing core body temperature to surge.'
       }
     ]
+  },
+  {
+    id: 'course-schools',
+    role_target: 'schools',
+    badge_title: 'Certified School Heat Safety Officer',
+    title: 'Campus Heat Safety & Physical Education Guidelines',
+    description: 'Standard safety protocols for morning assemblies, sports periods, shaded playground management, and pediatric dehydration signs.',
+    icon_name: 'School',
+    lessons: [
+      {
+        id: 'sch-l1',
+        title: 'Heat Thresholds for Outdoor Recess & Assemblies',
+        reading_time_mins: 4,
+        summary: 'When to suspend outdoor playground activities and transition assemblies indoors based on temperature thresholds.',
+        content: [
+          'Children absorb environmental heat faster than adults and produce more metabolic heat per kilogram of body weight during physical activity.',
+          'When ambient temperature exceeds 36.0°C or WBGT reaches 30°C, outdoor physical sports and midday playground activities must be moved to indoor shaded zones.',
+          'Schools should mandate shaded rest breaks every 20 minutes and establish chilled drinking water refill points across campus.'
+        ],
+        key_takeaways: [
+          'Suspend unshaded sports when temperatures hit or exceed 36°C.',
+          'Ensure water breaks every 20-30 minutes during warm school days.'
+        ]
+      },
+      {
+        id: 'sch-l2',
+        title: 'Identifying Heat Distress in Young Students',
+        reading_time_mins: 3,
+        summary: 'Recognizing subtle behavioral and physiological signs of heat illness in children who may not voice thirst.',
+        content: [
+          'Young students often ignore early thirst while playing. Watch for flushed cheeks, sudden drowsiness, irritability, nausea, or headache.',
+          'Immediate campus protocol: escort student to the infirmary or air-cooled sanctuary, apply cool damp washcloths to neck, and offer small sips of ORS or water.',
+          'Never leave a child showing lethargy or dizziness unattended; notify parents and school medical staff promptly.'
+        ],
+        key_takeaways: [
+          'Watch for flushed skin, lethargy, or headaches after outdoor play.',
+          'Keep an air-cooled infirmary with ORS sachets and cold towels.'
+        ]
+      }
+    ],
+    quiz: [
+      {
+        id: 'q_sch1',
+        question: 'What is the recommended maximum temperature threshold before outdoor physical sports must be suspended?',
+        options: [
+          '45.0°C',
+          '36.0°C',
+          '25.0°C',
+          '50.0°C'
+        ],
+        correct_index: 1,
+        explanation: 'Under NDMA and national school heat guidelines, outdoor physical exertion and sports should be suspended or moved indoors once temperatures exceed 36.0°C.'
+      },
+      {
+        id: 'q_sch2',
+        question: 'Which of the following is an early sign of heat exhaustion in school children?',
+        options: [
+          'Extreme shivering and cold skin',
+          'Flushed cheeks, sudden lethargy, and complaints of headache or nausea',
+          'High energy and excessive talking',
+          'Immediate hunger for heavy snacks'
+        ],
+        correct_index: 1,
+        explanation: 'Children often manifest heat strain through flushed skin, sudden fatigue or lethargy, and complaints of headaches or nausea after playing in the heat.'
+      }
+    ]
+  },
+  {
+    id: 'course-volunteers',
+    role_target: 'volunteers',
+    badge_title: 'Certified Community Heat Relief Volunteer',
+    title: 'Vulnerable Resident Welfare & Relief Triage',
+    description: 'Door-to-door welfare check-in protocols, hydration booth operations, and identifying vulnerable elders or infants.',
+    icon_name: 'HeartPulse',
+    lessons: [
+      {
+        id: 'vol-l1',
+        title: 'Door-to-Door High-Risk Welfare Visits',
+        reading_time_mins: 4,
+        summary: 'Essential checklist for visiting elderly neighbors and low-income households during orange and red heatwave alerts.',
+        content: [
+          'Seniors over 65 living alone face the highest mortality risk during prolonged heatwaves due to impaired thermoregulation and reduced thirst perception.',
+          'When conducting a welfare visit, assess indoor temperature, cross-ventilation, fan availability, and current water intake.',
+          'Verify that the resident has enough drinking water and essential medications stored away from direct sunlight.'
+        ],
+        key_takeaways: [
+          'Check on isolated elderly neighbors at least twice daily during extreme alerts.',
+          'Ensure indoor living areas have adequate airflow and shaded window curtains.'
+        ]
+      },
+      {
+        id: 'vol-l2',
+        title: 'Field First Aid & Rapid Cooling Techniques',
+        reading_time_mins: 4,
+        summary: 'Practical steps for establishing makeshift hydration stations and assisting heat-stressed community members.',
+        content: [
+          'Set up shade canopies and hydration tables along busy pedestrian corridors and transit stops.',
+          'Provide cool drinking water mixed with approved ORS packets for dehydrated walkers and manual laborers.',
+          'In suspected heat exhaustion cases, loosen tight clothing, elevate feet slightly, and fan the person while misting them with water.'
+        ],
+        key_takeaways: [
+          'Position hydration relief tables in shaded high-footfall spots.',
+          'If a resident is disoriented or non-responsive, dial 108/112 immediately and begin rapid cold-water fanning.'
+        ]
+      }
+    ],
+    quiz: [
+      {
+        id: 'q_vol1',
+        question: 'Why are isolated elderly residents at the highest risk during urban heatwaves?',
+        options: [
+          'They spend too much time outdoors running',
+          'Their natural thirst perception and thermal regulation are diminished, and indoor homes can trap heat',
+          'They consume too much cold water',
+          'They have higher sweat production than young adults'
+        ],
+        correct_index: 1,
+        explanation: 'Aging bodies have reduced sweating capacity and diminished thirst sensitivity. Heat trapped in uncooled homes poses severe risks to isolated seniors.'
+      },
+      {
+        id: 'q_vol2',
+        question: 'When administering first aid to someone with heat exhaustion at a community relief post, what is the best first step?',
+        options: [
+          'Give them a hot cup of coffee',
+          'Move them to shade or air conditioning, loosen restrictive clothing, and offer cool sips of water with electrolytes',
+          'Advise them to continue their walk quickly',
+          'Cover them tightly with heavy blankets'
+        ],
+        correct_index: 1,
+        explanation: 'Immediate removal from radiant heat into shade, loosening clothing, and offering electrolyte-rich cool water are critical first-response interventions.'
+      }
+    ]
   }
 ];
 

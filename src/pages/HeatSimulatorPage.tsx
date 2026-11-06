@@ -1,26 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Sliders, 
-  Play, 
   RotateCcw, 
   Save, 
   Flame, 
   Trees, 
   Users, 
   PowerOff, 
-  AlertTriangle, 
   CheckCircle2, 
-  HelpCircle, 
   Layers, 
   Sparkles,
   History,
-  TrendingUp,
-  Info
+  Info,
+  Droplets,
+  Wind
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { LocationZone, SimulationParameters, HeatSimulationResult } from '../types';
 import { SIMULATION_PRESETS, runHeatSimulation } from '../lib/simulationEngine';
 import { useAuth } from '../context/AuthContext';
+import { Card } from '../components/common/Card';
+import { Badge } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 
 export const HeatSimulatorPage: React.FC = () => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export const HeatSimulatorPage: React.FC = () => {
       ...currentResult,
       id: `sim-save-${Date.now()}`,
       name: scenarioNameInput || 'Saved Heat Scenario',
-      created_by: user?.full_name || 'Urban Resilience Coordinator'
+      created_by: user?.full_name || 'Community Safety Planner'
     };
 
     mockDb.saveSimulation(simulationToSave);
@@ -91,100 +92,94 @@ export const HeatSimulatorPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 space-y-6">
+    <div className="max-w-7xl mx-auto pb-16 space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Sliders className="w-6 h-6 text-blue-600" />
-              <span>What-If Heat Simulation Engine</span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+              Heat Simulator
             </h1>
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">
-              ISOLATED SANDBOX
-            </span>
+            <Badge variant="brand" size="sm">Interactive Sandbox</Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Model hypothetical heatwave anomalies, urban tree canopy interventions, and infrastructure outage resilience without altering production telemetry.
+          <p className="text-sm text-[#64748B] mt-1">
+            Test hypothetical heat conditions, tree canopy interventions, and emergency response capacity.
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleResetBaseline}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-colors"
+            icon={<RotateCcw className="w-3.5 h-3.5" />}
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Baseline</span>
-          </button>
+            Reset
+          </Button>
 
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSaveScenario}
             disabled={isSaved}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-emerald-600 text-white text-xs font-semibold shadow-sm transition-colors"
+            icon={isSaved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
           >
-            {isSaved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-            <span>{isSaved ? 'Saved to Library' : 'Save Scenario'}</span>
-          </button>
+            {isSaved ? 'Scenario Saved' : 'Save Scenario'}
+          </Button>
         </div>
       </div>
 
-      {/* Sandbox Isolation Notice */}
-      <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
-        <div className="flex items-center gap-2">
-          <Info className="w-4 h-4 text-blue-600 shrink-0" />
+      {/* Sandbox Notice Banner */}
+      <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-[20px] flex items-center justify-between text-xs text-blue-950">
+        <div className="flex items-center gap-2.5">
+          <Info className="w-4 h-4 text-[#1E60F2] shrink-0" />
           <span>
-            <strong>Data Isolation Guarantee:</strong> All simulation calculations execute strictly in client-side memory. Real-time temperature sensors and live citizen check-in records are protected and unmodified.
+            <strong>Simulation Sandbox:</strong> Adjust parameters below to project heat outcomes. Real-time community data and weather feeds remain protected.
           </span>
         </div>
-        <span className="font-mono text-[11px] text-blue-700 font-semibold uppercase">
-          Sandbox Mode: ACTIVE
-        </span>
       </div>
 
-      {/* Preset Buttons */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-          Select Standard Policy & Climate Presets:
+      {/* Preset Scenario Cards */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider block">
+          Choose a Scenario Preset
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
           {SIMULATION_PRESETS.map((p, idx) => (
             <button
               key={idx}
               onClick={() => handleApplyPreset(p)}
-              className={`p-2.5 rounded-xl border text-left card-interactive btn-press transition-all ${
+              className={`p-3.5 rounded-[18px] border text-left transition-all ${
                 activePresetName === p.name
-                  ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  ? 'border-[#1E60F2] bg-blue-50/60 ring-2 ring-[#1E60F2]/10'
+                  : 'border-[#E5EDF5] bg-white hover:border-slate-300 hover:bg-[#F5F8FC]'
               }`}
             >
-              <div className="font-bold text-xs text-slate-900 line-clamp-1">{p.name}</div>
-              <div className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{p.description}</div>
+              <div className="font-bold text-xs text-[#0F172A] line-clamp-1">{p.name}</div>
+              <div className="text-[11px] text-[#64748B] line-clamp-2 mt-1">{p.description}</div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Main Grid: Parameters on Left, Results on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Sliders Panel (4 cols) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-600" />
-                <span>Simulation Parameters</span>
+          <Card padding="lg" className="space-y-5">
+            <div className="flex items-center justify-between border-b border-[#E5EDF5] pb-3">
+              <h3 className="font-bold text-[#0F172A] text-sm flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#1E60F2]" />
+                <span>Adjust Parameters</span>
               </h3>
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                INPUT CONTROL
-              </span>
+              <Badge variant="outline" size="sm">Controls</Badge>
             </div>
 
             {/* Scenario Name Field */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Scenario Name
+              <label className="block text-xs font-semibold text-[#0F172A] mb-1.5">
+                Scenario Title
               </label>
               <input
                 type="text"
@@ -193,18 +188,18 @@ export const HeatSimulatorPage: React.FC = () => {
                   setScenarioNameInput(e.target.value);
                   setActivePresetName('Custom Scenario');
                 }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
               />
             </div>
 
             {/* Slider 1: Temperature Delta */}
             <div>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <span className="font-semibold text-[#0F172A] flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-red-500" />
-                  <span>Temperature Delta</span>
+                  <span>Temperature Change</span>
                 </span>
-                <span className="font-mono font-bold text-red-600">
+                <span className="font-bold text-red-600">
                   {params.temperature_delta_c >= 0 ? `+${params.temperature_delta_c.toFixed(1)}` : params.temperature_delta_c.toFixed(1)}°C
                 </span>
               </div>
@@ -218,20 +213,23 @@ export const HeatSimulatorPage: React.FC = () => {
                   setParams(prev => ({ ...prev, temperature_delta_c: parseFloat(e.target.value) }));
                   setActivePresetName('Custom Scenario');
                 }}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-600"
+                className="w-full h-2 bg-[#E5EDF5] rounded-lg appearance-none cursor-pointer accent-[#1E60F2]"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>-5.0°C (Cooler)</span>
-                <span>0°C (Normal)</span>
-                <span>+8.0°C (Extreme Heat)</span>
+              <div className="flex justify-between text-[10px] text-[#64748B] mt-1 font-medium">
+                <span>-5.0°C</span>
+                <span>0°C (Current)</span>
+                <span>+8.0°C</span>
               </div>
             </div>
 
             {/* Slider 2: Humidity Delta */}
             <div>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-semibold text-slate-700">Relative Humidity Delta</span>
-                <span className="font-mono font-bold text-blue-600">
+                <span className="font-semibold text-[#0F172A] flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Humidity Shift</span>
+                </span>
+                <span className="font-bold text-sky-700">
                   {params.humidity_delta_pct >= 0 ? `+${params.humidity_delta_pct}` : params.humidity_delta_pct}%
                 </span>
               </div>
@@ -245,10 +243,10 @@ export const HeatSimulatorPage: React.FC = () => {
                   setParams(prev => ({ ...prev, humidity_delta_pct: parseInt(e.target.value) }));
                   setActivePresetName('Custom Scenario');
                 }}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-2 bg-[#E5EDF5] rounded-lg appearance-none cursor-pointer accent-[#1E60F2]"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>-25% (Dry Air)</span>
+              <div className="flex justify-between text-[10px] text-[#64748B] mt-1 font-medium">
+                <span>-25% (Dry)</span>
                 <span>0% (Baseline)</span>
                 <span>+35% (Humid Dome)</span>
               </div>
@@ -257,11 +255,11 @@ export const HeatSimulatorPage: React.FC = () => {
             {/* Slider 3: Urban Canopy / Vegetation Coverage */}
             <div>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <span className="font-semibold text-[#0F172A] flex items-center gap-1.5">
                   <Trees className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Tree Canopy Coverage</span>
                 </span>
-                <span className="font-mono font-bold text-emerald-700">
+                <span className="font-bold text-emerald-700">
                   {params.vegetation_coverage_pct}%
                 </span>
               </div>
@@ -275,23 +273,23 @@ export const HeatSimulatorPage: React.FC = () => {
                   setParams(prev => ({ ...prev, vegetation_coverage_pct: parseInt(e.target.value) }));
                   setActivePresetName('Custom Scenario');
                 }}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                className="w-full h-2 bg-[#E5EDF5] rounded-lg appearance-none cursor-pointer accent-emerald-600"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+              <div className="flex justify-between text-[10px] text-[#64748B] mt-1 font-medium">
                 <span>0% (Sparse)</span>
-                <span>25% (Urban Average)</span>
-                <span>100% (High Canopy)</span>
+                <span>25% (Average)</span>
+                <span>100% (Dense)</span>
               </div>
             </div>
 
             {/* Slider 4: Additional Volunteers */}
             <div>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-semibold text-slate-700 flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Surge Volunteer Deployment</span>
+                <span className="font-semibold text-[#0F172A] flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-[#1E60F2]" />
+                  <span>Volunteer Surge Aid</span>
                 </span>
-                <span className="font-mono font-bold text-slate-900">
+                <span className="font-bold text-[#0F172A]">
                   +{params.additional_volunteers} volunteers
                 </span>
               </div>
@@ -305,26 +303,26 @@ export const HeatSimulatorPage: React.FC = () => {
                   setParams(prev => ({ ...prev, additional_volunteers: parseInt(e.target.value) }));
                   setActivePresetName('Custom Scenario');
                 }}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-2 bg-[#E5EDF5] rounded-lg appearance-none cursor-pointer accent-[#1E60F2]"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>0 (Normal Force)</span>
+              <div className="flex justify-between text-[10px] text-[#64748B] mt-1 font-medium">
+                <span>0</span>
                 <span>+25</span>
-                <span>+50 (Max Surge)</span>
+                <span>+50</span>
               </div>
             </div>
 
-            {/* Toggle 5: Cooling Centres Outage */}
-            <div className="pt-2 border-t border-slate-100">
-              <label className="flex items-center justify-between cursor-pointer p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <PowerOff className={`w-4 h-4 ${params.cooling_centres_offline ? 'text-red-600' : 'text-slate-400'}`} />
+            {/* Toggle: Cooling Centres Outage */}
+            <div className="pt-2 border-t border-[#E5EDF5]">
+              <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-[#E5EDF5] hover:bg-[#F5F8FC] transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <PowerOff className={`w-4 h-4 ${params.cooling_centres_offline ? 'text-red-600' : 'text-[#64748B]'}`} />
                   <div>
-                    <span className="text-xs font-semibold text-slate-800 block">
-                      Cooling Shelter Outage
+                    <span className="text-xs font-semibold text-[#0F172A] block">
+                      Cooling Center Outage
                     </span>
-                    <span className="text-[10px] text-slate-500">
-                      Simulate grid failure disabling shelters
+                    <span className="text-[11px] text-[#64748B]">
+                      Simulate grid blackout disabling shelters
                     </span>
                   </div>
                 </div>
@@ -335,184 +333,178 @@ export const HeatSimulatorPage: React.FC = () => {
                     setParams(prev => ({ ...prev, cooling_centres_offline: e.target.checked }));
                     setActivePresetName('Custom Scenario');
                   }}
-                  className="w-4 h-4 rounded text-red-600 border-slate-300 focus:ring-red-500"
+                  className="w-4 h-4 rounded text-red-600 border-[#E5EDF5] focus:ring-red-500"
                 />
               </label>
             </div>
-          </div>
+          </Card>
 
           {/* Saved Scenarios History Panel */}
           {savedSimulations.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 border-b border-slate-100 pb-2">
-                <History className="w-3.5 h-3.5 text-slate-500" />
-                <span>Saved Scenario Snapshots ({savedSimulations.length})</span>
+            <Card padding="md" className="space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F172A] border-b border-[#E5EDF5] pb-2">
+                <History className="w-3.5 h-3.5 text-[#64748B]" />
+                <span>Saved Scenarios ({savedSimulations.length})</span>
               </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {savedSimulations.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => handleLoadSavedScenario(s)}
-                    className="w-full text-left p-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 text-xs transition-colors flex items-center justify-between"
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-[#F5F8FC] border border-transparent hover:border-[#E5EDF5] text-xs transition-colors flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800 line-clamp-1">{s.name}</div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="font-semibold text-[#0F172A] line-clamp-1">{s.name}</div>
+                      <div className="text-[11px] text-[#64748B]">
                         {new Date(s.created_at).toLocaleDateString()} • Delta {s.parameters.temperature_delta_c}°C
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                      Load
-                    </span>
+                    <Badge variant="outline" size="sm">Load</Badge>
                   </button>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
         </div>
 
         {/* Right Column: Simulation Output & Impact Analysis (8 cols) */}
         <div className="lg:col-span-8 space-y-5">
           {/* Top Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm card-interactive">
-              <span className="text-xs text-slate-500 block mb-1">Average Risk Shift</span>
-              <div className={`text-2xl font-bold font-mono ${
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <Card padding="md">
+              <span className="text-xs text-[#64748B] block mb-1">Risk Score Shift</span>
+              <div className={`text-2xl font-extrabold ${
                 currentResult.summary.average_risk_delta > 0 
                   ? 'text-red-600' 
                   : currentResult.summary.average_risk_delta < 0 
                   ? 'text-emerald-600' 
-                  : 'text-slate-900'
+                  : 'text-[#0F172A]'
               }`}>
                 {currentResult.summary.average_risk_delta >= 0 ? `+${currentResult.summary.average_risk_delta}` : currentResult.summary.average_risk_delta} pts
               </div>
-              <span className="text-[10px] text-slate-400">vs live baseline</span>
-            </div>
+              <span className="text-[11px] text-[#64748B]">vs current baseline</span>
+            </Card>
 
-            <div className="p-4 bg-white border border-red-200 rounded-xl shadow-sm card-interactive">
-              <span className="text-xs text-red-600 font-semibold block mb-1">Critical Zones</span>
-              <div className="text-2xl font-bold font-mono text-red-700">
+            <Card padding="md" className="border-red-200">
+              <span className="text-xs text-red-600 font-semibold block mb-1">High Risk Areas</span>
+              <div className="text-2xl font-extrabold text-red-700">
                 {currentResult.summary.critical_neighbourhoods_count}
               </div>
-              <span className="text-[10px] text-slate-500">Risk Score ≥ 75</span>
-            </div>
+              <span className="text-[11px] text-[#64748B]">Risk Score ≥ 75</span>
+            </Card>
 
-            <div className="p-4 bg-white border border-orange-200 rounded-xl shadow-sm card-interactive">
-              <span className="text-xs text-orange-600 font-semibold block mb-1">Additional At-Risk</span>
-              <div className="text-2xl font-bold font-mono text-orange-700">
+            <Card padding="md" className="border-amber-200">
+              <span className="text-xs text-amber-700 font-semibold block mb-1">At-Risk Residents</span>
+              <div className="text-2xl font-extrabold text-amber-800">
                 ~{currentResult.summary.additional_at_risk_residents.toLocaleString()}
               </div>
-              <span className="text-[10px] text-slate-500">Vulnerable residents</span>
-            </div>
+              <span className="text-[11px] text-[#64748B]">Vulnerable population</span>
+            </Card>
 
-            <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm card-interactive">
-              <span className="text-xs text-slate-500 block mb-1">Zones Above 35°C</span>
-              <div className="text-2xl font-bold font-mono text-red-600">
+            <Card padding="md">
+              <span className="text-xs text-[#64748B] block mb-1">Zones Above 35°C</span>
+              <div className="text-2xl font-extrabold text-red-600">
                 {currentResult.locality_results.filter(l => l.is_above_35).length} / {currentResult.locality_results.length}
               </div>
-              <span className="text-[10px] text-slate-400">Trigger thermal alerts</span>
-            </div>
+              <span className="text-[11px] text-[#64748B]">Exceeding warning threshold</span>
+            </Card>
           </div>
 
-          {/* Explainable AI Impact Analysis Card */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm space-y-3">
+          {/* AI Impact Analysis Card */}
+          <Card padding="lg" className="space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-slate-900 text-sm">
-                Scenario AI Impact Assessment: {currentResult.name}
+              <Sparkles className="w-5 h-5 text-[#1E60F2]" />
+              <h3 className="font-bold text-[#0F172A] text-base">
+                Scenario Impact Assessment: {currentResult.name}
               </h3>
             </div>
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+            <p className="text-xs sm:text-sm text-[#0F172A] leading-relaxed bg-[#F5F8FC] p-4 rounded-2xl border border-[#E5EDF5]">
               {currentResult.ai_impact_analysis}
             </p>
 
             {/* Recommended Interventions */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                Recommended Policy & Dispatch Actions:
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider block">
+                Recommended Actions
               </span>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {currentResult.summary.recommended_interventions.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-[#0F172A]">
+                    <CheckCircle2 className="w-4 h-4 text-[#1E60F2] mt-0.5 shrink-0" />
                     <span>{item}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Before vs After Neighbourhood Comparison Table */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <Card padding="none" className="overflow-hidden">
+            <div className="p-4 border-b border-[#E5EDF5] flex items-center justify-between bg-white">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-slate-500" />
-                <h3 className="font-bold text-slate-900 text-sm">Neighbourhood Thermal Delta Comparison</h3>
+                <Layers className="w-4 h-4 text-[#64748B]" />
+                <h3 className="font-bold text-[#0F172A] text-sm">Neighbourhood Comparison</h3>
               </div>
-              <span className="text-[11px] text-slate-500">
-                Red tag applied when simulated temperature &gt; 35°C
+              <span className="text-xs text-[#64748B]">
+                Projected thermal conditions by sector
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                <thead className="bg-[#F5F8FC] border-b border-[#E5EDF5] text-[11px] uppercase tracking-wider text-[#64748B] font-semibold">
                   <tr>
-                    <th className="p-3.5">Neighbourhood</th>
-                    <th className="p-3.5">Baseline Temp</th>
-                    <th className="p-3.5">Simulated Temp</th>
-                    <th className="p-3.5">Risk Shift</th>
-                    <th className="p-3.5">Outcome Category</th>
-                    <th className="p-3.5">Resource Deficit / Operational Note</th>
+                    <th className="p-4">Neighbourhood</th>
+                    <th className="p-4">Baseline Temp</th>
+                    <th className="p-4">Simulated Temp</th>
+                    <th className="p-4">Risk Shift</th>
+                    <th className="p-4">Projected Level</th>
+                    <th className="p-4">Operational Note</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#E5EDF5]">
                   {currentResult.locality_results.map((loc) => {
                     const tempDelta = Math.round((loc.simulated_temp - loc.baseline_temp) * 10) / 10;
                     const riskDelta = loc.simulated_risk - loc.baseline_risk;
 
                     return (
-                      <tr key={loc.location_id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="p-3.5 font-bold text-slate-900">
+                      <tr key={loc.location_id} className="hover:bg-[#F5F8FC]/50 transition-colors">
+                        <td className="p-4 font-bold text-[#0F172A]">
                           {loc.location_name}
                         </td>
 
-                        <td className="p-3.5 font-mono text-slate-600">
+                        <td className="p-4 text-[#64748B]">
                           {loc.baseline_temp.toFixed(1)}°C
                         </td>
 
-                        <td className="p-3.5">
-                          <span className={`font-mono font-bold ${loc.is_above_35 ? 'text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200' : 'text-slate-800'}`}>
+                        <td className="p-4">
+                          <span className={`font-semibold ${loc.is_above_35 ? 'text-red-700 bg-red-50 px-2 py-0.5 rounded-full' : 'text-[#0F172A]'}`}>
                             {loc.simulated_temp.toFixed(1)}°C
-                            <span className="text-[10px] ml-1 text-slate-500">
+                            <span className="text-[11px] ml-1 text-[#64748B] font-normal">
                               ({tempDelta >= 0 ? `+${tempDelta}` : tempDelta}°)
                             </span>
                           </span>
                         </td>
 
-                        <td className="p-3.5 font-mono">
-                          <span className="text-slate-600">{loc.baseline_risk}</span>
-                          <span className="mx-1 text-slate-400">→</span>
-                          <span className={`font-bold ${riskDelta > 0 ? 'text-red-600' : riskDelta < 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                        <td className="p-4">
+                          <span className="text-[#64748B]">{loc.baseline_risk}</span>
+                          <span className="mx-1.5 text-[#64748B]">→</span>
+                          <span className={`font-bold ${riskDelta > 0 ? 'text-red-600' : riskDelta < 0 ? 'text-emerald-600' : 'text-[#0F172A]'}`}>
                             {loc.simulated_risk} ({riskDelta >= 0 ? `+${riskDelta}` : riskDelta})
                           </span>
                         </td>
 
-                        <td className="p-3.5">
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize ${
-                            loc.simulated_category === 'critical'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : loc.simulated_category === 'high'
-                              ? 'bg-orange-50 text-orange-700 border border-orange-200'
-                              : loc.simulated_category === 'moderate'
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}>
+                        <td className="p-4">
+                          <Badge variant={
+                            loc.simulated_category === 'critical' ? 'danger' :
+                            loc.simulated_category === 'high' ? 'warning' :
+                            loc.simulated_category === 'moderate' ? 'warning' : 'success'
+                          } size="sm">
                             {loc.simulated_category}
-                          </span>
+                          </Badge>
                         </td>
 
-                        <td className="p-3.5 text-slate-500 max-w-xs truncate">
+                        <td className="p-4 text-[#64748B] max-w-xs truncate">
                           {loc.resource_deficit}
                         </td>
                       </tr>
@@ -521,7 +513,7 @@ export const HeatSimulatorPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

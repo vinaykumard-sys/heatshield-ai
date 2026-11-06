@@ -1,31 +1,29 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, 
-  Heart, 
   MapPin, 
   Users, 
   CheckSquare, 
   GraduationCap, 
   Bell, 
-  Plus, 
   Trash2, 
   Copy, 
-  PhoneCall, 
-  AlertTriangle, 
   Droplets, 
-  Sun, 
   Thermometer, 
   FileText,
-  Clock,
+  CheckCircle2,
   Sparkles,
-  Settings,
-  CheckCircle2
+  Heart,
+  Plus
 } from 'lucide-react';
 import { useLocationTracker } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
 import { mockDb } from '../lib/mockDb';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { FamilyGroup, FamilyMember, UserFavouriteLocation } from '../types';
+import { Card } from '../components/common/Card';
+import { Badge } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 
 interface SafetyHabit {
   id: string;
@@ -36,7 +34,7 @@ interface SafetyHabit {
 
 export const MySafetyHubPage: React.FC = () => {
   const { user } = useAuth();
-  const { currentLocation, currentReading, currentRisk, selectedZone, selectCustomLocality } = useLocationTracker();
+  const { currentLocation, currentReading, selectedZone } = useLocationTracker();
   const locations = mockDb.getLocations();
 
   const [activeTab, setActiveTab] = useState<'checklist' | 'profile' | 'family' | 'places' | 'academy' | 'preferences'>('checklist');
@@ -50,12 +48,12 @@ export const MySafetyHubPage: React.FC = () => {
       // ignore
     }
     return [
-      { id: 'h1', title: 'Pre-Hydration Kickstart', description: 'Drink 500ml water or electrolyte solution before leaving home.', completed: true },
-      { id: 'h2', title: 'Breathable Cotton Attire', description: 'Wear loose, light-coloured breathable clothing with head protection.', completed: true },
-      { id: 'h3', title: 'Avoid Midday Peak Sun', description: 'Schedule unshaded errands outside 12:00 PM – 4:00 PM peak hours.', completed: false },
-      { id: 'h4', title: 'Vulnerable Elder Check-in', description: 'Confirm wellbeing and water access for elderly parents or neighbours.', completed: false },
-      { id: 'h5', title: 'Carry Hydration & ORS', description: 'Keep a refillable water bottle and an ORS electrolyte sachet in your bag.', completed: false },
-      { id: 'h6', title: 'Window & Curtain Shading', description: 'Keep curtains and blinds closed on sun-facing windows between 11 AM – 5 PM.', completed: true }
+      { id: 'h1', title: 'Morning Hydration Kickstart', description: 'Drink 500ml water or electrolyte fluid before stepping outside.', completed: true },
+      { id: 'h2', title: 'Breathable Cotton Attire', description: 'Wear loose, light-coloured clothing with a wide-brim hat or umbrella.', completed: true },
+      { id: 'h3', title: 'Avoid Midday Peak Sun', description: 'Schedule unshaded outdoor errands outside the 12:00 PM – 4:00 PM window.', completed: false },
+      { id: 'h4', title: 'Check in on Elders', description: 'Confirm wellbeing, water access, and cooling for senior family members or neighbours.', completed: false },
+      { id: 'h5', title: 'Carry Refillable Water Bottle', description: 'Keep a clean water flask and an ORS electrolyte sachet in your bag.', completed: false },
+      { id: 'h6', title: 'Shade Sunny Windows', description: 'Keep curtains and blinds drawn on sun-facing windows between 11 AM – 5 PM.', completed: true }
     ];
   });
 
@@ -177,7 +175,7 @@ export const MySafetyHubPage: React.FC = () => {
     }
   };
 
-  // 4. Family Safety Circle (Real Data Only)
+  // 4. Family Safety Circle
   const [familyGroup, setFamilyGroup] = useState<FamilyGroup>(() => {
     const groups = mockDb.getFamilyGroups();
     if (groups.length > 0) return groups[0];
@@ -233,35 +231,35 @@ export const MySafetyHubPage: React.FC = () => {
   // 5. Download Action Cheatsheet
   const handleDownloadCheatsheet = () => {
     const text = `HEATSHIELD AI - RESIDENT EMERGENCY HEAT ACTION PROTOCOL
-Monitored Ward: ${currentLocation.localityName || selectedZone?.name || 'Local Ward'}
-Last Verified: ${new Date().toLocaleDateString()}
+Monitored Area: ${currentLocation.localityName || selectedZone?.name || 'Local Ward'}
+Date: ${new Date().toLocaleDateString()}
 
-1. IMMEDIATE HYDRATION:
-   - Your personalized daily hydration target is ${hydrationTarget} Litres.
-   - Drink 250ml water every 20-30 minutes during midday sun.
-   - Supplement with ORS (Oral Rehydration Salts) or coconut water.
+1. HYDRATION TARGET:
+   - Your daily personalized hydration target is ${hydrationTarget} Litres.
+   - Drink 250ml water every 20-30 minutes during peak midday temperatures.
+   - Carry ORS or electrolyte fluids when travelling outdoors.
 
 2. COOLING ENVIRONMENT:
-   - Seek shaded or air-conditioned respite between 12:00 PM and 4:00 PM.
-   - Use evaporative cold damp towels on neck, armpits, and forehead.
+   - Use shaded or air-conditioned areas between 12:00 PM and 4:00 PM.
+   - Apply cool, damp cloths to neck, armpits, and forehead if overheated.
 
-3. DANGER WARNING SIGNS (CALL 108 / 112 IMMEDIATELY):
-   - Altered mental state, slurred speech, or confusion.
-   - Hot, dry, flushed skin with sudden cessation of sweating.
-   - Rapid weak pulse, vomiting, or seizures.
+3. EMERGENCY WARNING SIGNS (CALL 108 / 112 IMMEDIATELY):
+   - Confusion, slurred speech, or loss of balance.
+   - Hot, dry skin with sudden absence of sweating.
+   - Severe nausea, rapid pulse, or fainting.
 
-4. 24x7 EMERGENCY HOTLINES:
+4. 24x7 EMERGENCY CONTACTS:
    - National Emergency: 112
    - Medical Ambulance: 108
-   - Disaster Helpline: 1077
+   - State Disaster Management: 1070 / 1077
 
-Issued by HeatShield AI Community Protection Platform.`;
+Generated by HeatShield AI`;
 
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'HeatShield_Resident_Safety_Plan.txt';
+    a.download = 'HeatShield_Personal_Safety_Plan.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -278,57 +276,58 @@ Issued by HeatShield AI Community Protection Platform.`;
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 pb-20 max-w-7xl mx-auto">
       <LocationTrackerBar />
 
-      {/* QUESTION 5 ANSWER HERO: "How is HeatShield Protecting Me?" */}
-      <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 flex-1">
+      {/* Hero Overview Card */}
+      <Card padding="lg" className="bg-gradient-to-br from-blue-50/70 via-white to-sky-50/50">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2.5 flex-1">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-mono font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                <span>Personal Protection Shield</span>
-              </span>
-              <span className="text-[11px] font-mono text-slate-500">
-                {currentLocation.localityName || selectedZone?.name}
+              <Badge variant="brand" size="sm">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                Personal Safety Shield
+              </Badge>
+              <span className="text-xs text-[#64748B]">
+                {currentLocation.localityName || selectedZone?.name || 'Your area'}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
               My Safety & Protection Hub
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-              HeatShield AI monitors atmospheric heat in your sector, calculates your personal clinical hydration target ({hydrationTarget}L), safeguards your family circle, and delivers timely safety updates.
+            <p className="text-xs sm:text-sm text-[#64748B] max-w-2xl leading-relaxed">
+              Personalized heat protection tailored to your daily schedule: track your daily hydration target ({hydrationTarget}L), monitor family members, and complete daily safety habits.
             </p>
 
-            <div className="flex items-center gap-4 pt-2 text-xs text-slate-500 font-mono">
-              <span className="flex items-center gap-1.5">
-                <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Habits: <strong className="text-slate-900">{completedHabitsCount}/6 Completed</strong></span>
+            <div className="flex items-center gap-5 pt-2 text-xs text-[#64748B]">
+              <span className="flex items-center gap-1.5 font-medium">
+                <CheckSquare className="w-4 h-4 text-emerald-600" />
+                <span>Habits: <strong className="text-[#0F172A]">{completedHabitsCount}/6 Completed</strong></span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <Droplets className="w-3.5 h-3.5 text-blue-600" />
-                <span>Target: <strong className="text-slate-900">{hydrationTarget} Litres/day</strong></span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <Droplets className="w-4 h-4 text-[#1E60F2]" />
+                <span>Water Target: <strong className="text-[#0F172A]">{hydrationTarget} Litres/day</strong></span>
               </span>
             </div>
           </div>
 
-          <div className="shrink-0 flex flex-col sm:flex-row gap-2.5">
-            <button
+          <div className="shrink-0">
+            <Button
+              variant="primary"
+              size="md"
               onClick={handleDownloadCheatsheet}
-              className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+              icon={<FileText className="w-4 h-4" />}
             >
-              <FileText className="w-4 h-4" />
-              <span>Download Safety Plan</span>
-            </button>
+              Download Safety Plan
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* 6 MY SAFETY TABS */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
+      {/* Clean Tab Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#E5EDF5]">
         {[
           { id: 'checklist', label: 'Daily Habits', icon: CheckSquare, badge: `${completedHabitsCount}/6` },
           { id: 'profile', label: 'Personal Thermal Profile', icon: Thermometer },
@@ -343,17 +342,17 @@ Issued by HeatShield AI Community Protection Platform.`;
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all shrink-0 ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                  ? 'bg-[#1E60F2] text-white shadow-xs'
+                  : 'bg-white text-[#64748B] hover:text-[#0F172A] hover:bg-[#F5F8FC] border border-[#E5EDF5]'
               }`}
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
               {tab.badge !== undefined && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
+                  isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-[#1E60F2]'
                 }`}>
                   {tab.badge}
                 </span>
@@ -363,17 +362,17 @@ Issued by HeatShield AI Community Protection Platform.`;
         })}
       </div>
 
-      {/* TAB 1: DAILY 6-POINT HABIT CHECKLIST */}
+      {/* TAB 1: DAILY HABIT CHECKLIST */}
       {activeTab === 'checklist' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Today's Heat Safety Habit Checklist</h3>
-              <p className="text-xs text-slate-500">6 scientifically verified daily habits recommended by NDMA & WHO to prevent heat illness.</p>
+              <h3 className="text-base font-bold text-[#0F172A]">Today's Heat Safety Habits</h3>
+              <p className="text-xs text-[#64748B]">Evidence-based daily habits to protect your health during high temperature periods.</p>
             </div>
-            <span className="text-xs font-mono font-bold text-blue-600">
+            <Badge variant="brand" size="sm">
               {Math.round((completedHabitsCount / habits.length) * 100)}% Complete
-            </span>
+            </Badge>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -381,25 +380,25 @@ Issued by HeatShield AI Community Protection Platform.`;
               <div
                 key={habit.id}
                 onClick={() => toggleHabit(habit.id)}
-                className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 shadow-sm ${
+                className={`p-5 rounded-[20px] border cursor-pointer transition-all flex items-start gap-4 shadow-card hover:shadow-card-hover ${
                   habit.completed
-                    ? 'bg-emerald-50/60 border-emerald-200 hover:bg-emerald-50'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    ? 'bg-emerald-50/50 border-emerald-200'
+                    : 'bg-white border-[#E5EDF5] hover:border-slate-300'
                 }`}
               >
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border ${
+                <div className={`w-6 h-6 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${
                   habit.completed
                     ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'bg-white border-slate-300'
+                    : 'bg-white border-[#E5EDF5]'
                 }`}>
                   {habit.completed && <CheckCircle2 className="w-4 h-4" />}
                 </div>
 
-                <div className="space-y-0.5">
-                  <h4 className={`text-xs font-bold ${habit.completed ? 'text-emerald-950 line-through opacity-80' : 'text-slate-900'}`}>
+                <div className="space-y-1">
+                  <h4 className={`text-xs font-bold ${habit.completed ? 'text-emerald-950 line-through opacity-80' : 'text-[#0F172A]'}`}>
                     {habit.title}
                   </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-xs text-[#64748B] leading-relaxed">
                     {habit.description}
                   </p>
                 </div>
@@ -411,16 +410,16 @@ Issued by HeatShield AI Community Protection Platform.`;
 
       {/* TAB 2: PERSONAL VULNERABILITY PROFILE */}
       {activeTab === 'profile' && (
-        <div className="max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+        <Card padding="lg" className="max-w-2xl space-y-6">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Personal Thermal Vulnerability Profile</h3>
-            <p className="text-xs text-slate-500">Customizes hydration volume, exposure warnings, and alert timing to your physical baseline.</p>
+            <h3 className="text-base font-bold text-[#0F172A]">Personal Thermal Profile</h3>
+            <p className="text-xs text-[#64748B]">Calibrates your hydration advice and risk thresholds to your personal baseline.</p>
           </div>
 
           <div className="space-y-4 text-xs">
             {/* Age Group */}
             <div>
-              <label className="font-bold text-slate-700 block mb-1.5">Age Category</label>
+              <label className="font-semibold text-[#0F172A] block mb-2">Age Group</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { id: 'youth', label: 'Youth (12-25)' },
@@ -432,10 +431,10 @@ Issued by HeatShield AI Community Protection Platform.`;
                     key={opt.id}
                     type="button"
                     onClick={() => saveProfile({ ...profile, age_group: opt.id as any })}
-                    className={`py-2 px-3 rounded-xl border font-bold text-center transition-colors ${
+                    className={`py-2 px-3 rounded-xl border font-semibold text-center transition-colors ${
                       profile.age_group === opt.id
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-[#1E60F2] text-white border-[#1E60F2]'
+                        : 'bg-[#F5F8FC] text-[#64748B] border-[#E5EDF5] hover:bg-slate-100'
                     }`}
                   >
                     {opt.label}
@@ -445,69 +444,69 @@ Issued by HeatShield AI Community Protection Platform.`;
             </div>
 
             {/* Health Conditions */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <label className="font-bold text-slate-700 block">Health Factors</label>
+            <div className="space-y-2 pt-2 border-t border-[#E5EDF5]">
+              <label className="font-semibold text-[#0F172A] block">Health Conditions</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={profile.has_cardio}
                     onChange={e => saveProfile({ ...profile, has_cardio: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600"
+                    className="w-4 h-4 rounded text-[#1E60F2]"
                   />
-                  <span>Cardiovascular / Blood Pressure Sensitivity</span>
+                  <span className="text-[#0F172A] font-medium">Cardiovascular Sensitivity</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={profile.has_respiratory}
                     onChange={e => saveProfile({ ...profile, has_respiratory: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600"
+                    className="w-4 h-4 rounded text-[#1E60F2]"
                   />
-                  <span>Asthma / Respiratory Sensitivity</span>
+                  <span className="text-[#0F172A] font-medium">Asthma / Respiratory Sensitivity</span>
                 </label>
               </div>
             </div>
 
             {/* Air Conditioning & Outdoor Exposure */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#E5EDF5]">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Air Conditioning at Home / Work</label>
+                <label className="font-semibold text-[#0F172A] block mb-1">Air Conditioning at Home / Work</label>
                 <select
                   value={profile.has_ac ? 'yes' : 'no'}
                   onChange={e => saveProfile({ ...profile, has_ac: e.target.value === 'yes' })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3 py-2 text-xs text-[#0F172A]"
                 >
                   <option value="yes">Yes — Air Conditioned</option>
-                  <option value="no">No — Fans / Natural Ventilation</option>
+                  <option value="no">No — Fans / Ventilation</option>
                 </select>
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Daily Direct Outdoor Hours</label>
+                <label className="font-semibold text-[#0F172A] block mb-1">Daily Direct Outdoor Hours</label>
                 <input
                   type="number"
                   min="0"
                   max="12"
                   value={profile.outdoor_hours}
                   onChange={e => saveProfile({ ...profile, outdoor_hours: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3 py-2 text-xs text-[#0F172A]"
                 />
               </div>
             </div>
 
             {/* Personalized Target Box */}
-            <div className="p-4 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="font-bold text-cyan-900 block">Personalized Daily Hydration Target</span>
-                <span className="text-[11px] text-cyan-700">Calculated from body weight, ambient temp & outdoor hours</span>
+                <span className="font-bold text-blue-950 block">Your Daily Water Target</span>
+                <span className="text-[11px] text-[#64748B]">Calculated from body weight, ambient temp & outdoor hours</span>
               </div>
-              <div className="text-xl font-extrabold text-cyan-950 font-mono">
+              <div className="text-xl font-extrabold text-[#1E60F2]">
                 {hydrationTarget} Litres
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* TAB 3: FAMILY SAFETY CIRCLE */}
@@ -516,144 +515,140 @@ Issued by HeatShield AI Community Protection Platform.`;
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">{familyGroup.group_name}</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-50 text-blue-700 border border-blue-200">
+                <h3 className="text-base font-bold text-[#0F172A]">{familyGroup.group_name}</h3>
+                <Badge variant="brand" size="sm">
                   Code: {familyGroup.invite_code}
-                </span>
+                </Badge>
                 <button
                   onClick={handleCopyInvite}
-                  className="text-slate-400 hover:text-slate-700 p-1"
+                  className="text-[#64748B] hover:text-[#0F172A] p-1"
                   title="Copy Invite Code"
                 >
                   <Copy className="w-3.5 h-3.5" />
                 </button>
-                {copiedCode && <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>}
+                {copiedCode && <span className="text-xs text-emerald-600 font-semibold">Copied!</span>}
               </div>
-              <p className="text-xs text-slate-500">Add genuine family members to ensure they are safe during peak heat hours.</p>
+              <p className="text-xs text-[#64748B]">Connect with family members to view their safety status during extreme heat.</p>
             </div>
           </div>
 
           {/* Add Member Form */}
-          <form onSubmit={handleAddMember} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 text-xs">
-            <input
-              type="text"
-              placeholder="Full Name (e.g. Ramesh, Priya)"
-              value={newMemberName}
-              onChange={e => setNewMemberName(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="tel"
-              placeholder="Mobile (+91 ...)"
-              value={newMemberPhone}
-              onChange={e => setNewMemberPhone(e.target.value)}
-              className="w-full sm:w-44 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              value={newMemberRelation}
-              onChange={e => setNewMemberRelation(e.target.value as FamilyMember['relationship'])}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="parent">Parent</option>
-              <option value="spouse">Spouse</option>
-              <option value="child">Child</option>
-              <option value="grandparent">Grandparent</option>
-              <option value="sibling">Sibling</option>
-              <option value="relative">Relative</option>
-            </select>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm shrink-0"
-            >
-              Add Member
-            </button>
-          </form>
+          <Card padding="md">
+            <form onSubmit={handleAddMember} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 text-xs">
+              <input
+                type="text"
+                placeholder="Full Name (e.g. Ramesh, Priya)"
+                value={newMemberName}
+                onChange={e => setNewMemberName(e.target.value)}
+                className="flex-1 bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
+              />
+              <input
+                type="tel"
+                placeholder="Mobile (+91 ...)"
+                value={newMemberPhone}
+                onChange={e => setNewMemberPhone(e.target.value)}
+                className="w-full sm:w-44 bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
+              />
+              <select
+                value={newMemberRelation}
+                onChange={e => setNewMemberRelation(e.target.value as FamilyMember['relationship'])}
+                className="bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-[#0F172A] focus:outline-none"
+              >
+                <option value="parent">Parent</option>
+                <option value="spouse">Spouse</option>
+                <option value="child">Child</option>
+                <option value="grandparent">Grandparent</option>
+                <option value="sibling">Sibling</option>
+                <option value="relative">Relative</option>
+              </select>
+              <Button type="submit" variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                Add Member
+              </Button>
+            </form>
+          </Card>
 
           {familyGroup.members.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {familyGroup.members.map(member => (
-                <div key={member.id} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <Card key={member.id} padding="md" className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                    <Badge variant="outline" size="sm">
                       {member.relationship}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    </Badge>
+                    <Badge variant="success" size="sm">
                       Safe
-                    </span>
+                    </Badge>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">{member.name}</h4>
-                    <span className="text-[11px] text-slate-400 font-mono">{member.phone}</span>
+                    <h4 className="text-xs font-bold text-[#0F172A]">{member.name}</h4>
+                    <span className="text-[11px] text-[#64748B]">{member.phone}</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Last checked: {member.last_checkin_at ? new Date(member.last_checkin_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}</span>
-                    <a href={`tel:${member.phone}`} className="text-blue-600 font-bold hover:underline">
+                  <div className="pt-2 border-t border-[#E5EDF5] flex items-center justify-between text-xs text-[#64748B]">
+                    <span>Last active: {member.last_checkin_at ? new Date(member.last_checkin_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}</span>
+                    <a href={`tel:${member.phone}`} className="text-[#1E60F2] font-semibold hover:underline">
                       Call
                     </a>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="p-8 rounded-3xl bg-white border border-slate-200 text-center space-y-2 shadow-sm">
-              <Users className="w-8 h-8 text-slate-300 mx-auto" />
-              <h4 className="text-xs font-bold text-slate-800">Your Family Circle is Empty</h4>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Add genuine family members or share invite code <strong>{familyGroup.invite_code}</strong> to receive automatic alerts if heat in their ward becomes critical.
+            <Card padding="lg" className="text-center space-y-2">
+              <Users className="w-8 h-8 text-[#64748B] mx-auto" />
+              <h4 className="text-sm font-semibold text-[#0F172A]">Family Safety Circle</h4>
+              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+                Add family members or share invite code <strong className="text-[#0F172A]">{familyGroup.invite_code}</strong> to receive automatic updates during severe heatwaves.
               </p>
-            </div>
+            </Card>
           )}
         </div>
       )}
 
-      {/* TAB 4: SAVED MONITORED PLACES */}
+      {/* TAB 4: SAVED PLACES */}
       {activeTab === 'places' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Saved Monitored Places</h3>
-              <p className="text-xs text-slate-500">Monitor live temperatures and heat warnings across home, workplace, parents' house, and school.</p>
-            </div>
+          <div>
+            <h3 className="text-base font-bold text-[#0F172A]">Saved Monitored Places</h3>
+            <p className="text-xs text-[#64748B]">Stay updated on temperature and heat risk for the places you care about.</p>
           </div>
 
           {/* Add Place Form */}
-          <form onSubmit={handleAddPlace} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 text-xs">
-            <input
-              type="text"
-              placeholder="Label (e.g. Work Office, Elderly Parents)"
-              value={newPlaceLabel}
-              onChange={e => setNewPlaceLabel(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              value={newPlaceLocalityId}
-              onChange={e => setNewPlaceLocalityId(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {locations.map(loc => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name} ({loc.city})
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm shrink-0"
-            >
-              Save Place
-            </button>
-          </form>
+          <Card padding="md">
+            <form onSubmit={handleAddPlace} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 text-xs">
+              <input
+                type="text"
+                placeholder="Label (e.g. Work Office, Elderly Parents)"
+                value={newPlaceLabel}
+                onChange={e => setNewPlaceLabel(e.target.value)}
+                className="flex-1 bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-[#0F172A] focus:outline-none focus:border-[#1E60F2]"
+              />
+              <select
+                value={newPlaceLocalityId}
+                onChange={e => setNewPlaceLocalityId(e.target.value)}
+                className="flex-1 bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl px-3.5 py-2 text-[#0F172A] focus:outline-none"
+              >
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.city})
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                Save Place
+              </Button>
+            </form>
+          </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {places.map(place => (
-              <div key={place.id} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
+              <Card key={place.id} padding="md" className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
+                  <Badge variant="brand" size="sm">
                     {place.label}
-                  </span>
+                  </Badge>
                   <button
                     onClick={() => handleRemovePlace(place.id)}
-                    className="text-slate-300 hover:text-red-600 p-1 transition-colors"
+                    className="text-[#64748B] hover:text-red-600 p-1 transition-colors"
                     title="Remove place"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -661,138 +656,138 @@ Issued by HeatShield AI Community Protection Platform.`;
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900">{place.name || place.locality}</h4>
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    {place.locality} &bull; Lat {place.latitude.toFixed(2)}, Lon {place.longitude.toFixed(2)}
+                  <h4 className="text-xs font-bold text-[#0F172A]">{place.name || place.locality}</h4>
+                  <span className="text-[11px] text-[#64748B]">
+                    {place.locality}
                   </span>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Live Safety</span>
-                  <span className="font-bold text-emerald-600">Normal Baseline</span>
+                <div className="pt-2 border-t border-[#E5EDF5] flex items-center justify-between text-xs">
+                  <span className="text-[#64748B]">Status</span>
+                  <span className="font-semibold text-emerald-600">Normal Conditions</span>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
       )}
 
-      {/* TAB 5: HEAT FIRST-AID GUIDES & ACADEMY */}
+      {/* TAB 5: HEAT FIRST-AID GUIDES */}
       {activeTab === 'academy' && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Life-Saving Heat Emergency Action Guides</h3>
-            <p className="text-xs text-slate-500">Accredited thermal medical guidance from NDMA, WHO, and Indian Red Cross.</p>
+            <h3 className="text-base font-bold text-[#0F172A]">Heat Emergency Action Guides</h3>
+            <p className="text-xs text-[#64748B]">Medical guidance for identifying and treating heat-related illness.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700">
+            <Card padding="lg" className="space-y-2.5">
+              <Badge variant="warning" size="sm">
                 Early Stage
-              </span>
-              <h4 className="text-xs font-extrabold text-slate-900">Heat Cramps & Exhaustion</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              </Badge>
+              <h4 className="text-sm font-bold text-[#0F172A]">Heat Cramps & Exhaustion</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">
                 Symptoms: Heavy sweating, cold clammy skin, muscle cramps, dizziness, nausea.
               </p>
-              <div className="p-2.5 rounded-xl bg-slate-50 text-[11px] text-slate-700 space-y-1">
+              <div className="p-3 rounded-xl bg-[#F5F8FC] text-xs text-[#0F172A] border border-[#E5EDF5]">
                 <strong>Action:</strong> Rest in air-conditioned room, sip cold ORS water, loosen tight clothing.
               </div>
-            </div>
+            </Card>
 
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800">
-                Medical Emergency
-              </span>
-              <h4 className="text-xs font-extrabold text-slate-900">Life-Threatening Heatstroke</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
+            <Card padding="lg" className="space-y-2.5 border-red-200">
+              <Badge variant="danger" size="sm">
+                Emergency
+              </Badge>
+              <h4 className="text-sm font-bold text-[#0F172A]">Heatstroke (Critical)</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">
                 Symptoms: Body temp &gt; 40°C, dry hot skin (no sweat), slurred speech, confusion, seizures.
               </p>
-              <div className="p-2.5 rounded-xl bg-red-50 text-[11px] text-red-900 space-y-1">
+              <div className="p-3 rounded-xl bg-red-50 text-xs text-red-900 border border-red-100">
                 <strong>Action:</strong> Call <strong>108</strong> immediately. Place ice packs on neck & armpits.
               </div>
-            </div>
+            </Card>
 
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2.5">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-50 text-cyan-800">
-                Home Hydration
-              </span>
-              <h4 className="text-xs font-extrabold text-slate-900">Oral Rehydration (ORS)</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Clean Water (1 Liter) + Sugar (6 level tsp) + Salt (1/2 level tsp).
+            <Card padding="lg" className="space-y-2.5">
+              <Badge variant="brand" size="sm">
+                Hydration Recipe
+              </Badge>
+              <h4 className="text-sm font-bold text-[#0F172A]">Oral Rehydration Solution (ORS)</h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">
+                Clean Water (1 Litre) + Sugar (6 level teaspoons) + Salt (1/2 level teaspoon).
               </p>
-              <div className="p-2.5 rounded-xl bg-cyan-50 text-[11px] text-cyan-900 space-y-1">
-                <strong>Action:</strong> Restores vital sodium & potassium lost in sweat. Sip 250ml every 30 mins.
+              <div className="p-3 rounded-xl bg-blue-50 text-xs text-blue-900 border border-blue-100">
+                <strong>Action:</strong> Restores vital sodium and electrolytes lost in sweat. Sip steadily.
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}
 
       {/* TAB 6: ALERT PREFERENCES */}
       {activeTab === 'preferences' && (
-        <div className="max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+        <Card padding="lg" className="max-w-2xl space-y-5">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Hourly Notification & Safety Alert Preferences</h3>
-            <p className="text-xs text-slate-500">Customize how and when HeatShield AI notifies you of rising heat indices.</p>
+            <h3 className="text-base font-bold text-[#0F172A]">Notification Preferences</h3>
+            <p className="text-xs text-[#64748B]">Choose how you receive warnings and safety advisories.</p>
           </div>
 
           <div className="space-y-3.5 text-xs">
-            <label className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50 cursor-pointer">
+            <label className="flex items-center justify-between p-4 rounded-2xl border border-[#E5EDF5] bg-[#F5F8FC] cursor-pointer">
               <div>
-                <span className="font-bold text-slate-900 block">Hourly SMS Updates</span>
-                <span className="text-[11px] text-slate-500">Concise TRAI-compliant SMS when heat index exceeds caution baseline</span>
+                <span className="font-semibold text-[#0F172A] block">SMS Safety Alerts</span>
+                <span className="text-[11px] text-[#64748B]">Immediate SMS text when local heat index reaches dangerous levels</span>
               </div>
               <input
                 type="checkbox"
                 checked={prefSms}
                 onChange={e => setPrefSms(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600"
+                className="w-4 h-4 rounded text-[#1E60F2]"
               />
             </label>
 
-            <label className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50 cursor-pointer">
+            <label className="flex items-center justify-between p-4 rounded-2xl border border-[#E5EDF5] bg-[#F5F8FC] cursor-pointer">
               <div>
-                <span className="font-bold text-slate-900 block">Hourly Email Briefings</span>
-                <span className="text-[11px] text-slate-500">Detailed NDMA safety advice and hour-by-hour forecast tables</span>
+                <span className="font-semibold text-[#0F172A] block">Daily Morning Briefing</span>
+                <span className="text-[11px] text-[#64748B]">Daily 8 AM heat forecast and safe outdoor hour recommendations</span>
               </div>
               <input
                 type="checkbox"
                 checked={prefEmail}
                 onChange={e => setPrefEmail(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600"
+                className="w-4 h-4 rounded text-[#1E60F2]"
               />
             </label>
 
-            <label className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50 cursor-pointer">
+            <label className="flex items-center justify-between p-4 rounded-2xl border border-[#E5EDF5] bg-[#F5F8FC] cursor-pointer">
               <div>
-                <span className="font-bold text-slate-900 block">Night-Time Quiet Hours</span>
-                <span className="text-[11px] text-slate-500">Pause non-critical alerts between 10:00 PM and 07:00 AM</span>
+                <span className="font-semibold text-[#0F172A] block">Night-Time Quiet Hours</span>
+                <span className="text-[11px] text-[#64748B]">Pause non-critical alerts between 10:00 PM and 7:00 AM</span>
               </div>
               <input
                 type="checkbox"
                 checked={prefQuietHours}
                 onChange={e => setPrefQuietHours(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600"
+                className="w-4 h-4 rounded text-[#1E60F2]"
               />
             </label>
 
             <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
                 onClick={handleSavePreferences}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm"
               >
                 Save Preferences
-              </button>
+              </Button>
               {savedPrefNotice && (
-                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Preferences Saved!</span>
+                  <span>Preferences Saved</span>
                 </span>
               )}
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

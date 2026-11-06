@@ -8,54 +8,65 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Linear / Stripe style enterprise healthcare theme
+        // HeatShield 2.0 Modern Design System
         app: {
-          bg: '#F8FAFC',        // Primary background (Slate 50)
-          surface: '#FFFFFF',   // Main surface (White)
-          subtle: '#F1F5F9',    // Subtle surface (Slate 100)
-          muted: '#E2E8F0',     // Muted fill (Slate 200)
-          border: '#E2E8F0',    // Clean hairline borders
-          'border-dark': '#CBD5E1', // Active / hover borders
+          bg: '#F5F8FC',        // Modern clean background
+          surface: '#FFFFFF',   // Pure White Card Surface
+          subtle: '#F8FAFC',    // Subtle pill/section fill
+          muted: '#EEF3F8',     // Muted fill / hover
+          border: '#E5EDF5',    // Very light blue-grey border
+          'border-dark': '#CBD5E1',
         },
         slate: {
-          900: '#0F172A',       // Primary text
-          700: '#334155',       // Secondary dark text
-          500: '#64748B',       // Secondary muted text
-          400: '#94A3B8',       // Placeholder / tertiary text
-          200: '#E2E8F0',       // Borders
-          100: '#F1F5F9',       // Hover states
-          50: '#F8FAFC',        // Canvas
+          900: '#0F172A',       // Deep Navy
+          800: '#1E293B',
+          700: '#334155',       // Secondary Dark
+          600: '#475569',
+          500: '#64748B',       // Cool Grey Muted
+          400: '#94A3B8',       // Light Muted
+          200: '#E2E8F0',       // Light border
+          100: '#F1F5F9',       // Hover fill
+          50: '#F8FAFC',        // Ultra-subtle
         },
         brand: {
-          DEFAULT: '#2563EB',   // Primary accent (Trustworthy Blue 600)
+          DEFAULT: '#1E60F2',   // HeatShield Trustworthy Blue
           50: '#EFF6FF',
           100: '#DBEAFE',
           200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#60A5FA',
           500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
+          600: '#1E60F2',
+          700: '#184FD0',
+          800: '#143EB0',
+          900: '#0F2C82',
         },
         heat: {
-          low: '#16A34A',       // Success / Green 600
-          moderate: '#CA8A04',  // Amber 600
-          warning: '#EA580C',   // Heat warning (Orange 600)
-          critical: '#DC2626',  // Critical heat warning (Red 600)
+          low: '#10B981',       // Soft Green
+          moderate: '#F59E0B',  // Soft Amber
+          warning: '#F97316',   // Soft Orange
+          critical: '#EF4444',  // Soft Red
         },
-        success: '#16A34A',
-        warning: '#EA580C',
-        critical: '#DC2626',
+        success: '#10B981',
+        warning: '#F59E0B',
+        critical: '#EF4444',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
+      borderRadius: {
+        'card': '20px',
+        'card-lg': '24px',
+        'card-sm': '14px',
+      },
       boxShadow: {
-        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        'card': '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)',
-        'card-hover': '0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04)',
-        'dropdown': '0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04)',
-        'modal': '0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05)',
+        'subtle': '0 1px 3px 0 rgba(15, 23, 42, 0.04)',
+        'card': '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02)',
+        'card-hover': '0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
+        'dropdown': '0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03)',
+        'modal': '0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.04)',
+        'floating': '0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04)',
       },
       keyframes: {
         'page-enter': {
