@@ -1,0 +1,6 @@
+sessions/
+contacts.json
+sent-log.json
+node_modules/
+.env
+*.log

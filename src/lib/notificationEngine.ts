@@ -9,12 +9,14 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { fetchLiveWeather } from './weatherApi';
 import { evaluateHeatRisk } from './riskEngine';
 import { UserProfile, NotificationDeliveryLog, ScheduledNotificationJob } from '../types';
+import { broadcastWhatsApp, fetchContacts, formatHeatAlertMessage } from './whatsappGateway';
 
 export interface HourlyDispatchResult {
   jobId: string;
   totalEligible: number;
   emailsSent: number;
   smsSent: number;
+  whatsappSent: number;
   failures: number;
   skipped: number;
   durationMs: number;
@@ -36,6 +38,7 @@ export async function runHourlyNotificationCycle(
   const logs: NotificationDeliveryLog[] = [];
   let emailsSent = 0;
   let smsSent = 0;
+  let whatsappSent = 0;
   let failures = 0;
   let skipped = 0;
 
@@ -135,6 +138,9 @@ export async function runHourlyNotificationCycle(
 
     // 7. Insert In-App Notification
     await insertInAppNotification(resident, locality, tempC, feelsLikeC, riskCategory, riskScore, advice);
+
+    // 8. Send WhatsApp to all gateway contacts in matching locality
+    await dispatchWhatsAppBroadcast({ locality, tempC, feelsLikeC, riskCategory, riskScore, advice, hourString, options });
   }
 
   const durationMs = Date.now() - startTime;
@@ -161,6 +167,7 @@ export async function runHourlyNotificationCycle(
     totalEligible: eligibleResidents.length,
     emailsSent,
     smsSent,
+    whatsappSent,
     failures,
     skipped,
     durationMs,
@@ -422,6 +429,50 @@ async function insertInAppNotification(
     localStorage.setItem('heatshield_notifications', JSON.stringify(existing.slice(0, 50)));
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Sends a WhatsApp broadcast to all gateway contacts for the current locality/hour.
+ * Falls back gracefully if the gateway is unreachable.
+ */
+async function dispatchWhatsAppBroadcast(params: {
+  locality: string;
+  tempC: number;
+  feelsLikeC: number;
+  riskCategory: string;
+  riskScore: number;
+  advice: string;
+  hourString: string;
+  options: { forceImmediate?: boolean };
+}): Promise<void> {
+  const { locality, tempC, feelsLikeC, riskCategory, riskScore, advice, hourString, options } = params;
+  const idempotencyKey = `hourly-wa-${locality}-${hourString}`;
+  if (checkIdempotency(idempotencyKey) && !options.forceImmediate) return;
+  try {
+    const contacts = await fetchContacts();
+    if (contacts.length === 0) return;
+    // Filter by locality if set; otherwise broadcast to all
+    const targets = contacts.filter(c =>
+      !c.locality ||
+      c.locality.toLowerCase().includes(locality.toLowerCase().split(',')[0]) ||
+      locality.toLowerCase().includes(c.locality.toLowerCase())
+    );
+    const recipients = targets.length > 0 ? targets : contacts;
+    for (const contact of recipients) {
+      const message = formatHeatAlertMessage({
+        residentName: contact.name,
+        locality,
+        tempC,
+        feelsLikeC,
+        riskCategory,
+        riskScore,
+        advice,
+      });
+      await broadcastWhatsApp([contact.phone], message, 1200);
+    }
+  } catch (err) {
+    console.warn('[WhatsApp] Broadcast skipped — gateway unreachable or not configured:', err);
   }
 }
 

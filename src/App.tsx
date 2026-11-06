@@ -48,6 +48,7 @@ import { MyAccountPage } from './pages/MyAccountPage';
 import { HelpHubPage } from './pages/HelpHubPage';
 import { MySafetyHubPage } from './pages/MySafetyHubPage';
 import { DeveloperDiagnosticsPage } from './pages/DeveloperDiagnosticsPage';
+import { WhatsAppGatewayPage } from './pages/WhatsAppGatewayPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -419,6 +420,16 @@ export function App() {
                   element={
                     <ProtectedRoute>
                       <OfflineEmergencyPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* WhatsApp Gateway — Admin only */}
+                <Route
+                  path="/whatsapp"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <WhatsAppGatewayPage />
                     </ProtectedRoute>
                   }
                 />

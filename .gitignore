@@ -30,3 +30,10 @@ dist-ssr
 
 .vercel
 .agents/
+
+# WhatsApp Gateway (sensitive session data)
+whatsapp-service/sessions/
+whatsapp-service/contacts.json
+whatsapp-service/sent-log.json
+whatsapp-service/node_modules/
+whatsapp-service/.env

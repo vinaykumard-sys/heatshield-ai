@@ -24,7 +24,8 @@ import {
   Cpu, 
   X, 
   PhoneCall, 
-  ChevronDown 
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../common/BrandLogo';
@@ -102,6 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { to: '/residents', label: 'Residents Directory', icon: Users, show: isVolunteer || isAdmin },
         { to: '/checkins', label: 'Welfare Check-ins', icon: HeartPulse, show: isVolunteer || isAdmin },
         { to: '/admin', label: 'System Admin', icon: Settings, show: isAdmin },
+        { to: '/whatsapp', label: 'WhatsApp Gateway', icon: MessageCircle, show: isAdmin },
         { to: '/developer', label: 'Developer Diagnostics', icon: Cpu, show: isAdmin },
       ]
     }] : [])
