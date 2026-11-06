@@ -348,66 +348,9 @@ export const INITIAL_OUTDOOR_WORKERS: OutdoorWorker[] = [
 ];
 
 // ==============================================================================
-// 4. FAMILY SAFETY GROUPS (PART 9)
+// 4. FAMILY SAFETY GROUPS (PART 9) — STRICT OPT-IN, NO MOCK RESIDENTS
 // ==============================================================================
-export const INITIAL_FAMILY_GROUPS: FamilyGroup[] = [
-  {
-    id: 'fam-grp-1',
-    owner_id: 'u-1',
-    group_name: 'Sharma Family Safety Circle',
-    invite_code: 'HS-FAM-7890',
-    created_at: '2026-04-15T10:00:00Z',
-    members: [
-      {
-        id: 'fm-1',
-        group_id: 'fam-grp-1',
-        name: 'Om Prakash Sharma (Father, 72)',
-        relationship: 'parent',
-        phone: '+91 98110 55667',
-        locality_name: 'Hebbal, Bengaluru',
-        latitude: 13.0358,
-        longitude: 77.5970,
-        consent_given: true,
-        location_sharing_active: true,
-        last_status: 'safe',
-        last_checkin_at: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-        temperature_at_location: 34.6,
-        risk_at_location: 68
-      },
-      {
-        id: 'fm-2',
-        group_id: 'fam-grp-1',
-        name: 'Sushila Sharma (Mother, 68)',
-        relationship: 'parent',
-        phone: '+91 98110 55668',
-        locality_name: 'Hebbal, Bengaluru',
-        latitude: 13.0360,
-        longitude: 77.5972,
-        consent_given: true,
-        location_sharing_active: true,
-        last_status: 'cooling_down',
-        last_checkin_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-        temperature_at_location: 34.6,
-        risk_at_location: 68
-      },
-      {
-        id: 'fm-3',
-        group_id: 'fam-grp-1',
-        name: 'Aarav Sharma (Son, 12)',
-        relationship: 'child',
-        locality_name: 'Indiranagar School Zone',
-        latitude: 12.9784,
-        longitude: 77.6408,
-        consent_given: true,
-        location_sharing_active: false,
-        last_status: 'safe',
-        last_checkin_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-        temperature_at_location: 33.8,
-        risk_at_location: 52
-      }
-    ]
-  }
-];
+export const INITIAL_FAMILY_GROUPS: FamilyGroup[] = [];
 
 // ==============================================================================
 // 5. SCHOOL SAFETY MODE (PART 10)

@@ -187,47 +187,47 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     targetLayer.clearLayers();
 
     const isHot = (temp ?? 0) > 35.0;
-    const pinColor = isHot ? '#EF4444' : '#00F0FF';
+    const pinColor = isHot ? '#EF4444' : '#1E60F2';
+    const pinBg = isHot ? 'rgba(239, 68, 68, 0.2)' : 'rgba(30, 96, 242, 0.2)';
 
     const sonarIconHtml = `
-      <div class="heatshield-sonar-marker" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-        <div class="heatshield-sonar-ring" style="border-color: ${pinColor};"></div>
-        <div class="heatshield-sonar-ring-2" style="border-color: ${pinColor};"></div>
+      <div class="heatshield-sonar-marker" style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <div class="marker-halo-ring" style="border: 2px solid ${pinColor}; background: ${pinBg};"></div>
+        <div class="marker-halo-ring marker-halo-ring-delayed" style="border: 1.5px solid ${pinColor};"></div>
         <div style="
           width: 14px;
           height: 14px;
           border-radius: 50%;
           background: ${pinColor};
-          box-shadow: 0 0 14px ${pinColor}, 0 0 28px ${pinColor};
-          border: 2px solid #FFFFFF;
+          box-shadow: 0 0 12px ${pinColor}, 0 2px 6px rgba(0,0,0,0.15);
+          border: 2.5px solid #FFFFFF;
           position: relative;
           z-index: 10;
         "></div>
         <div style="
           position: absolute;
-          top: -30px;
+          top: -32px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(11, 19, 43, 0.96);
-          backdrop-filter: blur(8px);
+          background: #FFFFFF;
           border: 1.5px solid ${pinColor};
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-          color: #FFFFFF;
-          padding: 3px 8px;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+          color: #0F172A;
+          padding: 3px 10px;
           border-radius: 9999px;
-          font-family: 'Inter', system-ui, sans-serif;
-          font-size: 10px;
-          font-weight: 800;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
           white-space: nowrap;
           pointer-events: none;
           z-index: 20;
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 5px;
         ">
-          <span style="color: ${pinColor}; font-size: 11px;">●</span>
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: ${pinColor};"></span>
           <span>${title}</span>
-          ${temp !== undefined ? `<span style="font-family: monospace; font-weight: 900; color: ${isHot ? '#EF4444' : '#38BDF8'};">${temp.toFixed(1)}°C</span>` : ''}
+          ${temp !== undefined ? `<span style="font-family: monospace; font-weight: 800; color: ${isHot ? '#EF4444' : '#1E60F2'}; background: ${isHot ? '#FEE2E2' : '#EFF6FF'}; padding: 1px 5px; border-radius: 4px;">${temp.toFixed(1)}°C</span>` : ''}
         </div>
       </div>
     `;
@@ -235,8 +235,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     const sonarIcon = L.divIcon({
       html: sonarIconHtml,
       className: 'heatshield-sonar-div-icon',
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
     });
 
     L.marker([lat, lon], { icon: sonarIcon, zIndexOffset: 1000 }).addTo(targetLayer);
@@ -513,27 +513,30 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       const deviceName = deviceLocation.localityName || 'Your Device';
       const deviceMarkerHtml = `
         <div style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+          <div class="marker-halo-ring" style="border: 2px solid #1E60F2; background: rgba(30, 96, 242, 0.18);"></div>
           <div style="
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #0B132B;
-            border: 2px solid #00F0FF;
-            box-shadow: 0 4px 16px rgba(0, 240, 255, 0.5);
+            background: #FFFFFF;
+            border: 2px solid #1E60F2;
+            box-shadow: 0 6px 18px rgba(30, 96, 242, 0.22);
             padding: 4px 10px;
             border-radius: 9999px;
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: inherit;
             font-size: 11px;
             font-weight: 800;
-            color: #FFFFFF;
+            color: #0F172A;
             white-space: nowrap;
+            position: relative;
+            z-index: 10;
           ">
             <span style="
               width: 8px;
               height: 8px;
               border-radius: 50%;
-              background-color: #00F0FF;
-              box-shadow: 0 0 10px #00F0FF;
+              background-color: #1E60F2;
+              box-shadow: 0 0 8px #1E60F2;
               display: inline-block;
             "></span>
             <span>📍 YOU: ${deviceName}</span>
@@ -566,25 +569,28 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           ? `📍 Default Area: ${currentLocation.localityName || 'Bengaluru Urban'}`
           : `🎯 Analyzed: ${currentLocation.localityName || 'Selected Area'}`;
 
-        const activeBorderColor = isGps ? '#00F0FF' : isDefault ? '#F59E0B' : '#38BDF8';
-        const activeDotColor = isGps ? '#00F0FF' : isDefault ? '#F59E0B' : '#38BDF8';
+        const activeBorderColor = isGps ? '#1E60F2' : isDefault ? '#F59E0B' : '#0284C7';
+        const activeDotColor = isGps ? '#1E60F2' : isDefault ? '#F59E0B' : '#0284C7';
 
         const activeMarkerHtml = `
           <div style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+            <div class="marker-halo-ring" style="border: 2px solid ${activeBorderColor}; background: rgba(30, 96, 242, 0.15);"></div>
             <div style="
               display: inline-flex;
               align-items: center;
               gap: 6px;
-              background: #0B132B;
+              background: #FFFFFF;
               border: 1.5px solid ${activeBorderColor};
-              box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+              box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
               padding: 4px 10px;
               border-radius: 9999px;
-              font-family: 'Inter', system-ui, sans-serif;
+              font-family: inherit;
               font-size: 11px;
               font-weight: 800;
-              color: #FFFFFF;
+              color: #0F172A;
               white-space: nowrap;
+              position: relative;
+              z-index: 10;
             ">
               <span style="
                 width: 8px;
@@ -616,22 +622,22 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         const coolIcon = L.divIcon({
           html: `
             <div style="
-              background: #0F172A;
-              border: 1.5px solid #38BDF8;
-              color: #38BDF8;
+              background: #FFFFFF;
+              border: 1.5px solid #0284C7;
+              color: #0369A1;
               border-radius: 9999px;
-              padding: 2px 7px;
+              padding: 3px 9px;
               font-size: 10px;
               font-weight: 700;
-              box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+              box-shadow: 0 4px 12px rgba(2, 132, 199, 0.16);
               display: flex;
               align-items: center;
-              gap: 3px;
+              gap: 4px;
               white-space: nowrap;
               cursor: pointer;
             ">
               <span>❄️</span>
-              <span style="max-width: 85px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]}</span>
+              <span style="max-width: 95px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]}</span>
             </div>
           `,
           className: 'cooling-map-pin',
@@ -641,31 +647,37 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
         const coolMarker = L.marker([centre.latitude, centre.longitude], { icon: coolIcon }).addTo(coolingLayer);
         coolMarker.bindPopup(`
-          <div style="min-width: 250px; font-family: 'Inter', system-ui, sans-serif; color: #F8FAFC;">
-            <div style="font-size: 9px; font-weight: 800; color: #38BDF8; text-transform: uppercase;">
-              ❄️ Verified Cooling Centre
+          <div style="min-width: 250px; font-family: inherit; color: #0F172A; padding: 2px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 10px; font-weight: 700; color: #0284C7; background: #E0F2FE; padding: 2px 8px; border-radius: 9999px;">
+                ❄️ Verified Cooling Sanctuary
+              </span>
+              <span style="font-size: 10px; font-weight: 700; color: #16A34A; background: #DCFCE7; padding: 2px 7px; border-radius: 9999px;">
+                ● ${centre.operating_status === 'open' ? 'Open now' : centre.operating_status}
+              </span>
             </div>
-            <div style="font-size: 13px; font-weight: 800; color: #FFFFFF; margin: 2px 0;">
+            <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin: 4px 0 2px 0;">
               ${centre.name}
             </div>
-            <div style="font-size: 11px; color: #94A3B8; margin-bottom: 6px;">
+            <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">
               ${centre.address}
             </div>
-            <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 6px; padding: 6px; font-size: 10px; margin-bottom: 6px;">
-              <div>⏰ Hours: <b>${centre.operating_hours}</b></div>
-              <div>👥 Capacity: <b>~${centre.capacity_estimate} persons</b></div>
-              <div>💧 Drinking Water: <b>${centre.drinking_water_available ? 'Available' : 'No'}</b></div>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 8px; font-size: 11px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr; gap: 4px; color: #334155;">
+              <div>⏰ <b>Hours:</b> ${centre.operating_hours}</div>
+              <div>👥 <b>Capacity:</b> ~${centre.capacity_estimate} persons</div>
+              <div>💧 <b>Clean Water:</b> ${centre.drinking_water_available ? 'Available' : 'No'}</div>
             </div>
             <a 
               href="https://www.google.com/maps/dir/?api=1&destination=${centre.latitude},${centre.longitude}" 
               target="_blank" 
               rel="noreferrer"
-              style="display: block; text-align: center; background: #0284C7; color: white; padding: 5px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;"
+              style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #1E60F2; color: #FFFFFF; padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(30, 96, 242, 0.25);"
             >
-              Directions →
+              <span>Get Directions</span>
+              <span>→</span>
             </a>
           </div>
-        `, { className: 'heatshield-dark-popup' });
+        `, { className: 'heatshield-soft-popup' });
       });
     }
 
@@ -676,17 +688,17 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         const waterIcon = L.divIcon({
           html: `
             <div style="
-              background: #0369A1;
-              color: #FFFFFF;
-              border: 1px solid #7DD3FC;
+              background: #FFFFFF;
+              color: #1E40AF;
+              border: 1.5px solid #2563EB;
               border-radius: 9999px;
-              padding: 2px 6px;
-              font-size: 9px;
-              font-weight: 800;
-              box-shadow: 0 2px 6px rgba(3, 105, 161, 0.4);
+              padding: 3px 8px;
+              font-size: 10px;
+              font-weight: 700;
+              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.16);
               display: flex;
               align-items: center;
-              gap: 2px;
+              gap: 3px;
               white-space: nowrap;
               cursor: pointer;
             ">
@@ -694,24 +706,33 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           `,
           className: 'water-map-pin',
-          iconSize: [80, 22],
-          iconAnchor: [40, 11]
+          iconSize: [88, 24],
+          iconAnchor: [44, 12]
         });
 
         const waterMarker = L.marker([wp.latitude, wp.longitude], { icon: waterIcon }).addTo(waterLayer);
         waterMarker.bindPopup(`
-          <div style="min-width: 200px; font-family: 'Inter', system-ui, sans-serif; color: #F8FAFC;">
-            <div style="font-size: 9px; font-weight: 800; color: #7DD3FC; text-transform: uppercase;">
-              💧 Verified Drinking Water ATM
+          <div style="min-width: 220px; font-family: inherit; color: #0F172A; padding: 2px;">
+            <div style="font-size: 10px; font-weight: 700; color: #2563EB; background: #EFF6FF; padding: 2px 8px; border-radius: 9999px; display: inline-block; margin-bottom: 4px;">
+              💧 Public Water Point
             </div>
-            <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin: 2px 0;">
+            <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin: 2px 0;">
               ${wp.name}
             </div>
-            <div style="font-size: 10px; color: #94A3B8;">
-              Locality: ${wp.locality_name} • Status: <b style="color: #4ADE80;">Operational</b>
+            <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">
+              Locality: ${wp.locality_name} • <span style="color: #16A34A; font-weight: 700;">Operational</span>
             </div>
+            <a 
+              href="https://www.google.com/maps/dir/?api=1&destination=${wp.latitude},${wp.longitude}" 
+              target="_blank" 
+              rel="noreferrer"
+              style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #1E60F2; color: #FFFFFF; padding: 7px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(30, 96, 242, 0.25);"
+            >
+              <span>Get Directions</span>
+              <span>→</span>
+            </a>
           </div>
-        `, { className: 'heatshield-dark-popup' });
+        `, { className: 'heatshield-soft-popup' });
       });
     }
 
@@ -792,18 +813,28 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
             const clusterIcon = L.divIcon({
               html: `
-                <div class="heatshield-cluster-pill" style="${hasCritical ? 'border-color: #EF4444; background: rgba(69, 10, 10, 0.95);' : ''}">
-                  <span class="heatshield-cluster-badge" style="${hasCritical ? 'background: #EF4444;' : ''}">
+                <div class="heatshield-cluster-pill" style="
+                  background: #FFFFFF;
+                  border: 1.5px solid ${hasCritical ? '#EF4444' : '#1E60F2'};
+                  box-shadow: 0 4px 14px ${hasCritical ? 'rgba(239, 68, 68, 0.25)' : 'rgba(30, 96, 242, 0.15)'};
+                  color: #0F172A;
+                  padding: 4px 10px;
+                  border-radius: 9999px;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                ">
+                  <span class="heatshield-cluster-badge" style="background: ${hasCritical ? '#EF4444' : '#1E60F2'}; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 9999px;">
                     ${cluster.length}
                   </span>
-                  <span style="font-family: monospace; font-size: 11px; font-weight: 800; color: ${hasCritical ? '#FCA5A5' : '#38BDF8'};">
+                  <span style="font-family: monospace; font-size: 11px; font-weight: 800; color: ${hasCritical ? '#DC2626' : '#1E60F2'};">
                     ${avgTemp.toFixed(1)}°C
                   </span>
                 </div>
               `,
               className: 'heatshield-cluster-icon',
-              iconSize: [90, 28],
-              iconAnchor: [45, 14]
+              iconSize: [95, 30],
+              iconAnchor: [47, 15]
             });
 
             const clusterMarker = L.marker([avgLat, avgLon], { icon: clusterIcon, zIndexOffset: 500 }).addTo(markersLayer);
@@ -817,27 +848,27 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             const compactIcon = L.divIcon({
               html: `
                 <div style="
-                  width: 32px;
-                  height: 32px;
+                  width: 34px;
+                  height: 34px;
                   border-radius: 50%;
-                  background: ${isAbove35 ? 'rgba(69, 10, 10, 0.95)' : 'rgba(15, 23, 42, 0.92)'};
-                  border: 2px solid ${isAbove35 ? '#EF4444' : '#38BDF8'};
-                  box-shadow: 0 4px 12px ${isAbove35 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
+                  background: ${isAbove35 ? '#FEF2F2' : '#FFFFFF'};
+                  border: 2px solid ${isAbove35 ? '#EF4444' : '#1E60F2'};
+                  box-shadow: 0 4px 12px ${isAbove35 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(15, 23, 42, 0.1)'};
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   cursor: pointer;
                   font-family: monospace;
-                  font-size: 10px;
-                  font-weight: 900;
-                  color: ${isAbove35 ? '#FCA5A5' : '#FFFFFF'};
+                  font-size: 11px;
+                  font-weight: 800;
+                  color: ${isAbove35 ? '#DC2626' : '#1E60F2'};
                 " title="${loc.name} (${activeTemp.toFixed(1)}°C)">
                   ${Math.round(activeTemp)}°
                 </div>
               `,
               className: 'heatshield-compact-station',
-              iconSize: [32, 32],
-              iconAnchor: [16, 16]
+              iconSize: [34, 34],
+              iconAnchor: [17, 17]
             });
 
             const singleMarker = L.marker([loc.latitude, loc.longitude], { icon: compactIcon }).addTo(markersLayer);
@@ -863,38 +894,44 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           const placeShort = getPlaceShortName(loc.name);
           const markerHtml = `
             <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+              ${isAbove35 ? `
+                <div class="marker-halo-ring" style="border: 2px solid #EF4444; background: rgba(239, 68, 68, 0.2);"></div>
+                <div class="marker-halo-ring marker-halo-ring-delayed" style="border: 1.5px solid #EF4444;"></div>
+              ` : ''}
               <div style="
                 display: inline-flex;
                 align-items: center;
-                gap: 5px;
-                background: ${isAbove35 ? 'rgba(69, 10, 10, 0.96)' : 'rgba(15, 23, 42, 0.92)'};
-                border: 1.5px solid ${isAbove35 ? '#EF4444' : '#334155'};
-                box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
+                gap: 6px;
+                background: ${isAbove35 ? '#FEF2F2' : '#FFFFFF'};
+                border: 1.5px solid ${isAbove35 ? '#EF4444' : '#E2E8F0'};
+                box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(15, 23, 42, 0.08)'};
                 padding: 3px 8px;
                 border-radius: 9999px;
-                font-family: 'Inter', system-ui, sans-serif;
+                font-family: inherit;
                 font-size: 11px;
                 font-weight: 700;
-                color: ${isAbove35 ? '#FCA5A5' : '#F8FAFC'};
+                color: ${isAbove35 ? '#991B1B' : '#0F172A'};
                 white-space: nowrap;
+                position: relative;
+                z-index: 10;
               ">
                 <span style="
                   width: 7px;
                   height: 7px;
                   border-radius: 50%;
-                  background-color: ${isAbove35 ? '#EF4444' : '#38BDF8'};
+                  background-color: ${isAbove35 ? '#EF4444' : '#1E60F2'};
                   box-shadow: ${isAbove35 ? '0 0 8px #EF4444' : 'none'};
                   display: inline-block;
                 "></span>
-                <span style="max-width: 105px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
+                <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
                 <span style="
                   font-size: 10px;
                   font-family: monospace;
                   font-weight: 800;
-                  color: ${isAbove35 ? '#FFFFFF' : '#38BDF8'};
-                  background: ${isAbove35 ? '#DC2626' : '#1E293B'};
-                  padding: 1px 4px;
-                  border-radius: 4px;
+                  color: #FFFFFF;
+                  background: ${isAbove35 ? '#EF4444' : '#1E60F2'};
+                  padding: 1.5px 5px;
+                  border-radius: 6px;
                 ">${activeTemp.toFixed(1)}°C</span>
               </div>
             </div>
@@ -903,8 +940,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           const stationIcon = L.divIcon({
             html: markerHtml,
             className: 'heatshield-station-pill',
-            iconSize: [135, 28],
-            iconAnchor: [67, 14]
+            iconSize: [140, 28],
+            iconAnchor: [70, 14]
           });
 
           const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
@@ -994,22 +1031,22 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   return (
     <div 
       ref={outerWrapperRef}
-      className={`relative isolate z-0 flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-[#090D16] shadow-2xl text-white ${className}`}
+      className={`relative isolate z-0 flex flex-col rounded-[28px] overflow-hidden border border-[#E5EDF5] bg-white shadow-[0_12px_40px_-8px_rgba(15,23,42,0.08)] text-slate-900 ${className}`}
     >
       {/* =========================================================================
           TOP COMMAND BAR & UNIVERSAL SEARCH (FEATURE 2)
           ========================================================================= */}
-      <div className="p-3 sm:p-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 z-30 space-y-2">
+      <div className="p-3 sm:p-4 bg-white/95 backdrop-blur-md border-b border-[#E5EDF5] z-30 space-y-2.5">
         <div className="relative">
           <div className="relative flex items-center">
-            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-cyan-400 animate-spin' : 'text-slate-400'}`} />
+            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-[#1E60F2] animate-spin' : 'text-slate-400'}`} />
             <input
               type="text"
               placeholder="Search any city, locality, road, PIN code or landmark across India..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => { if (searchSuggestions.length > 0) setIsSearchOpen(true); }}
-              className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 focus:border-cyan-500 text-white placeholder-slate-400 text-xs sm:text-sm pl-10 pr-24 py-2.5 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-cyan-500/20 input-interactive transition-all"
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] hover:border-slate-300 focus:border-[#1E60F2] text-slate-900 placeholder-slate-400 text-xs sm:text-sm pl-10 pr-24 py-2.5 rounded-2xl shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1E60F2]/15 input-interactive transition-all"
             />
             
             {/* Quick Actions inside search bar */}
@@ -1017,13 +1054,13 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               {searchQuery && (
                 <button
                   onClick={() => { setSearchQuery(''); setSearchSuggestions([]); setIsSearchOpen(false); }}
-                  className="p-1 hover:text-white"
+                  className="p-1 hover:text-slate-700"
                   title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono">
+              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono text-slate-500">
                 ⌘K
               </span>
             </div>
@@ -1031,31 +1068,31 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
           {/* Live Search Suggestions Dropdown */}
           {isSearchOpen && searchSuggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-dropdown-enter max-h-72 overflow-y-auto">
-              <div className="p-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-between border-b border-slate-800">
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/98 backdrop-blur-xl border border-[#E5EDF5] rounded-2xl shadow-2xl overflow-hidden z-50 animate-dropdown-enter max-h-72 overflow-y-auto">
+              <div className="p-2.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center justify-between border-b border-slate-100 bg-[#F8FAFC]">
                 <span>Geographical Search Results</span>
-                <span className="font-mono text-cyan-400">{searchSuggestions.length} found</span>
+                <span className="font-mono text-[#1E60F2] font-semibold">{searchSuggestions.length} found</span>
               </div>
               {searchSuggestions.map((place) => (
                 <button
                   key={place.id}
                   onClick={() => handleSelectPlace(place)}
-                  className="w-full px-3.5 py-2.5 text-left hover:bg-slate-800/80 flex items-center justify-between gap-3 border-b border-slate-800/50 last:border-0 transition-all duration-150 hover:translate-x-1 group active:scale-[0.99]"
+                  className="w-full px-3.5 py-2.5 text-left hover:bg-[#F5F8FC] flex items-center justify-between gap-3 border-b border-slate-100 last:border-0 transition-all duration-150 hover:translate-x-1 group active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="p-1.5 rounded-lg bg-slate-800 text-cyan-400 group-hover:bg-cyan-500/20 shrink-0 text-xs">
+                    <span className="p-1.5 rounded-xl bg-blue-50 text-[#1E60F2] group-hover:bg-[#1E60F2] group-hover:text-white transition-colors shrink-0 text-xs">
                       {place.type === 'city' ? '🏙️' : place.type === 'postcode' ? '📮' : place.type === 'landmark' ? '🏛️' : '📍'}
                     </span>
                     <div className="truncate">
-                      <div className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-[#1E60F2] truncate">
                         {place.displayName}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
+                      <div className="text-[10px] text-slate-500 font-mono">
                         {place.latitude.toFixed(4)}°N, {place.longitude.toFixed(4)}°E • {place.city}, {place.state}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#1E60F2] shrink-0" />
                 </button>
               ))}
             </div>
@@ -1064,8 +1101,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
 
         {/* Quick Access Location Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pb-0.5 no-scrollbar">
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-            <Compass className="w-3 h-3 text-cyan-400" />
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1 font-bold">
+            <Compass className="w-3 h-3 text-[#1E60F2]" />
             <span>Quick:</span>
           </span>
           {[
@@ -1091,7 +1128,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                 longitude: chip.lon,
                 type: 'locality'
               })}
-              className="px-2.5 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70 whitespace-nowrap text-[11px] font-medium transition-all shadow-xs btn-press hover:scale-105 active:scale-95"
+              className="px-3 py-1.5 rounded-full bg-[#F5F8FC] hover:bg-blue-50 text-slate-600 hover:text-[#1E60F2] border border-[#E5EDF5] hover:border-blue-200 whitespace-nowrap text-[11px] font-semibold transition-all shadow-xs btn-press"
             >
               {chip.name}
             </button>
@@ -1108,70 +1145,94 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* Floating Top-Left Controls Bar (Horizon & Filter Toggles) */}
-          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 p-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md text-[11px]">
-            <span className="text-slate-500 px-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
-              <Clock className="w-3 h-3 text-blue-600" />
-              <span>Horizon:</span>
-            </span>
+          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2 p-1.5 bg-white/92 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-[0_8px_24px_rgba(15,23,42,0.08)] text-xs">
+            {/* Horizon Selector */}
+            <div className="flex items-center gap-1 bg-[#F5F8FC] p-1 rounded-xl border border-[#E5EDF5]">
+              <span className="text-slate-400 pl-1.5 pr-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+                <Clock className="w-3 h-3 text-[#1E60F2]" />
+                <span className="hidden sm:inline">Horizon:</span>
+              </span>
 
-            {(['now', 24, 48, 72] as const).map(h => (
+              {(['now', 24, 48, 72] as const).map(h => (
+                <button
+                  key={h}
+                  onClick={() => setForecastHorizon(h)}
+                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold transition-all ${
+                    forecastHorizon === h
+                      ? 'bg-[#1E60F2] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                  }`}
+                >
+                  {h === 'now' ? 'Live' : `+${h}h`}
+                </button>
+              ))}
+            </div>
+
+            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+
+            {/* Custom Layer Filter Pills: Thermal Heatmap, Cooling Sanctuaries, Water Points */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
-                key={h}
-                onClick={() => setForecastHorizon(h)}
-                className={`px-2.5 py-1 rounded-xl font-mono font-bold transition-all ${
-                  forecastHorizon === h
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100'
+                onClick={() => setShowMonitoringStations(!showMonitoringStations)}
+                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
+                  showMonitoringStations 
+                    ? 'bg-amber-50 text-amber-800 border-amber-200 shadow-amber-500/10' 
+                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
                 }`}
+                title="Toggle Thermal Monitoring Stations & Heat Risk"
               >
-                {h === 'now' ? 'Live' : `+${h}h`}
+                <Flame className={`w-3.5 h-3.5 ${showMonitoringStations ? 'text-amber-600' : 'text-slate-400'}`} />
+                <span>Thermal Heatmap</span>
               </button>
-            ))}
 
-            <div className="h-3 w-px bg-slate-200 mx-0.5" />
+              <button
+                onClick={() => setShowCoolingCentres(!showCoolingCentres)}
+                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
+                  showCoolingCentres 
+                    ? 'bg-sky-50 text-sky-800 border-sky-200 shadow-sky-500/10' 
+                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
+                }`}
+                title="Toggle Cooling Sanctuaries & Shelters"
+              >
+                <span>❄️</span>
+                <span>Cooling Sanctuaries</span>
+              </button>
 
-            {/* Layer Filter Toggles */}
-            <button
-              onClick={() => setShowCoolingCentres(!showCoolingCentres)}
-              className={`px-2.5 py-1 rounded-xl font-medium text-[10px] transition-colors flex items-center gap-1 ${
-                showCoolingCentres ? 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold' : 'text-slate-500 hover:bg-slate-100'
-              }`}
-              title="Toggle Cooling Centres"
-            >
-              <span>❄️ Shelters</span>
-            </button>
+              <button
+                onClick={() => setShowWaterPoints(!showWaterPoints)}
+                className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 border shadow-xs ${
+                  showWaterPoints 
+                    ? 'bg-blue-50 text-blue-800 border-blue-200 shadow-blue-500/10' 
+                    : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-slate-50'
+                }`}
+                title="Toggle Public Water Points"
+              >
+                <span>💧</span>
+                <span>Water Points</span>
+              </button>
 
-            <button
-              onClick={() => setShowWaterPoints(!showWaterPoints)}
-              className={`px-2.5 py-1 rounded-xl font-medium text-[10px] transition-colors flex items-center gap-1 ${
-                showWaterPoints ? 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold' : 'text-slate-500 hover:bg-slate-100'
-              }`}
-              title="Toggle Water Points"
-            >
-              <span>💧 Water</span>
-            </button>
-
-            <button
-              onClick={() => syncAllLocalitiesTelemetry(true)}
-              disabled={isRefreshingAll}
-              className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors"
-              title="Manual 5-Min Sync"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-blue-600' : ''}`} />
-            </button>
+              <button
+                onClick={() => syncAllLocalitiesTelemetry(true)}
+                disabled={isRefreshingAll}
+                className="p-1.5 rounded-xl bg-white text-slate-500 hover:text-[#1E60F2] hover:bg-blue-50 border border-[#E5EDF5] transition-colors shadow-xs"
+                title="Manual 5-Min Telemetry Refresh"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-[#1E60F2]' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {/* Floating Notice: Analyzed Area vs Genuine Device GPS */}
           {isAnalyzingDifferentLocation && deviceLocation && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-md border border-blue-200 rounded-2xl px-4 py-2 shadow-md flex items-center gap-2.5 text-xs text-slate-800 max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-md border border-[#1E60F2]/30 rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2.5 text-xs text-slate-800 max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
+              <span className="w-2 h-2 rounded-full bg-[#1E60F2] animate-pulse shrink-0" />
               <span className="truncate">
                 Analyzing <strong>{currentLocation.localityName}</strong> (Device: {deviceLocation.localityName})
               </span>
               <button
                 type="button"
                 onClick={returnToDeviceLocation}
-                className="ml-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shrink-0 transition-colors shadow-xs"
+                className="ml-1 px-2.5 py-1 rounded-lg bg-[#1E60F2] hover:bg-blue-700 text-white font-bold text-[11px] shrink-0 transition-colors shadow-xs"
               >
                 Return to My Location
               </button>
@@ -1181,11 +1242,11 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           {/* Floating Map Actions (Top-Right) */}
           <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
             {/* Style Selector */}
-            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md text-[11px]">
+            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-md text-[11px]">
               <button
                 onClick={() => setMapStyle('osm')}
                 className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'osm' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                  mapStyle === 'osm' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Street
@@ -1193,7 +1254,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               <button
                 onClick={() => setMapStyle('satellite')}
                 className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'satellite' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                  mapStyle === 'satellite' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Satellite
@@ -1201,7 +1262,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               <button
                 onClick={() => setMapStyle('dark')}
                 className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'dark' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                  mapStyle === 'dark' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Dark
@@ -1209,17 +1270,17 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
 
             {/* Action Tools Cluster */}
-            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-md overflow-hidden text-slate-700">
+            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-md overflow-hidden text-slate-700">
               <button
                 onClick={() => mapInstanceRef.current?.zoomIn()}
-                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
+                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
                 title="Zoom In"
               >
                 +
               </button>
               <button
                 onClick={() => mapInstanceRef.current?.zoomOut()}
-                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
+                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
                 title="Zoom Out"
               >
                 -
@@ -1233,10 +1294,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                     detectLocation();
                   }
                 }}
-                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
+                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
                 title="My Location (Device GPS)"
               >
-                <Navigation className="w-3.5 h-3.5 text-blue-600" />
+                <Navigation className="w-3.5 h-3.5 text-[#1E60F2]" />
               </button>
               <button
                 onClick={() => {
@@ -1244,14 +1305,14 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                     mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 15);
                   }
                 }}
-                className="p-2 hover:text-blue-600 hover:bg-slate-100 border-b border-slate-100 transition-colors"
+                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
                 title="Recenter Active Locality"
               >
                 <Compass className="w-3.5 h-3.5 text-slate-500" />
               </button>
               <button
                 onClick={toggleFullscreen}
-                className="p-2 hover:text-blue-600 hover:bg-slate-100 transition-colors"
+                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 transition-colors"
                 title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -1260,34 +1321,36 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           </div>
 
           {/* Bottom-Left Floating Legend */}
-          <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3 shadow-md text-[11px] hidden sm:block">
-            <div className="flex items-center justify-between gap-4 mb-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-900">
-                Heat Risk Radar Legend
+          <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] text-xs hidden sm:block">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#1E60F2]" />
+                <span>Heat Risk Radar Legend</span>
               </span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-400 font-medium">
                 Click map to analyze
               </span>
             </div>
-            <div className="flex items-center gap-3 font-mono text-[10px]">
+            <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-slate-600 font-medium">Low (&lt;25)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+                <span className="text-slate-600 font-semibold">Low (&lt;25)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-slate-600 font-medium">Mod (25–49)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200" />
+                <span className="text-slate-600 font-semibold">Mod (25–49)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                <span className="text-slate-600 font-medium">High (50–74)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-orange-200" />
+                <span className="text-slate-600 font-semibold">High (50–74)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 ring-2 ring-red-200 animate-pulse" />
                 <span className="font-bold text-red-600">Critical (&ge;75)</span>
               </div>
-              <div className="flex items-center gap-1 text-red-600 pl-2 border-l border-slate-200 font-bold">
-                <span>⚠️ &gt;35°C Red Circle</span>
+              <div className="flex items-center gap-1.5 text-red-600 pl-2.5 border-l border-slate-200 font-bold">
+                <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
+                <span>&gt;35°C Red Circle</span>
               </div>
             </div>
           </div>
@@ -1296,7 +1359,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         {/* =========================================================================
             RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
             ========================================================================= */}
-        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col relative z-10 overflow-hidden bg-white">
+        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-[#E5EDF5] flex flex-col relative z-10 overflow-hidden bg-white">
           <LocationIntelligencePanel
             report={activeReport}
             isLoading={isLoadingReport}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   HelpCircle, 
   PlusCircle, 
@@ -12,60 +12,77 @@ import {
   Clock,
   MapPin,
   User,
-  X
+  X,
+  Phone,
+  RotateCcw
 } from 'lucide-react';
-import { mockDb } from '../lib/mockDb';
 import { useAuth } from '../context/AuthContext';
 import { AssistanceRequest } from '../types';
 import { NewRequestModal } from '../components/requests/NewRequestModal';
+import { AssistanceRequestsService } from '../lib/assistanceRequestsService';
 import { formatTimeAgo } from '../lib/utils';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 
 export const RequestsPage: React.FC = () => {
-  const { user, isVolunteer } = useAuth();
-  const [requests, setRequests] = useState<AssistanceRequest[]>(() => mockDb.getRequests());
+  const { user, isVolunteer, isAdmin } = useAuth();
+  const [requests, setRequests] = useState<AssistanceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
 
-  const refreshList = () => {
-    setRequests(mockDb.getRequests());
+  const refreshList = async () => {
+    setIsLoading(true);
+    try {
+      const all = await AssistanceRequestsService.getAllRequests();
+      setRequests(all);
+    } catch (e) {
+      console.warn('Failed to load requests:', e);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    refreshList();
+  }, []);
 
   const filtered = requests.filter((r) => {
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const match = (r.description && r.description.toLowerCase().includes(q)) ||
+      const match =
+        (r.description && r.description.toLowerCase().includes(q)) ||
         (r.resident_name && r.resident_name.toLowerCase().includes(q)) ||
-        (r.locality_name && r.locality_name.toLowerCase().includes(q));
+        (r.locality_name && r.locality_name.toLowerCase().includes(q)) ||
+        (r.id && r.id.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;
   });
 
-  const handleAssignToMe = (reqId: string) => {
-    mockDb.updateRequestStatus(
+  const handleAssignToMe = async (reqId: string) => {
+    await AssistanceRequestsService.updateStatus(
       reqId,
       'assigned',
       undefined,
-      user?.full_name || 'Assigned Volunteer'
+      user?.full_name || 'Community Volunteer'
     );
-    refreshList();
+    await refreshList();
   };
 
-  const handleResolveSubmit = (reqId: string) => {
-    mockDb.updateRequestStatus(
+  const handleResolveSubmit = async (reqId: string) => {
+    await AssistanceRequestsService.updateStatus(
       reqId,
       'resolved',
-      resolutionNotes || 'Assistance successfully rendered by community volunteer network.',
-      user?.full_name || 'Volunteer'
+      resolutionNotes || 'Assistance successfully rendered by heat relief network.',
+      user?.full_name || 'Community Responder'
     );
     setResolvingId(null);
     setResolutionNotes('');
-    refreshList();
+    await refreshList();
   };
 
   const getStatusBadge = (status: string) => {
@@ -73,12 +90,15 @@ export const RequestsPage: React.FC = () => {
       case 'resolved':
         return { label: 'Resolved', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
       case 'assigned':
+      case 'in_progress':
         return { label: 'In Progress', class: 'bg-blue-50 text-[#1E60F2] border-blue-200' };
       case 'open':
       default:
-        return { label: 'Open', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+        return { label: 'Open (Pending)', class: 'bg-amber-50 text-amber-700 border-amber-200' };
     }
   };
+
+  const isResponder = isVolunteer || isAdmin;
 
   return (
     <div className="space-y-6 pb-20 max-w-7xl mx-auto px-2 sm:px-4">
@@ -92,13 +112,13 @@ export const RequestsPage: React.FC = () => {
             <span>Community Assistance Requests</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Request urgent drinking water, ORS hydration packs, or check-in support
+            Request urgent drinking water, ORS hydration packs, cooling shelter, or welfare support
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto btn-press"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto"
         >
           <PlusCircle className="w-4 h-4" />
           <span>New Assistance Request</span>
@@ -108,41 +128,61 @@ export const RequestsPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-[20px] border border-[#E5EDF5] shadow-xs">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {(['all', 'open', 'assigned', 'resolved'] as const).map(st => (
+          {[
+            { id: 'all', label: 'All Requests' },
+            { id: 'open', label: 'Pending / Open' },
+            { id: 'assigned', label: 'In Progress' },
+            { id: 'resolved', label: 'Resolved' }
+          ].map(st => (
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
-                statusFilter === st
+              key={st.id}
+              onClick={() => setStatusFilter(st.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                statusFilter === st.id
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {st === 'all' ? 'All Requests' : st}
+              {st.label}
             </button>
           ))}
         </div>
 
-        <div className="relative sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search requests..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none input-interactive"
-          />
+        <div className="flex items-center gap-2 sm:w-72">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by ID, name, location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={refreshList}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            title="Refresh list"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Requests List */}
       <div className="space-y-3">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="bg-white rounded-[20px] border border-[#E5EDF5] p-12 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-slate-300 border-t-[#1E60F2] rounded-full animate-spin" />
+            <span>Loading assistance requests...</span>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="bg-white rounded-[20px] border border-[#E5EDF5] p-12 text-center shadow-xs space-y-2">
             <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
             <h3 className="text-base font-bold text-slate-900">No Requests Found</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              There are currently no active assistance requests in this view.
+              There are currently no assistance requests matching your selected filter.
             </p>
           </div>
         ) : (
@@ -151,10 +191,13 @@ export const RequestsPage: React.FC = () => {
             return (
               <div
                 key={req.id}
-                className="bg-white rounded-[20px] border border-[#E5EDF5] p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-slate-300"
+                className="bg-white rounded-3xl border border-[#E5EDF5] p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-slate-300"
               >
-                <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="space-y-2 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                      {req.id}
+                    </span>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badge.class}`}>
                       {badge.label}
                     </span>
@@ -170,32 +213,45 @@ export const RequestsPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-700 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
                     {req.description}
                   </p>
 
+                  {/* Assigned volunteer badge */}
+                  {req.assigned_volunteer_name && req.status !== 'resolved' && (
+                    <div className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50/60 px-3 py-1 rounded-xl w-fit">
+                      <User className="w-3.5 h-3.5 text-[#1E60F2]" />
+                      <span>Assigned to: <strong>{req.assigned_volunteer_name}</strong></span>
+                    </div>
+                  )}
+
                   {req.resolution_notes && (
-                    <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 text-emerald-800 text-xs">
-                      <span className="font-bold">Resolution: </span>
-                      <span>{req.resolution_notes}</span>
+                    <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-emerald-900 text-xs space-y-0.5">
+                      <span className="font-bold block">Resolution Notes:</span>
+                      <span className="text-slate-700">{req.resolution_notes}</span>
+                      {req.resolved_at && (
+                        <span className="block text-[10px] text-slate-400 mt-1">
+                          Resolved {formatTimeAgo(req.resolved_at)}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2 self-end sm:self-center">
-                  {isVolunteer && req.status === 'open' && (
+                  {req.status === 'open' && (
                     <button
                       onClick={() => handleAssignToMe(req.id)}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#1E60F2] text-white text-xs font-semibold hover:bg-[#184FD0] transition-colors btn-press shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-[#1E60F2] text-white text-xs font-bold hover:bg-[#184FD0] transition-colors shadow-xs"
                     >
-                      Accept Request
+                      Claim Request
                     </button>
                   )}
 
-                  {isVolunteer && req.status === 'assigned' && (
+                  {req.status === 'assigned' && (
                     <button
                       onClick={() => setResolvingId(req.id)}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors btn-press shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-xs"
                     >
                       Mark Resolved
                     </button>
@@ -209,36 +265,36 @@ export const RequestsPage: React.FC = () => {
 
       {/* Resolution Modal */}
       {resolvingId && (
-        <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-[20px] max-w-md w-full p-6 border border-[#E5EDF5] shadow-modal space-y-4 animate-modal-enter">
+        <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Resolve Assistance Request</h3>
-              <button onClick={() => setResolvingId(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setResolvingId(null)} className="text-slate-400 hover:text-slate-600 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-2 text-xs">
               <label className="font-semibold text-slate-700 block">Resolution Notes / Action Taken</label>
               <textarea
                 value={resolutionNotes}
                 onChange={(e) => setResolutionNotes(e.target.value)}
-                placeholder="E.g., Delivered 5L potable water & ORS packets to residence."
+                placeholder="E.g., Delivered cold potable water & ORS packets to residence."
                 rows={3}
-                className="w-full p-3 rounded-xl border border-[#E5EDF5] bg-[#F5F8FC] text-slate-900 focus:outline-none input-interactive"
+                className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:bg-white focus:border-[#1E60F2]"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setResolvingId(null)}
-                className="px-4 py-2 rounded-xl border border-[#E5EDF5] text-slate-600 font-semibold text-xs"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleResolveSubmit(resolvingId)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
               >
                 Confirm Resolution
               </button>
@@ -252,7 +308,6 @@ export const RequestsPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
-          setIsModalOpen(false);
           refreshList();
         }}
       />

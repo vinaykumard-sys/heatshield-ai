@@ -42,11 +42,6 @@ export const FloatingAssistantWidget: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Hide floating widget if user is already on the full assistant page
-  if (location.pathname === '/assistant') {
-    return null;
-  }
-
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -151,6 +146,11 @@ export const FloatingAssistantWidget: React.FC = () => {
       }
     }, 450);
   };
+
+  // Only hide rendering when on the dedicated assistant page, after all hooks have executed
+  if (location.pathname === '/assistant') {
+    return null;
+  }
 
   return (
     <aside aria-label="AI Assistant" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 pointer-events-auto">

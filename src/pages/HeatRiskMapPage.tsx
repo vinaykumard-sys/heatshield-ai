@@ -96,32 +96,32 @@ export const HeatRiskMapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Interactive Map (occupies significant space, rounded-3xl / 24px) */}
+      {/* Main Interactive Map (occupies significant space, soft rounded-[28px]) */}
       <HeatRiskMap
         locations={locations}
-        className="h-[520px] sm:h-[620px] lg:h-[720px] rounded-[24px] border border-[#E5EDF5] shadow-xs overflow-hidden bg-white"
+        className="h-[520px] sm:h-[620px] lg:h-[720px] rounded-[28px] border border-[#E5EDF5] shadow-[0_12px_40px_-8px_rgba(15,23,42,0.08)] overflow-hidden bg-white"
       />
 
       {/* Clean Legend & Guidance Card */}
-      <div className="p-4 bg-white border border-[#E5EDF5] rounded-[20px] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-slate-600 shadow-xs">
+      <div className="p-4 sm:p-5 bg-white border border-[#E5EDF5] rounded-[24px] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-slate-600 shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#1E60F2]" />
-          <span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#1E60F2] ring-2 ring-blue-100 animate-pulse" />
+          <span className="font-medium text-slate-700">
             Click anywhere on the map or type in search to view hyperlocal heat index, air temp, and nearby shelters.
           </span>
         </div>
-        <div className="flex items-center gap-3 shrink-0 text-xs font-medium">
-          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-semibold">Low &lt;25</span>
-          <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 font-semibold">Moderate 25–49</span>
-          <span className="text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 font-semibold">High 50–74</span>
-          <span className="text-red-700 bg-red-50 px-2 py-0.5 rounded-md border border-red-200 font-semibold">Critical &ge;75</span>
+        <div className="flex items-center gap-2.5 shrink-0 text-xs font-semibold flex-wrap">
+          <span className="text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">Low &lt;25</span>
+          <span className="text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">Moderate 25–49</span>
+          <span className="text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">High 50–74</span>
+          <span className="text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-200 font-bold">Critical &ge;75</span>
         </div>
       </div>
 
       {/* Recent Location Reports & Bookmarks */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Reports List */}
-        <div className="lg:col-span-2 bg-white border border-[#E5EDF5] rounded-[20px] p-6 shadow-xs space-y-4">
+        <div className="lg:col-span-2 bg-white border border-[#E5EDF5] rounded-[28px] p-6 shadow-[0_6px_25px_rgba(15,23,42,0.03)] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1E60F2] flex items-center justify-center">
@@ -180,7 +180,7 @@ export const HeatRiskMapPage: React.FC = () => {
         </div>
 
         {/* Saved Favorites */}
-        <div className="bg-white border border-[#E5EDF5] rounded-[20px] p-6 shadow-xs space-y-4">
+        <div className="bg-white border border-[#E5EDF5] rounded-[28px] p-6 shadow-[0_6px_25px_rgba(15,23,42,0.03)] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">

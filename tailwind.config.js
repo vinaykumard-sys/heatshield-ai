@@ -8,18 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // HeatShield 2.0 Modern Design System
+        // HeatShield 2.0 Modern Weather OS Design System (SkySense / Horizon Aesthetic)
         app: {
-          bg: '#F5F8FC',        // Modern clean background
-          surface: '#FFFFFF',   // Pure White Card Surface
-          subtle: '#F8FAFC',    // Subtle pill/section fill
-          muted: '#EEF3F8',     // Muted fill / hover
-          border: '#E5EDF5',    // Very light blue-grey border
+          bg: '#EEF3FB',          // Soft pastel background
+          canvas: '#F4F7FE',      // Floating inner application canvas
+          backdrop: '#E9EFF8',    // Outer gradient tint
+          surface: '#FFFFFF',     // Pure White Card Surface
+          subtle: '#F8FAFC',      // Subtle pill/section fill
+          muted: '#EEF3F8',       // Muted fill / hover
+          border: '#E9F0FA',      // Soft pillowy border
+          'border-subtle': '#F1F5F9',
           'border-dark': '#CBD5E1',
         },
         slate: {
           900: '#0F172A',       // Deep Navy
-          800: '#1E293B',
+          800: '#1E293B',       // Primary Dark text
           700: '#334155',       // Secondary Dark
           600: '#475569',
           500: '#64748B',       // Cool Grey Muted
@@ -29,23 +32,34 @@ export default {
           50: '#F8FAFC',        // Ultra-subtle
         },
         brand: {
-          DEFAULT: '#1E60F2',   // HeatShield Trustworthy Blue
+          DEFAULT: '#2563EB',   // Royal / Vibrant Sky Blue
           50: '#EFF6FF',
           100: '#DBEAFE',
           200: '#BFDBFE',
           300: '#93C5FD',
           400: '#60A5FA',
           500: '#3B82F6',
-          600: '#1E60F2',
-          700: '#184FD0',
-          800: '#143EB0',
-          900: '#0F2C82',
+          600: '#2563EB',
+          700: '#1D4ED8',
+          800: '#1E40AF',
+          900: '#1E3A8A',
+        },
+        sky: {
+          DEFAULT: '#3B82F6',
+          soft: '#E0EDFD',
+        },
+        cooling: {
+          DEFAULT: '#06B6D4',
+          light: '#ECFEFF',
+          emerald: '#10B981',
         },
         heat: {
-          low: '#10B981',       // Soft Green
-          moderate: '#F59E0B',  // Soft Amber
-          warning: '#F97316',   // Soft Orange
-          critical: '#EF4444',  // Soft Red
+          safe: '#06B6D4',
+          low: '#10B981',       // Safe / Cooling Green
+          moderate: '#F59E0B',  // Moderate Heat Amber
+          warning: '#F97316',   // Warning / High Heat Orange
+          critical: '#EF4444',  // Critical Heat Red
+          'critical-dark': '#DC2626',
         },
         success: '#10B981',
         warning: '#F59E0B',
@@ -56,25 +70,35 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       borderRadius: {
-        'card': '20px',
-        'card-lg': '24px',
-        'card-sm': '14px',
+        'card': '28px',
+        'card-lg': '32px',
+        'card-sm': '16px',
+        'pill': '9999px',
+        '3xl': '24px',
+        '4xl': '28px',
+        '5xl': '32px',
       },
       boxShadow: {
-        'subtle': '0 1px 3px 0 rgba(15, 23, 42, 0.04)',
-        'card': '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02)',
-        'card-hover': '0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
-        'dropdown': '0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03)',
-        'modal': '0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.04)',
-        'floating': '0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04)',
+        'subtle': '0 2px 8px 0 rgba(20, 50, 90, 0.04)',
+        'soft-sm': '0 4px 16px -2px rgba(20, 50, 90, 0.05)',
+        'soft': '0 10px 35px -5px rgba(20, 50, 90, 0.06), 0 4px 16px -2px rgba(20, 50, 90, 0.04)',
+        'soft-lg': '0 20px 45px -10px rgba(20, 50, 90, 0.08), 0 8px 20px -4px rgba(20, 50, 90, 0.04)',
+        'soft-xl': '0 25px 60px -12px rgba(20, 50, 90, 0.12)',
+        'card': '0 10px 35px -5px rgba(20, 50, 90, 0.06), 0 4px 16px -2px rgba(20, 50, 90, 0.04)',
+        'card-hover': '0 16px 45px -8px rgba(20, 50, 90, 0.10), 0 6px 18px -2px rgba(20, 50, 90, 0.05)',
+        'dropdown': '0 12px 30px -4px rgba(20, 50, 90, 0.10), 0 4px 10px -2px rgba(20, 50, 90, 0.04)',
+        'modal': '0 25px 60px -10px rgba(20, 50, 90, 0.18), 0 10px 24px -5px rgba(20, 50, 90, 0.06)',
+        'floating': '0 20px 50px -12px rgba(20, 50, 90, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8)',
+        'glow-blue': '0 0 25px -4px rgba(37, 99, 235, 0.35)',
+        'glow-red': '0 0 25px -4px rgba(239, 68, 68, 0.35)',
       },
       keyframes: {
         'page-enter': {
-          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         'card-enter': {
-          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         'fade-in': {
@@ -99,7 +123,7 @@ export default {
         }
       },
       animation: {
-        'page-enter': 'page-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'page-enter': 'page-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'card-enter': 'card-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-in': 'fade-in 180ms ease-out forwards',
         'scale-in': 'scale-in 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards',

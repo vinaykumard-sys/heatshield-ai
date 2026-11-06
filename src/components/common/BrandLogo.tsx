@@ -14,19 +14,19 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   className = ''
 }) => {
   const sizeMap = {
-    sm: { icon: 'w-7 h-7', text: 'text-sm font-bold', badge: 'text-[9px] px-1.5 py-0.5' },
-    md: { icon: 'w-8 h-8', text: 'text-base font-bold', badge: 'text-[10px] px-1.5 py-0.5' },
-    lg: { icon: 'w-10 h-10', text: 'text-xl font-extrabold', badge: 'text-xs px-2 py-0.5' },
+    sm: { icon: 'w-7 h-7 rounded-xl', text: 'text-sm font-bold', badge: 'text-[9px] px-1.5 py-0.5' },
+    md: { icon: 'w-9 h-9 rounded-2xl', text: 'text-base font-bold', badge: 'text-[10px] px-2 py-0.5' },
+    lg: { icon: 'w-11 h-11 rounded-[18px]', text: 'text-xl font-extrabold', badge: 'text-xs px-2.5 py-0.5' },
   };
 
   const cfg = sizeMap[size];
 
   const Icon = (
-    <div className={`relative ${cfg.icon} shrink-0 rounded-xl bg-[#1E60F2] flex items-center justify-center shadow-xs transition-transform duration-150`}>
+    <div className={`relative ${cfg.icon} shrink-0 bg-gradient-to-tr from-[#2563EB] to-[#3B82F6] flex items-center justify-center shadow-[0_4px_14px_-2px_rgba(37,99,235,0.35)] transition-transform duration-150`}>
       <svg 
         viewBox="0 0 24 24" 
         fill="none" 
-        className="w-4.5 h-4.5 text-white" 
+        className="w-5 h-5 text-white" 
         stroke="currentColor" 
         strokeWidth="2.2" 
         strokeLinecap="round" 
@@ -36,7 +36,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         <path d="M12 8v8" strokeWidth="2.4" />
         <path d="M8 12h8" strokeWidth="2.4" />
       </svg>
-      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white" />
+      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-white shadow-2xs" />
     </div>
   );
 
@@ -45,14 +45,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   }
 
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+    <div className={`inline-flex items-center gap-3 select-none ${className}`}>
       {Icon}
       <div className="flex items-center gap-1.5">
-        <span className={`tracking-tight text-slate-900 ${cfg.text}`}>
+        <span className={`tracking-tight text-slate-800 ${cfg.text}`}>
           HeatShield
         </span>
         {showBadge && (
-          <span className={`font-mono font-semibold rounded-md bg-blue-50 text-[#1E60F2] border border-blue-200/60 ${cfg.badge}`}>
+          <span className={`font-mono font-bold rounded-full bg-blue-50 text-[#2563EB] border border-blue-200/70 shadow-2xs ${cfg.badge}`}>
             AI
           </span>
         )}

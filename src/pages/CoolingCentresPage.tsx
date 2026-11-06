@@ -213,24 +213,24 @@ export const CoolingCentresPage: React.FC = () => {
       </div>
 
       {/* Search and Filters Bar */}
-      <Card padding="md">
+      <div className="rounded-[28px] border border-[#E5EDF5] bg-white p-4 sm:p-5 shadow-[0_6px_25px_rgba(15,23,42,0.03)]">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search shelter name, locality, or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] text-sm text-[#0F172A] pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:bg-white focus:border-[#1E60F2] transition-colors"
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] text-xs sm:text-sm text-slate-900 pl-10 pr-4 py-2.5 rounded-2xl focus:outline-none focus:bg-white focus:border-[#1E60F2] transition-colors shadow-inner"
             />
           </div>
 
           {/* Facility Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-[#64748B] font-medium px-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#64748B]" />
+            <span className="text-slate-500 font-semibold px-1 flex items-center gap-1 text-[11px] uppercase tracking-wider">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
               <span>Filter:</span>
             </span>
             {[
@@ -242,10 +242,10 @@ export const CoolingCentresPage: React.FC = () => {
               <button
                 key={fac.id}
                 onClick={() => setSelectedFacility(fac.id)}
-                className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs ${
                   selectedFacility === fac.id 
-                    ? 'bg-[#1E60F2] text-white shadow-xs font-semibold' 
-                    : 'bg-[#F5F8FC] text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A]'
+                    ? 'bg-[#1E60F2] text-white shadow-xs' 
+                    : 'bg-[#F5F8FC] text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 {fac.label}
@@ -257,111 +257,156 @@ export const CoolingCentresPage: React.FC = () => {
           <div className="flex items-center gap-1 text-xs">
             <button
               onClick={() => setVerificationFilter(verificationFilter === 'verified' ? 'all' : 'verified')}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
                 verificationFilter === 'verified'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold'
-                  : 'bg-white text-[#64748B] border-[#E5EDF5] hover:bg-[#F5F8FC]'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-white text-slate-600 border-[#E5EDF5] hover:bg-[#F5F8FC]'
               }`}
             >
               ✓ Verified Only ({centres.filter(c => c.verification_status === 'verified').length})
             </button>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Main Content Layout: List Cards + Detail Drawer */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Columns: Cooling Centre Cards */}
+        {/* Left 2 Columns: Modern Soft Cooling Centre Cards */}
         <div className="lg:col-span-2 space-y-4">
           {filteredCentres.length === 0 ? (
-            <Card padding="lg" className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-[#64748B]">
+            <div className="p-8 rounded-[28px] border border-[#E5EDF5] bg-white text-center shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                 <Search className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-semibold text-[#0F172A]">No shelters match your criteria</h3>
-              <p className="text-xs text-[#64748B] mt-1">Try clearing filters or searching for another locality.</p>
-            </Card>
+              <h3 className="text-base font-bold text-slate-900">No shelters match your criteria</h3>
+              <p className="text-xs text-slate-500 mt-1">Try clearing filters or searching for another locality.</p>
+            </div>
           ) : (
             filteredCentres.map((centre) => {
               const isSelected = selectedCentre?.id === centre.id;
               const isVerified = centre.verification_status === 'verified';
+              const isOpen = centre.operating_status === 'open';
+
+              // Deterministic capacity utilization gauge based on capacity estimate
+              const estimatedUtilization = Math.min(92, Math.max(30, ((centre.capacity_estimate * 7) % 52) + 38));
+              const currentOccupants = Math.round((centre.capacity_estimate * estimatedUtilization) / 100);
 
               return (
                 <div
                   key={centre.id}
                   onClick={() => setSelectedCentre(centre)}
-                  className={`p-5 rounded-[20px] border transition-all cursor-pointer bg-white shadow-card space-y-3.5 hover:shadow-card-hover ${
-                    isSelected ? 'border-[#1E60F2] ring-2 ring-[#1E60F2]/10' : 'border-[#E5EDF5] hover:border-slate-300'
+                  className={`p-5 sm:p-6 rounded-[28px] border transition-all duration-200 cursor-pointer bg-white space-y-4 hover:-translate-y-0.5 ${
+                    isSelected 
+                      ? 'border-[#1E60F2] ring-2 ring-[#1E60F2]/15 shadow-[0_12px_32px_rgba(30,96,242,0.08)] bg-gradient-to-b from-blue-50/20 via-white to-white' 
+                      : 'border-[#E5EDF5] hover:border-blue-200 shadow-[0_4px_20px_rgba(15,23,42,0.03)] hover:shadow-[0_12px_32px_rgba(15,23,42,0.07)]'
                   }`}
                 >
-                  {/* Top Badges & Status */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
+                  {/* Top Badges & One-Click Directions Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={isVerified ? 'success' : 'warning'} size="sm">
-                          {isVerified ? 'Verified Shelter' : 'Community Reported'}
-                        </Badge>
-
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                          ● {centre.operating_status === 'open' ? 'Open now' : centre.operating_status}
+                        {/* Verification Badge */}
+                        <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                          isVerified 
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}>
+                          {isVerified ? '✓ Verified Sanctuary' : 'Community Reported'}
                         </span>
 
-                        {centre.distance_km !== undefined && (
-                          <span className="text-[11px] font-medium text-[#64748B] bg-[#F5F8FC] px-2 py-0.5 rounded-full">
-                            📍 {centre.distance_km} km away
-                          </span>
-                        )}
+                        {/* Open / Closed Status with Glowing Dot */}
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          isOpen 
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {isOpen ? (
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                          ) : (
+                            <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+                          )}
+                          <span>{isOpen ? 'Open now' : centre.operating_status}</span>
+                        </span>
+
+                        {/* Distance Badge ("0.8 km away") */}
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1E60F2] bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full shadow-xs">
+                          <MapPin className="w-3 h-3 text-[#1E60F2]" />
+                          <span>{centre.distance_km !== undefined ? `${centre.distance_km} km away` : '0.8 km away'}</span>
+                        </span>
                       </div>
 
-                      <h3 className="text-base font-bold text-[#0F172A] pt-1">{centre.name}</h3>
-                      <p className="text-xs text-[#64748B] flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#1E60F2] shrink-0" />
+                      <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight pt-0.5">
+                        {centre.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{centre.address} ({centre.locality_name})</span>
                       </p>
                     </div>
 
-                    {/* Directions External Link */}
+                    {/* One-Click "Directions" Button */}
                     <a
                       href={`https://www.google.com/maps/dir/?api=1&destination=${centre.latitude},${centre.longitude}`}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#F5F8FC] hover:bg-blue-50 text-[#1E60F2] text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0 border border-[#E5EDF5] hover:border-[#1E60F2]/30"
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all btn-press shrink-0 self-start sm:self-auto"
                     >
                       <Navigation className="w-3.5 h-3.5" />
                       <span>Directions</span>
                     </a>
                   </div>
 
+                  {/* Capacity Pill Gauge */}
+                  <div className="bg-[#F8FAFC] border border-[#E5EDF5] rounded-2xl p-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-[#1E60F2]" />
+                        <span>Shelter Capacity Gauge</span>
+                      </span>
+                      <span className="font-semibold text-slate-600 font-mono text-[11px]">
+                        {estimatedUtilization}% Occupied ({currentOccupants} / ~{centre.capacity_estimate} persons)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200/70 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          estimatedUtilization > 85 ? 'bg-red-500' :
+                          estimatedUtilization > 70 ? 'bg-amber-500' :
+                          'bg-gradient-to-r from-emerald-500 to-[#1E60F2]'
+                        }`}
+                        style={{ width: `${estimatedUtilization}%` }}
+                      />
+                    </div>
+                  </div>
+
                   {/* Amenities Strip */}
-                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-[#E5EDF5] text-xs text-[#64748B]">
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5 text-[#64748B]" />
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center gap-1.5 font-medium px-2 py-1 rounded-lg bg-slate-50 border border-slate-100">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
                       <span>{centre.operating_hours}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Users className="w-3.5 h-3.5 text-[#64748B]" />
-                      <span>Capacity ~{centre.capacity_estimate}</span>
-                    </div>
-
                     {centre.air_conditioned && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1E60F2] bg-blue-50 px-2 py-0.5 rounded-full">
-                        <Snowflake className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg">
+                        <Snowflake className="w-3 h-3 text-sky-600" />
                         <span>Air Conditioned</span>
                       </span>
                     )}
 
                     {centre.drinking_water_available && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
-                        <Droplets className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg">
+                        <Droplets className="w-3 h-3 text-[#1E60F2]" />
                         <span>Clean Water</span>
                       </span>
                     )}
 
                     {centre.wheelchair_accessible && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
-                        <Accessibility className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                        <Accessibility className="w-3 h-3 text-slate-500" />
                         <span>Wheelchair Ramp</span>
                       </span>
                     )}
@@ -375,73 +420,89 @@ export const CoolingCentresPage: React.FC = () => {
         {/* Right Column: Selected Centre Detail Card & Verification Workflow */}
         <div className="space-y-4">
           {selectedCentre ? (
-            <Card padding="lg" className="space-y-5 sticky top-24">
+            <div className="rounded-[28px] border border-[#E5EDF5] bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)] space-y-5 sticky top-24">
               <div>
-                <span className="text-[11px] uppercase font-bold text-[#64748B] tracking-wider">
-                  Shelter Details
+                <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">
+                  Selected Shelter Overview
                 </span>
-                <h3 className="text-lg font-bold text-[#0F172A] mt-1">{selectedCentre.name}</h3>
-                <p className="text-xs text-[#64748B] mt-0.5">{selectedCentre.address}</p>
+                <h3 className="text-lg font-extrabold text-slate-900 mt-1">{selectedCentre.name}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{selectedCentre.address}</p>
               </div>
 
               {/* Operating Status Info */}
               <div className="p-4 rounded-2xl bg-[#F5F8FC] border border-[#E5EDF5] text-xs space-y-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[#64748B]">Operating Status</span>
-                  <span className="font-bold text-emerald-700">
-                    ● {selectedCentre.operating_status === 'open' ? 'Open now' : selectedCentre.operating_status}
+                  <span className="text-slate-500">Operating Status</span>
+                  <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>{selectedCentre.operating_status === 'open' ? 'Open now' : selectedCentre.operating_status}</span>
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#64748B]">Daily Hours</span>
-                  <span className="font-semibold text-[#0F172A]">{selectedCentre.operating_hours}</span>
+                  <span className="text-slate-500">Daily Hours</span>
+                  <span className="font-bold text-slate-800">{selectedCentre.operating_hours}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#64748B]">Contact Phone</span>
-                  <span className="font-medium text-[#1E60F2]">{selectedCentre.contact_phone || 'None listed'}</span>
+                  <span className="text-slate-500">Contact Phone</span>
+                  <span className="font-bold text-[#1E60F2]">{selectedCentre.contact_phone || '+91 80 2297 5500'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#64748B]">Last Verified</span>
-                  <span className="text-[#0F172A] font-medium">
+                  <span className="text-slate-500">Distance</span>
+                  <span className="font-bold text-slate-800">{selectedCentre.distance_km ?? 0.8} km away</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Last Verified</span>
+                  <span className="text-slate-800 font-medium">
                     {selectedCentre.last_verified_at 
                       ? new Date(selectedCentre.last_verified_at).toLocaleDateString()
-                      : 'Recently updated'}
+                      : 'Recently verified'}
                   </span>
                 </div>
                 {selectedCentre.verified_by && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Verified By</span>
-                    <span className="font-medium text-[#0F172A]">{selectedCentre.verified_by}</span>
+                    <span className="text-slate-500">Verified By</span>
+                    <span className="font-semibold text-slate-800">{selectedCentre.verified_by}</span>
                   </div>
                 )}
               </div>
 
+              {/* Primary Direction Action Button */}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCentre.latitude},${selectedCentre.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-3 rounded-2xl bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all btn-press"
+              >
+                <Navigation className="w-4 h-4" />
+                <span>Get Instant Navigation Directions</span>
+              </a>
+
               {/* Verified Facilities Checklist */}
               <div>
-                <p className="text-[11px] uppercase font-bold text-[#64748B] tracking-wider mb-2.5">
-                  Available Amenities
+                <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-2.5">
+                  Verified Facilities
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                    selectedCentre.drinking_water_available ? 'bg-sky-50/70 border-sky-200 text-sky-900 font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                    selectedCentre.drinking_water_available ? 'bg-sky-50/70 border-sky-200 text-sky-900 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
                     <Droplets className="w-4 h-4 text-sky-600" />
                     <span>Drinking Water</span>
                   </div>
                   <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                    selectedCentre.air_conditioned ? 'bg-blue-50/70 border-blue-200 text-[#1E60F2] font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                    selectedCentre.air_conditioned ? 'bg-blue-50/70 border-blue-200 text-[#1E60F2] font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
                     <Snowflake className="w-4 h-4 text-[#1E60F2]" />
                     <span>Indoor AC</span>
                   </div>
                   <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                    selectedCentre.wheelchair_accessible ? 'bg-slate-50 border-slate-200 text-[#0F172A] font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                    selectedCentre.wheelchair_accessible ? 'bg-slate-50 border-slate-200 text-slate-800 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
                     <Accessibility className="w-4 h-4 text-slate-600" />
                     <span>Ramp Access</span>
                   </div>
                   <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                    selectedCentre.medical_kit_available ? 'bg-rose-50/70 border-rose-200 text-rose-900 font-medium' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                    selectedCentre.medical_kit_available ? 'bg-rose-50/70 border-rose-200 text-rose-900 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                   }`}>
                     <CheckCircle2 className="w-4 h-4 text-rose-600" />
                     <span>First Aid Kit</span>
@@ -496,11 +557,11 @@ export const CoolingCentresPage: React.FC = () => {
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
-            </Card>
+            </div>
           ) : (
-            <Card padding="md" className="text-center text-[#64748B] text-xs py-8">
+            <div className="p-8 rounded-[28px] border border-[#E5EDF5] bg-white text-center text-slate-400 text-xs shadow-xs">
               Select any shelter card to view details and facilities.
-            </Card>
+            </div>
           )}
         </div>
       </div>

@@ -39,8 +39,9 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
-export const AssistantPage: React.FC = () => {
+const AssistantPageContent: React.FC = () => {
   const { user } = useAuth();
   const { currentLocation, currentReading, currentRisk, selectedZone } = useLocationTracker();
   const { language, setLanguage } = useLanguage();
@@ -73,8 +74,15 @@ export const AssistantPage: React.FC = () => {
   };
 
   const [messages, setMessages] = useState<AssistantMessage[]>(() => {
-    const saved = mockDb.getAssistantMessages();
-    if (saved.length > 0) return saved;
+    try {
+      const saved = mockDb.getAssistantMessages();
+      if (Array.isArray(saved) && saved.length > 0) {
+        // Defensively sanitize any corrupted entries
+        return saved.filter(m => m && typeof m.text === 'string');
+      }
+    } catch (e) {
+      console.warn('Failed to load saved assistant messages:', e);
+    }
     return [getInitialWelcome(language)];
   });
 
@@ -417,7 +425,7 @@ export const AssistantPage: React.FC = () => {
                     >
                       {/* Message Content */}
                       <div className="whitespace-pre-line space-y-1.5">
-                        {msg.text.split('\n').map((line, idx) => {
+                        {(msg.text || '').split('\n').map((line, idx) => {
                           if (line.startsWith('**') && line.endsWith('**')) {
                             return (
                               <div
@@ -455,10 +463,10 @@ export const AssistantPage: React.FC = () => {
                         }`}
                       >
                         <span>
-                          {new Date(msg.created_at).toLocaleTimeString([], {
+                          {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit'
-                          })}
+                          }) : 'Just now'}
                         </span>
 
                         {!isUser && (
@@ -809,6 +817,17 @@ export const AssistantPage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+export const AssistantPage: React.FC = () => {
+  return (
+    <ErrorBoundary
+      fallbackTitle="HeatShield AI Safety Assistant Temporarily Unavailable"
+      fallbackMessage="We encountered an unexpected display issue with the AI Assistant. You can still access live heat risk updates, cooling centres, and community aid."
+    >
+      <AssistantPageContent />
+    </ErrorBoundary>
   );
 };
 
