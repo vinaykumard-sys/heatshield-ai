@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   Info,
   MapPin,
-  HeartPulse
+  HeartPulse,
+  Sun,
+  Footprints,
+  Building2,
+  ChevronRight
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocationTracker } from '../../context/LocationContext';
@@ -25,6 +29,38 @@ import { generateAssistantReply, getSpeechLocale, AssistantContext } from '../..
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Badge } from '../common/Badge';
 
+// 4 One-click resident prompts for widget empty state and quick action
+const WIDGET_PROMPTS = [
+  {
+    id: 'peak-heat',
+    title: 'Peak Heat Routine',
+    text: 'What should I do during peak heat today?',
+    icon: <Sun className="w-3.5 h-3.5 text-amber-600" />,
+    badgeBg: 'bg-amber-50 border-amber-100 text-amber-800'
+  },
+  {
+    id: 'exhaustion-vs-stroke',
+    title: 'Exhaustion vs Stroke',
+    text: 'Recognize signs of heat exhaustion vs heatstroke',
+    icon: <HeartPulse className="w-3.5 h-3.5 text-red-600" />,
+    badgeBg: 'bg-red-50 border-red-100 text-red-800'
+  },
+  {
+    id: 'seniors-pets',
+    title: 'Seniors & Pets Hours',
+    text: 'Safe walking hours for seniors & pets',
+    icon: <Footprints className="w-3.5 h-3.5 text-emerald-600" />,
+    badgeBg: 'bg-emerald-50 border-emerald-100 text-emerald-800'
+  },
+  {
+    id: 'cooling-shelters',
+    title: 'Cooling Shelters',
+    text: 'Nearby cooling shelters and hydration points',
+    icon: <Building2 className="w-3.5 h-3.5 text-[#1E60F2]" />,
+    badgeBg: 'bg-blue-50 border-blue-100 text-blue-800'
+  }
+];
+
 export const FloatingAssistantWidget: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,8 +70,15 @@ export const FloatingAssistantWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>(() => {
-    const list = mockDb.getAssistantMessages();
-    return list.slice(-10);
+    try {
+      const list = mockDb.getAssistantMessages();
+      if (Array.isArray(list) && list.length > 0) {
+        return list.slice(-8);
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   });
   const [inputText, setInputText] = useState('');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -53,7 +96,6 @@ export const FloatingAssistantWidget: React.FC = () => {
     isListening,
     permissionError,
     isNetworkBlocked,
-    networkError,
     toggleListening: handleToggleVoice,
     stopListening
   } = useSpeechRecognition({
@@ -144,7 +186,7 @@ export const FloatingAssistantWidget: React.FC = () => {
       if (reply.audioRecommended || isListening) {
         setTimeout(() => speakText(botMsg.id, botMsg.text), 300);
       }
-    }, 450);
+    }, 400);
   };
 
   // Only hide rendering when on the dedicated assistant page, after all hooks have executed
@@ -173,11 +215,11 @@ export const FloatingAssistantWidget: React.FC = () => {
         </button>
       )}
 
-      {/* Floating Chat Panel (Visible when open) */}
+      {/* Floating Chat Panel (Visible when open) - Rounded-3xl soft-card container */}
       {isOpen && (
-        <div className="w-[350px] sm:w-[400px] h-[520px] sm:h-[580px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] bg-white border border-[#E5EDF5] rounded-[20px] shadow-[0_20px_45px_-10px_rgba(15,23,42,0.18),0_8px_16px_-4px_rgba(15,23,42,0.08)] flex flex-col overflow-hidden animate-scale-in">
+        <div className="w-[360px] sm:w-[410px] h-[540px] sm:h-[600px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] bg-white border border-[#E5EDF5] rounded-3xl shadow-[0_20px_45px_-10px_rgba(15,23,42,0.18),0_8px_16px_-4px_rgba(15,23,42,0.08)] flex flex-col overflow-hidden animate-scale-in">
           {/* Header */}
-          <div className="p-3.5 bg-white border-b border-[#E5EDF5] flex items-center justify-between">
+          <div className="p-3.5 sm:p-4 bg-white border-b border-[#E5EDF5] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="relative">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1E60F2] shadow-2xs">
@@ -186,20 +228,20 @@ export const FloatingAssistantWidget: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white absolute -top-0.5 -right-0.5" />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-[#0F172A] tracking-tight">HeatShield AI</h3>
-                <p className="text-[10px] text-[#64748B]">Live Safety Assistant</p>
+                <h3 className="font-extrabold text-xs text-[#0F172A] tracking-tight">HeatShield AI</h3>
+                <p className="text-[10px] text-[#64748B]">Live Safety Advisor</p>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5">
               {/* Language toggle pills */}
-              <div className="flex items-center bg-[#F8FAFC] border border-[#E5EDF5] rounded-lg p-0.5 text-[10px]">
+              <div className="flex items-center bg-[#F8FAFC] border border-[#E5EDF5] rounded-xl p-0.5 text-[10px]">
                 {(['en', 'hi', 'kn'] as const).map(l => (
                   <button
                     key={l}
                     type="button"
                     onClick={() => setLanguage(l)}
-                    className={`px-2 py-0.5 rounded font-semibold transition-all duration-150 ${
+                    className={`px-2 py-0.5 rounded-lg font-bold transition-all duration-150 ${
                       language === l
                         ? 'bg-[#1E60F2] text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -217,7 +259,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                   setIsOpen(false);
                   navigate('/assistant');
                 }}
-                className="p-1.5 text-slate-400 hover:text-[#1E60F2] hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-[#1E60F2] hover:bg-blue-50 rounded-xl transition-colors"
                 title="Open Fullscreen Assistant"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
@@ -231,7 +273,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
                   setSpeakingId(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
                 title="Close Assistant"
               >
                 <X className="w-4 h-4" />
@@ -240,10 +282,10 @@ export const FloatingAssistantWidget: React.FC = () => {
           </div>
 
           {/* Quick Helplines Banner */}
-          <div className="px-3.5 py-1.5 bg-red-50/70 border-b border-red-100 flex items-center justify-between text-[11px] text-red-900 font-medium">
-            <span className="flex items-center gap-1">
+          <div className="px-3.5 py-1.5 bg-red-50/80 border-b border-red-100 flex items-center justify-between text-[11px] text-red-900 font-medium">
+            <span className="flex items-center gap-1 font-bold">
               <HeartPulse className="w-3 h-3 text-red-600" />
-              <span>Emergency Help:</span>
+              <span>Emergency:</span>
             </span>
             <div className="flex items-center gap-2 font-bold">
               <a href="tel:112" className="text-red-700 hover:underline">112 EMS</a>
@@ -253,82 +295,111 @@ export const FloatingAssistantWidget: React.FC = () => {
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-white">
-            {messages.length === 0 && (
-              <div className="text-center py-10 text-slate-400 text-xs space-y-2">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center mx-auto">
-                  <Bot className="w-5 h-5" />
+          <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gradient-to-b from-[#FBFDFF] to-white">
+            {/* If no user messages yet, show Clean Empty State with the 4 Resident Prompts */}
+            {messages.length === 0 ? (
+              <div className="py-3 px-1 space-y-4 animate-fade-in">
+                <div className="text-center space-y-1">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center mx-auto shadow-2xs">
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-extrabold text-xs text-[#0F172A]">HeatShield Assistant</h4>
+                  <p className="text-[11px] text-[#64748B] max-w-[260px] mx-auto leading-tight">
+                    Instant advice on heatstroke prevention, cooling shelters, and peak heat safety.
+                  </p>
                 </div>
-                <p className="font-semibold text-slate-800 text-xs">How can I assist you today?</p>
-                <p className="text-[11px] text-[#64748B] max-w-[240px] mx-auto">
-                  Ask about current heat levels, cooling centres, hydration, or emergency care.
-                </p>
+
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  {WIDGET_PROMPTS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSend(p.text)}
+                      className="p-2.5 rounded-2xl bg-white border border-slate-200/90 hover:border-[#1E60F2] text-left transition-all duration-150 shadow-2xs hover:shadow-xs group flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          {p.icon}
+                        </span>
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 group-hover:text-[#1E60F2] block leading-tight">
+                            {p.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block truncate max-w-[210px]">
+                            {p.text}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#1E60F2] shrink-0" />
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
+            ) : (
+              messages.map(m => {
+                const isUser = m.sender === 'user';
+                const isSpeaking = speakingId === m.id;
 
-            {messages.map(m => {
-              const isUser = m.sender === 'user';
-              const isSpeaking = speakingId === m.id;
-
-              return (
-                <div key={m.id} className={`flex gap-2 animate-card-enter ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  {!isUser && (
-                    <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot className="w-3 h-3" />
-                    </div>
-                  )}
-
-                  <div
-                    className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed transition-all shadow-2xs ${
-                      isUser
-                        ? 'bg-[#1E60F2] text-white rounded-tr-xs font-normal'
-                        : m.intent === 'medical_emergency'
-                        ? 'bg-red-50/80 text-[#0F172A] border border-red-200 rounded-tl-xs'
-                        : 'bg-[#F8FAFC] text-[#0F172A] border border-[#E5EDF5] rounded-tl-xs'
-                    }`}
-                  >
-                    <div className="whitespace-pre-line space-y-1">
-                      {m.text.split('\n').map((line, idx) => {
-                        if (line.startsWith('**') && line.endsWith('**')) {
-                          return (
-                            <div key={idx} className={`font-bold ${isUser ? 'text-white' : 'text-[#0F172A]'}`}>
-                              {line.replace(/\*\*/g, '')}
-                            </div>
-                          );
-                        }
-                        return <div key={idx}>{line}</div>;
-                      })}
-                    </div>
-
+                return (
+                  <div key={m.id} className={`flex gap-2 animate-card-enter ${isUser ? 'justify-end' : 'justify-start'}`}>
                     {!isUser && (
-                      <div className="mt-2 pt-1.5 border-t border-[#E5EDF5] flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={() => speakText(m.id, m.text)}
-                          className={`text-[10px] font-medium flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded ${
-                            isSpeaking
-                              ? 'bg-blue-100 text-[#1E60F2] font-semibold'
-                              : 'text-[#64748B] hover:text-[#1E60F2]'
-                          }`}
-                        >
-                          {isSpeaking ? (
-                            <>
-                              <VolumeX className="w-3 h-3 text-[#1E60F2] animate-pulse" />
-                              <span>Stop</span>
-                            </>
-                          ) : (
-                            <>
-                              <Volume2 className="w-3 h-3" />
-                              <span>Read</span>
-                            </>
-                          )}
-                        </button>
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center shrink-0 mt-0.5">
+                        <Bot className="w-3 h-3" />
                       </div>
                     )}
+
+                    <div
+                      className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed transition-all shadow-2xs ${
+                        isUser
+                          ? 'bg-[#1E60F2] text-white rounded-tr-xs font-normal'
+                          : m.intent === 'medical_emergency' || m.intent === 'medical_guidance'
+                          ? 'bg-red-50/80 text-[#0F172A] border border-red-200 rounded-tl-xs'
+                          : 'bg-white text-[#0F172A] border border-[#E5EDF5] rounded-tl-xs shadow-xs'
+                      }`}
+                    >
+                      <div className="whitespace-pre-line space-y-1">
+                        {m.text.split('\n').map((line, idx) => {
+                          if (line.startsWith('**') && line.endsWith('**')) {
+                            return (
+                              <div key={idx} className={`font-bold ${isUser ? 'text-white' : 'text-[#0F172A]'}`}>
+                                {line.replace(/\*\*/g, '')}
+                              </div>
+                            );
+                          }
+                          return <div key={idx}>{line}</div>;
+                        })}
+                      </div>
+
+                      {!isUser && (
+                        <div className="mt-2 pt-1.5 border-t border-[#E5EDF5] flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => speakText(m.id, m.text)}
+                            className={`text-[10px] font-medium flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded ${
+                              isSpeaking
+                                ? 'bg-blue-100 text-[#1E60F2] font-semibold'
+                                : 'text-[#64748B] hover:text-[#1E60F2]'
+                            }`}
+                          >
+                            {isSpeaking ? (
+                              <>
+                                <VolumeX className="w-3 h-3 text-[#1E60F2] animate-pulse" />
+                                <span>Stop</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3 h-3" />
+                                <span>Read</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
 
             {/* Typing indicator */}
             {isTyping && (
@@ -336,7 +407,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                 <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center shrink-0">
                   <Bot className="w-3 h-3" />
                 </div>
-                <div className="bg-[#F8FAFC] border border-[#E5EDF5] rounded-2xl rounded-tl-xs px-3 py-2 flex items-center gap-1 shadow-2xs">
+                <div className="bg-white border border-[#E5EDF5] rounded-2xl rounded-tl-xs px-3 py-2 flex items-center gap-1 shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1E60F2] animate-typing-1" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1E60F2] animate-typing-2" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1E60F2] animate-typing-3" />
@@ -346,53 +417,36 @@ export const FloatingAssistantWidget: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts Chips */}
+          {/* Quick Prompts Chips featuring the 4 core topics */}
           <div className="px-3 py-2 bg-[#F8FAFC] border-t border-[#E5EDF5] flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar">
-            <button
-              type="button"
-              onClick={() => handleSend(language === 'hi' ? 'अभी गर्मी जोखिम क्या है?' : language === 'kn' ? 'ಈಗ ಶಾಖದ ಅಪಾಯ ಎಷ್ಟಿದೆ?' : 'What is the current heat risk?')}
-              className="px-2.5 py-1 rounded-full bg-white border border-[#E5EDF5] text-slate-700 hover:border-[#1E60F2] hover:text-[#1E60F2] whitespace-nowrap shadow-2xs font-medium transition-all active:scale-95"
-            >
-              🔥 Heat Risk
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend(language === 'hi' ? 'शीतल आश्रय केंद्र कहाँ है?' : language === 'kn' ? 'ಶೀತಲ ಆಶ್ರಯ ಕೇಂದ್ರ ಎಲ್ಲಿದೆ?' : 'Where is the nearest cooling centre?')}
-              className="px-2.5 py-1 rounded-full bg-white border border-[#E5EDF5] text-slate-700 hover:border-[#1E60F2] hover:text-[#1E60F2] whitespace-nowrap shadow-2xs font-medium transition-all active:scale-95"
-            >
-              ❄️ Cooling Shelters
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend(language === 'hi' ? 'लू के लक्षण और उपचार' : language === 'kn' ? 'ಹೀಟ್‌ಸ್ಟ್ರೋಕ್ ಲಕ್ಷಣಗಳು' : 'Heatstroke symptoms and first aid')}
-              className="px-2.5 py-1 rounded-full bg-white border border-[#E5EDF5] text-slate-700 hover:border-[#1E60F2] hover:text-[#1E60F2] whitespace-nowrap shadow-2xs font-medium transition-all active:scale-95"
-            >
-              ⚠️ Heatstroke
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend(language === 'hi' ? 'पानी कितना पीना चाहिए?' : language === 'kn' ? 'ಎಷ್ಟು ನೀರು ಕುಡಿಯಬೇಕು?' : 'How much water should I drink?')}
-              className="px-2.5 py-1 rounded-full bg-white border border-[#E5EDF5] text-slate-700 hover:border-[#1E60F2] hover:text-[#1E60F2] whitespace-nowrap shadow-2xs font-medium transition-all active:scale-95"
-            >
-              💧 Hydration
-            </button>
+            {WIDGET_PROMPTS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => handleSend(p.text)}
+                className="px-2.5 py-1 rounded-full bg-white border border-[#E5EDF5] text-slate-700 hover:border-[#1E60F2] hover:text-[#1E60F2] whitespace-nowrap shadow-2xs font-semibold transition-all active:scale-95 flex items-center gap-1"
+              >
+                {p.icon}
+                <span>{p.title}</span>
+              </button>
+            ))}
           </div>
 
           {/* Input Footer */}
           <div className="p-2.5 bg-white border-t border-[#E5EDF5] space-y-2">
             {permissionError && (
-              <p className="text-[10px] text-red-700 bg-red-50 p-1.5 rounded-lg border border-red-200">
+              <p className="text-[10px] text-red-700 bg-red-50 p-1.5 rounded-xl border border-red-200">
                 {permissionError}
               </p>
             )}
 
             {isNetworkBlocked && (
-              <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg text-[10px] text-blue-900 flex items-center justify-between gap-1">
+              <div className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-[10px] text-blue-900 flex items-center justify-between gap-1">
                 <span className="truncate">Speech service unreachable. Type or use questions above.</span>
                 <button
                   type="button"
                   onClick={handleToggleVoice}
-                  className="px-2 py-0.5 rounded bg-[#1E60F2] text-white text-[10px] font-semibold shrink-0"
+                  className="px-2 py-0.5 rounded-lg bg-[#1E60F2] text-white text-[10px] font-semibold shrink-0"
                 >
                   Retry
                 </button>
@@ -400,7 +454,7 @@ export const FloatingAssistantWidget: React.FC = () => {
             )}
 
             {isListening && (
-              <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-800 animate-fade-in shadow-2xs">
+              <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-2xl text-[11px] text-red-800 animate-fade-in shadow-2xs">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-0.5 h-3.5 px-0.5 bg-white/60 rounded">
                     <span className="w-1 bg-red-600 rounded-full h-2 animate-waveform-1" />
@@ -408,7 +462,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     <span className="w-1 bg-red-600 rounded-full h-1.5 animate-waveform-3" />
                     <span className="w-1 bg-red-600 rounded-full h-3 animate-waveform-4" />
                   </div>
-                  <span className="font-semibold text-xs text-red-950">Listening... speak now</span>
+                  <span className="font-bold text-xs text-red-950">Listening... speak clearly</span>
                 </div>
                 <button
                   type="button"
@@ -416,7 +470,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     stopListening();
                     if (inputText.trim()) handleSend();
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] shadow-xs active:scale-95"
+                  className="px-2.5 py-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] shadow-xs active:scale-95"
                 >
                   Done → Send
                 </button>
@@ -441,7 +495,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     handleToggleVoice();
                   }
                 }}
-                className={`p-2 rounded-xl border transition-all duration-150 active:scale-95 ${
+                className={`p-2 rounded-2xl border transition-all duration-150 active:scale-95 ${
                   isListening
                     ? 'bg-red-600 text-white border-red-600 animate-pulse ring-2 ring-red-200 shadow-xs'
                     : 'bg-white hover:bg-slate-50 text-slate-700 border-[#E5EDF5] hover:border-[#1E60F2] shadow-2xs'
@@ -469,7 +523,7 @@ export const FloatingAssistantWidget: React.FC = () => {
                     ? 'ಶಾಖದ ಅಪಾಯ, ಶೀತಲ ಆಶ್ರಯ ಕೇಳಿ...'
                     : 'Ask about heat risk, shelters, safety...'
                 }
-                className={`flex-1 border rounded-xl px-3 py-2 text-xs text-[#0F172A] placeholder:text-[#64748B] focus:outline-none transition-all duration-150 ${
+                className={`flex-1 border rounded-2xl px-3 py-2 text-xs text-[#0F172A] placeholder:text-[#64748B] focus:outline-none transition-all duration-150 ${
                   isListening
                     ? 'bg-red-50/40 border-red-300 ring-1 ring-red-100'
                     : 'bg-[#F8FAFC] border-[#E5EDF5] focus:bg-white focus:border-[#1E60F2] focus:ring-2 focus:ring-blue-100'
@@ -480,7 +534,7 @@ export const FloatingAssistantWidget: React.FC = () => {
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="p-2 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] disabled:opacity-40 text-white shadow-xs transition-all active:scale-95"
+                className="p-2 rounded-2xl bg-[#1E60F2] hover:bg-[#184FD0] disabled:opacity-40 text-white shadow-xs transition-all active:scale-95"
                 title="Send query"
               >
                 <Send className="w-4 h-4" />

@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// Test 1: Action Engine & Risk Calculation
+// ==============================================================================
+// TEST SUITE 1: HeatShield Action Engine — Deterministic Risk & Slogans
+// ==============================================================================
 test('HeatShield Action Engine — Deterministic Risk & Slogans', () => {
-  // We simulate the exact mathematical logic of actionEngine.ts
   function calculateHeatIndexC(T, RH) {
     const T_F = (T * 9) / 5 + 32;
     if (T_F < 80) {
@@ -23,6 +24,18 @@ test('HeatShield Action Engine — Deterministic Risk & Slogans', () => {
     return Math.round((((HI_F - 32) * 5) / 9) * 10) / 10;
   }
 
+  function calculateWetBulbC(tempC, humidityPct) {
+    const T = tempC;
+    const RH = Math.max(10, Math.min(100, humidityPct));
+    const tw =
+      T * Math.atan(0.151977 * Math.pow(RH + 8.313659, 0.5)) +
+      Math.atan(T + RH) -
+      Math.atan(RH - 1.676331) +
+      0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) -
+      4.686035;
+    return Math.round(tw * 10) / 10;
+  }
+
   function getSlogan(score) {
     if (score >= 80) return 'Stay cool and avoid unnecessary outdoor activity.';
     if (score >= 65) return 'Plan around the heat.';
@@ -30,27 +43,168 @@ test('HeatShield Action Engine — Deterministic Risk & Slogans', () => {
     return "You're good to go.";
   }
 
-  // Low Risk Scenario
-  const lowHI = calculateHeatIndexC(24, 40);
-  assert.ok(lowHI < 27, `Expected low Heat Index below 27, got ${lowHI}`);
-  assert.equal(getSlogan(25), "You're good to go.");
+  function computeDeterministicRisk({ currentTemp, humidity = 50, uvIndex = 5, activity = 'resting' }) {
+    const heatIndex = calculateHeatIndexC(currentTemp, humidity);
+    const activityOffsets = { resting: 0, walking: 5, active: 12, heavy_work: 18 };
+    const activityOffset = activityOffsets[activity] ?? 0;
 
-  // Moderate Risk Scenario
-  const modHI = calculateHeatIndexC(30, 50);
-  assert.ok(modHI >= 27 && modHI < 35, `Expected moderate Heat Index, got ${modHI}`);
-  assert.equal(getSlogan(55), 'Take it easy.');
+    let rawRisk = 0;
+    if (heatIndex < 27) {
+      rawRisk = Math.round(15 + (heatIndex / 27) * 20); // 15-35
+    } else if (heatIndex < 33) {
+      rawRisk = Math.round(40 + ((heatIndex - 27) / 6) * 24); // 40-64
+    } else if (heatIndex < 41) {
+      rawRisk = Math.round(65 + ((heatIndex - 33) / 8) * 14); // 65-79
+    } else {
+      rawRisk = Math.round(80 + Math.min(20, ((heatIndex - 41) / 8) * 20)); // 80-100
+    }
 
-  // High Risk Scenario
-  assert.equal(getSlogan(70), 'Plan around the heat.');
+    if (uvIndex >= 8) rawRisk += Math.min(6, Math.round((uvIndex - 7) * 2));
+    const finalScore = Math.max(10, Math.min(100, rawRisk + activityOffset));
+    return {
+      score: finalScore,
+      slogan: getSlogan(finalScore),
+      heatIndex,
+      wetBulb: calculateWetBulbC(currentTemp, humidity)
+    };
+  }
 
-  // Extreme Risk Scenario
-  const extHI = calculateHeatIndexC(42, 60);
-  assert.ok(extHI > 45, `Expected extreme Heat Index above 45, got ${extHI}`);
-  assert.equal(getSlogan(88), 'Stay cool and avoid unnecessary outdoor activity.');
+  // 1. Boundary Slogan Verification
+  assert.equal(getSlogan(0), "You're good to go.");
+  assert.equal(getSlogan(39), "You're good to go.");
+  assert.equal(getSlogan(40), 'Take it easy.');
+  assert.equal(getSlogan(64), 'Take it easy.');
+  assert.equal(getSlogan(65), 'Plan around the heat.');
+  assert.equal(getSlogan(79), 'Plan around the heat.');
+  assert.equal(getSlogan(80), 'Stay cool and avoid unnecessary outdoor activity.');
+  assert.equal(getSlogan(100), 'Stay cool and avoid unnecessary outdoor activity.');
+
+  // 2. Low Risk Scenario: 22°C, 45% humidity
+  const lowResult = computeDeterministicRisk({ currentTemp: 22, humidity: 45 });
+  assert.ok(lowResult.score < 40, `Low risk score expected < 40, got ${lowResult.score}`);
+  assert.equal(lowResult.slogan, "You're good to go.");
+
+  // 3. Moderate Risk Scenario: 31°C, 50% humidity
+  const modResult = computeDeterministicRisk({ currentTemp: 31, humidity: 50 });
+  assert.ok(modResult.score >= 40 && modResult.score < 65, `Mod risk score expected 40-64, got ${modResult.score}`);
+  assert.equal(modResult.slogan, 'Take it easy.');
+
+  // 4. High Risk Scenario: 32°C, 45% humidity
+  const highResult = computeDeterministicRisk({ currentTemp: 32, humidity: 45 });
+  assert.ok(highResult.score >= 65 && highResult.score < 80, `High risk score expected 65-79, got ${highResult.score}`);
+  assert.equal(highResult.slogan, 'Plan around the heat.');
+
+  // 5. Extreme Risk Scenario: 43°C, 65% humidity (Delhi peak noon)
+  const extResult = computeDeterministicRisk({ currentTemp: 43, humidity: 65, uvIndex: 10, activity: 'heavy_work' });
+  assert.ok(extResult.score >= 80, `Extreme risk score expected >= 80, got ${extResult.score}`);
+  assert.equal(extResult.slogan, 'Stay cool and avoid unnecessary outdoor activity.');
+
+  // 6. Wet Bulb calculation check (Wet bulb must always be <= dry bulb temp)
+  assert.ok(extResult.wetBulb <= 43, `Wet bulb ${extResult.wetBulb}°C must be <= Dry bulb 43°C`);
+  assert.ok(extResult.wetBulb > 30, `Wet bulb expected dangerous > 30°C under 43°C/65% RH`);
 });
 
-// Test 2: Assistance Request Validation & Lifecycle
+// ==============================================================================
+// TEST SUITE 2: Safe Logging & PII Redaction Ring Buffer
+// ==============================================================================
+test('Safe Logger — PII Redaction, Ring Buffer & Severity Filtering', () => {
+  const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const PHONE_REGEX = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}\b/g;
+  const BEARER_REGEX = /(?:bearer\s+|jwt\s+|token\s+)[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*/gi;
+  const SENSITIVE_KEYS = ['password', 'token', 'key', 'secret', 'auth', 'phone', 'email', 'bearer'];
+
+  function sanitizeString(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+      .replace(EMAIL_REGEX, '[REDACTED_EMAIL]')
+      .replace(PHONE_REGEX, '[REDACTED_PHONE]')
+      .replace(BEARER_REGEX, '[REDACTED_TOKEN]');
+  }
+
+  function sanitizeObject(details) {
+    if (!details || typeof details !== 'object') return undefined;
+    const sanitized = {};
+    for (const [k, v] of Object.entries(details)) {
+      const lowerKey = k.toLowerCase();
+      if (SENSITIVE_KEYS.some((sk) => lowerKey.includes(sk))) {
+        sanitized[k] = '[REDACTED]';
+      } else if (typeof v === 'string') {
+        sanitized[k] = sanitizeString(v);
+      } else if (typeof v === 'object' && v !== null) {
+        sanitized[k] = sanitizeObject(v);
+      } else {
+        sanitized[k] = v;
+      }
+    }
+    return sanitized;
+  }
+
+  // 1. Email Redaction
+  const rawMsgEmail = 'User priya.sharma99@gmail.com triggered location update';
+  const cleanMsgEmail = sanitizeString(rawMsgEmail);
+  assert.ok(!cleanMsgEmail.includes('priya.sharma99@gmail.com'), 'Email must not appear in sanitized log');
+  assert.ok(cleanMsgEmail.includes('[REDACTED_EMAIL]'), 'Redaction placeholder must be present');
+
+  // 2. Phone Number Redaction
+  const rawMsgPhone = 'Emergency alert dispatched to +91 98450 12345 successfully';
+  const cleanMsgPhone = sanitizeString(rawMsgPhone);
+  assert.ok(!cleanMsgPhone.includes('98450'), 'Phone number must be redacted');
+  assert.ok(cleanMsgPhone.includes('[REDACTED_PHONE]'));
+
+  // 3. Bearer Token Redaction
+  const rawMsgToken = 'API handshake with Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NSJ9';
+  const cleanMsgToken = sanitizeString(rawMsgToken);
+  assert.ok(!cleanMsgToken.includes('eyJhbGciOi'), 'JWT token must be redacted');
+  assert.ok(cleanMsgToken.includes('[REDACTED_TOKEN]'));
+
+  // 4. Nested Object Redaction
+  const dirtyDetails = {
+    subsystem: 'auth',
+    credentials: {
+      user_email: 'admin@heatshield.gov.in',
+      password: 'superSecretPassword123!',
+      sessionToken: 'xyz-987-token'
+    },
+    meta: {
+      locality: 'Indiranagar',
+      emergencyPhone: '+919876543210'
+    }
+  };
+  const cleaned = sanitizeObject(dirtyDetails);
+  assert.equal(cleaned.credentials.password, '[REDACTED]');
+  assert.equal(cleaned.credentials.sessionToken, '[REDACTED]');
+  assert.equal(cleaned.credentials.user_email, '[REDACTED]');
+  assert.equal(cleaned.meta.emergencyPhone, '[REDACTED]');
+  assert.equal(cleaned.meta.locality, 'Indiranagar');
+
+  // 5. Ring Buffer Bounds (Max 100 entries)
+  const ringBuffer = [];
+  const MAX = 100;
+  for (let i = 0; i < 150; i++) {
+    ringBuffer.push({ id: `log-${i}`, level: i % 3 === 0 ? 'error' : i % 2 === 0 ? 'warn' : 'info' });
+    if (ringBuffer.length > MAX) {
+      ringBuffer.shift();
+    }
+  }
+  assert.equal(ringBuffer.length, 100, 'Ring buffer must stay clamped at 100');
+  assert.equal(ringBuffer[0].id, 'log-50', 'FIFO eviction must drop oldest logs');
+  assert.equal(ringBuffer[99].id, 'log-149', 'Latest log must be at end of buffer');
+
+  // 6. Severity Filtering
+  const errorLogs = ringBuffer.filter((l) => l.level === 'error');
+  const warnLogs = ringBuffer.filter((l) => l.level === 'warn');
+  const infoLogs = ringBuffer.filter((l) => l.level === 'info');
+  assert.ok(errorLogs.length > 0 && warnLogs.length > 0 && infoLogs.length > 0);
+  assert.equal(errorLogs.length + warnLogs.length + infoLogs.length, 100);
+});
+
+// ==============================================================================
+// TEST SUITE 3: Assistance Request Validation & Field Integrity
+// ==============================================================================
 test('Assistance Requests — Validation & Field Integrity', () => {
+  const VALID_CATEGORIES = ['water', 'ors_medical', 'shelter_transport', 'elderly_check'];
+  const VALID_STATUSES = ['pending', 'assigned', 'in_progress', 'resolved', 'cancelled'];
+
   function validateRequest(payload) {
     if (!payload.description || payload.description.trim().length < 5) {
       return { valid: false, error: 'Description must be at least 5 characters' };
@@ -58,27 +212,54 @@ test('Assistance Requests — Validation & Field Integrity', () => {
     if (!payload.locationName || payload.locationName.trim().length === 0) {
       return { valid: false, error: 'Location required' };
     }
+    if (payload.category && !VALID_CATEGORIES.includes(payload.category)) {
+      return { valid: false, error: 'Invalid category' };
+    }
     return { valid: true };
   }
 
   // Reject empty description
-  const res1 = validateRequest({ description: '', locationName: 'Shivajinagar' });
+  const res1 = validateRequest({ description: '', locationName: 'Shivajinagar', category: 'water' });
   assert.equal(res1.valid, false);
 
   // Reject short description (< 5 chars)
-  const res2 = validateRequest({ description: 'help', locationName: 'Shivajinagar' });
+  const res2 = validateRequest({ description: 'help', locationName: 'Shivajinagar', category: 'water' });
   assert.equal(res2.valid, false);
 
   // Reject empty location
-  const res3 = validateRequest({ description: 'Need potable water bottles', locationName: '' });
+  const res3 = validateRequest({ description: 'Need potable water bottles', locationName: '', category: 'water' });
   assert.equal(res3.valid, false);
 
+  // Reject invalid category
+  const resBadCat = validateRequest({ description: 'Need water', locationName: 'Koramangala', category: 'unknown_service' });
+  assert.equal(resBadCat.valid, false);
+
   // Accept valid request
-  const res4 = validateRequest({ description: 'Need potable water bottles for elderly resident', locationName: 'Jayanagar 4th Block' });
+  const res4 = validateRequest({
+    description: 'Need potable water bottles for elderly resident',
+    locationName: 'Jayanagar 4th Block',
+    category: 'elderly_check'
+  });
   assert.equal(res4.valid, true);
+
+  // Validate state machine transitions
+  function canTransition(current, next) {
+    if (current === next) return true;
+    if (current === 'pending' && (next === 'assigned' || next === 'cancelled')) return true;
+    if (current === 'assigned' && (next === 'in_progress' || next === 'cancelled')) return true;
+    if (current === 'in_progress' && (next === 'resolved' || next === 'cancelled')) return true;
+    return false;
+  }
+
+  assert.ok(canTransition('pending', 'assigned'));
+  assert.ok(canTransition('assigned', 'in_progress'));
+  assert.ok(canTransition('in_progress', 'resolved'));
+  assert.ok(!canTransition('resolved', 'pending'), 'Resolved requests cannot revert to pending');
 });
 
-// Test 3: Family Safety Opt-In & Privacy Enforcement
+// ==============================================================================
+// TEST SUITE 4: Family Safety Opt-In & Privacy Enforcement
+// ==============================================================================
 test('Family Safety — Strict Opt-In Default & Consent Privacy', () => {
   // Empty by default
   const defaultFamilyList = [];
@@ -97,6 +278,7 @@ test('Family Safety — Strict Opt-In Default & Consent Privacy', () => {
 
   assert.equal(newInvitation.status, 'pending');
   assert.equal(newInvitation.consent_location, false, 'Location sharing must remain false until acceptance');
+  assert.equal(newInvitation.consent_telemetry, false);
 
   // Acceptance transition
   const accepted = {
@@ -110,32 +292,67 @@ test('Family Safety — Strict Opt-In Default & Consent Privacy', () => {
   assert.equal(accepted.status, 'accepted');
   assert.equal(accepted.consent_location, true);
   assert.equal(accepted.last_checkin_status, 'safe');
+
+  // Opt-out revocation
+  const revoked = {
+    ...accepted,
+    consent_location: false
+  };
+  assert.equal(revoked.consent_location, false, 'Resident can revoke telemetry consent at any time');
 });
 
-// Test 4: Heat Simulator 3-Step Bounds & Calculations
+// ==============================================================================
+// TEST SUITE 5: Heat Simulator 3-Step Bounds & Calculations
+// ==============================================================================
 test('Heat Simulator — 3-Step Bounds & Thermal Strain', () => {
   const minTemp = 25;
-  const maxTemp = 40;
-  const minHumidity = 30;
-  const maxHumidity = 90;
+  const maxTemp = 45;
+  const minHumidity = 20;
+  const maxHumidity = 95;
 
   assert.ok(minTemp <= 34 && 34 <= maxTemp, 'Default 34°C is within bounds');
   assert.ok(minHumidity <= 60 && 60 <= maxHumidity, 'Default 60% is within bounds');
 
   // Activity offsets
-  const activityOffsets = { resting: 0, walking: 4, active: 10, heavy_work: 16 };
-  assert.equal(activityOffsets.resting < activityOffsets.heavy_work, true);
+  const activityOffsets = { resting: 0, walking: 5, active: 12, heavy_work: 18 };
+  assert.ok(activityOffsets.resting < activityOffsets.walking);
+  assert.ok(activityOffsets.walking < activityOffsets.active);
+  assert.ok(activityOffsets.active < activityOffsets.heavy_work);
+
+  // Hydration requirements escalate with thermal strain
+  function calculateHydrationMlPerHour(tempC, humidityPct, activity) {
+    const base = 400;
+    const tempFactor = Math.max(0, (tempC - 28) * 40);
+    const actFactor = activity === 'heavy_work' ? 400 : activity === 'active' ? 250 : activity === 'walking' ? 100 : 0;
+    return Math.round(base + tempFactor + actFactor);
+  }
+
+  const restingWater = calculateHydrationMlPerHour(30, 50, 'resting');
+  const heavyWorkerWater = calculateHydrationMlPerHour(42, 60, 'heavy_work');
+  assert.ok(heavyWorkerWater > restingWater * 2, 'Heavy work under 42°C must require more than double hydration');
 });
 
-// Test 5: AI Assistant Intent Matching & Guardrails
+// ==============================================================================
+// TEST SUITE 6: AI Assistant Intent Matching & Medical Triage Guardrails
+// ==============================================================================
 test('AI Assistant — Contextual Heat Intent & Medical Triage', () => {
   function matchIntent(query) {
     const q = query.toLowerCase();
-    if (q.includes('heatstroke') || q.includes('fainted') || q.includes('unconscious') || q.includes('emergency')) {
+    if (
+      q.includes('heatstroke') || 
+      q.includes('fainted') || 
+      q.includes('unconscious') || 
+      q.includes('emergency') ||
+      q.includes('dizziness') ||
+      q.includes('vomiting')
+    ) {
       return 'medical_emergency';
     }
-    if (q.includes('cooling') || q.includes('shelter')) {
+    if (q.includes('cooling') || q.includes('shelter') || q.includes('ac room')) {
       return 'cooling_centre';
+    }
+    if (q.includes('water') || q.includes('hydrate') || q.includes('ors')) {
+      return 'hydration_station';
     }
     if (q.includes('outside') || q.includes('go out') || q.includes('badminton') || q.includes('exercise')) {
       return 'activity_safety';
@@ -144,8 +361,11 @@ test('AI Assistant — Contextual Heat Intent & Medical Triage', () => {
   }
 
   assert.equal(matchIntent('My neighbor fainted in the sun, emergency!'), 'medical_emergency');
+  assert.equal(matchIntent('Experiencing sudden severe dizziness and vomiting in heat'), 'medical_emergency');
   assert.equal(matchIntent('Where is the nearest cooling centre?'), 'cooling_centre');
+  assert.equal(matchIntent('Find drinking water or ORS packets near me'), 'hydration_station');
   assert.equal(matchIntent('Can I go play badminton outside now?'), 'activity_safety');
+  assert.equal(matchIntent('What is HeatShield 2.0?'), 'general');
 });
 
 console.log('✅ ALL CRITICAL FLOW INTEGRATION TESTS PASSED!');

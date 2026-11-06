@@ -236,7 +236,21 @@ export const WaterStationsPage: React.FC = () => {
 
           {/* Cards List */}
           <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-            {filteredStations.map(st => {
+            {filteredStations.length === 0 ? (
+              <div className="p-8 rounded-[24px] border border-[#E5EDF5] bg-white text-center shadow-xs space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-900">No registered facilities within 10 km</h4>
+                <p className="text-xs text-slate-500">
+                  No public water stations found in this area.
+                </p>
+                <div className="pt-1 text-xs font-bold text-red-600">
+                  Heat emergency helpline: 108 / 112
+                </div>
+              </div>
+            ) : (
+            filteredStations.map(st => {
               const isWorking = st.status === 'available' || (st.status as string) === 'operational';
               return (
                 <div
@@ -288,7 +302,7 @@ export const WaterStationsPage: React.FC = () => {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       </div>

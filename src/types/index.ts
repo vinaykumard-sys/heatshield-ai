@@ -10,7 +10,7 @@ export type RequestCategory = 'water' | 'cooling' | 'general_welfare' | 'cooling
 
 export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type RequestStatus = 'open' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled';
+export type RequestStatus = 'open' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled' | 'submitted' | 'in_review' | 'dispatched';
 
 export type NotificationType = 'environmental_alert' | 'critical_risk' | 'missed_checkin' | 'request_update' | 'volunteer_assignment' | 'system';
 

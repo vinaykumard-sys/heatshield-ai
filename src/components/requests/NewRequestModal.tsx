@@ -15,7 +15,8 @@ import {
   HeartPulse, 
   AlertTriangle,
   RotateCcw,
-  Check
+  Check,
+  Copy
 } from 'lucide-react';
 import { RequestCategory, RequestPriority } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -41,25 +42,45 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
   const [priority, setPriority] = useState<RequestPriority>('medium');
   const [description, setDescription] = useState('');
   const [locationName, setLocationName] = useState(
-    currentLocation?.localityName || 'Bengaluru Urban'
+    currentLocation?.localityName || currentLocation?.city || 'Bengaluru Urban'
   );
   const [contactName, setContactName] = useState(user?.full_name || '');
   const [contactPhone, setContactPhone] = useState(user?.phone || '');
 
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState<{
     requestId: string;
     status: string;
   } | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setValidationError(null);
     setSubmissionError(null);
+
+    // Client-side strict validation
+    if (!category) {
+      setValidationError('Please select an assistance category.');
+      return;
+    }
+
+    if (!description.trim() || description.trim().length < 5) {
+      setValidationError('Please provide at least 5 characters describing what assistance is needed.');
+      return;
+    }
+
+    if (!locationName.trim() || locationName.trim().length < 3) {
+      setValidationError('Please provide a specific street, landmark, or neighborhood for dispatch.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const result = await AssistanceRequestsService.submitRequest({
       category,
@@ -76,7 +97,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
     if (result.success && result.requestId) {
       setSubmissionSuccess({
         requestId: result.requestId,
-        status: 'Pending'
+        status: 'Submitted'
       });
       onSuccess(result.requestId);
     } else {
@@ -84,19 +105,25 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
     }
   };
 
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   const handleClose = () => {
     setSubmissionSuccess(null);
     setSubmissionError(null);
+    setValidationError(null);
     onClose();
   };
 
   const categories = [
-    { id: 'water', label: '💧 Water', desc: 'Bottled water, ORS electrolyte sachets', color: 'text-blue-600' },
-    { id: 'cooling', label: '🧊 Cooling / shelter', desc: 'Misting, shade access, fan cooling', color: 'text-cyan-600' },
-    { id: 'medical_aid', label: '🏥 Medical help', desc: 'First-aid, heat cramps, dehydration care', color: 'text-emerald-600' },
-    { id: 'emergency_aid', label: '🚨 Emergency assistance', desc: 'Urgent heatstroke stabilization support', color: 'text-red-600' },
-    { id: 'general_welfare', label: '👤 Welfare check', desc: 'Check on isolated senior citizen or child', color: 'text-orange-600' },
-    { id: 'other', label: '➕ Other relief aid', desc: 'Cooling centre transport or supplies', color: 'text-purple-600' },
+    { id: 'water', label: '💧 Water', desc: 'Bottled water, ORS electrolyte sachets' },
+    { id: 'cooling', label: '🧊 Cooling / shelter', desc: 'Misting, shade access, fan cooling' },
+    { id: 'general_welfare', label: '👤 Welfare check', desc: 'Check on isolated senior citizen or child' },
+    { id: 'cooling_centre_transport', label: '🚌 Transport aid', desc: 'Assistance to reach nearest cooling centre' },
+    { id: 'other', label: '➕ Other relief aid', desc: 'Emergency thermal supplies or guidance' },
   ];
 
   return (
@@ -110,7 +137,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">Community Assistance Request</h3>
-              <p className="text-xs text-slate-500">Mutual aid, cooling shelters, and water supply</p>
+              <p className="text-xs text-slate-500">Mutual aid, cooling shelters, and hydration supply</p>
             </div>
           </div>
           <button
@@ -132,20 +159,33 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <h4 className="text-xl font-bold text-slate-900 tracking-tight">Request received</h4>
+              <h4 className="text-xl font-bold text-slate-900 tracking-tight">Request Received & Registered</h4>
               <p className="text-xs sm:text-sm text-slate-600">
-                Your request has been sent to nearby community responders.
+                Your request has been officially recorded and queued for nearby community responders.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 max-w-xs mx-auto space-y-2 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 max-w-sm mx-auto space-y-2.5 text-xs">
               <div className="flex items-center justify-between text-slate-600">
-                <span>Request ID:</span>
-                <span className="font-mono font-bold text-slate-900">{submissionSuccess.requestId}</span>
+                <span className="font-medium">Request Tracking ID:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {submissionSuccess.requestId}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyId(submissionSuccess.requestId)}
+                    title="Copy Tracking ID"
+                    className="p-1 text-slate-500 hover:text-[#1E60F2] transition-colors"
+                  >
+                    {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
+
               <div className="flex items-center justify-between text-slate-600">
-                <span>Status:</span>
-                <span className="px-2 py-0.5 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
+                <span className="font-medium">Live Status:</span>
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-amber-50 text-amber-800 border border-amber-200">
                   {submissionSuccess.status}
                 </span>
               </div>
@@ -157,7 +197,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
                 onClick={handleClose}
                 className="w-full py-2.5 px-4 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] text-white font-bold text-xs shadow-xs transition-colors"
               >
-                View request
+                Done / View Requests
               </button>
             </div>
           </div>
@@ -172,7 +212,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
             <div className="space-y-1.5">
               <h4 className="text-xl font-bold text-slate-900 tracking-tight">
-                We couldn't send your request
+                Could Not Submit Request
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
                 {submissionError}
@@ -206,30 +246,31 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="leading-snug">
-                <strong>Non-Emergency Community Aid:</strong> For severe medical symptoms, loss of consciousness, or heatstroke, please dial <strong>108</strong> or <strong>112</strong> immediately.
+                <strong>Non-Emergency Aid:</strong> For severe symptoms, sudden confusion, or heatstroke, dial <strong>108</strong> (Ambulance) or <strong>112</strong> (Emergency) immediately.
               </p>
             </div>
 
-            {/* Step: How can we help? */}
+            {/* Validation Error Banner */}
+            {validationError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{validationError}</span>
+              </div>
+            )}
+
+            {/* Step: Category */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-900">
-                How can we help? Select what you need: <span className="text-red-500">*</span>
+                Assistance Category <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {categories.map((cat) => {
-                  const isSelected =
-                    category === cat.id ||
-                    (cat.id === 'medical_aid' && category === 'general_welfare') ||
-                    (cat.id === 'emergency_aid' && category === 'other');
+                  const isSelected = category === cat.id;
                   return (
                     <button
                       type="button"
                       key={cat.id}
-                      onClick={() => {
-                        if (cat.id === 'medical_aid') setCategory('general_welfare');
-                        else if (cat.id === 'emergency_aid') setCategory('other');
-                        else setCategory(cat.id as RequestCategory);
-                      }}
+                      onClick={() => setCategory(cat.id as RequestCategory)}
                       className={`p-3 rounded-2xl border text-left transition-all ${
                         isSelected
                           ? 'border-[#1E60F2] bg-blue-50/70 text-slate-900 font-semibold ring-2 ring-blue-500/20 shadow-2xs'
@@ -246,15 +287,20 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
             {/* Short Description */}
             <div>
-              <label className="block text-xs font-bold text-slate-900 mb-1">
-                Short description <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-900">
+                  Description of Need <span className="text-red-500">*</span>
+                </label>
+                <span className={`text-[10px] ${description.trim().length >= 5 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  {description.trim().length}/5 min characters
+                </span>
+              </div>
               <textarea
                 required
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Explain what is needed (e.g. 2 cold water bottles and ORS packs for senior citizen resting in shade)"
+                placeholder="Explain what is needed (e.g. 2 cold drinking water bottles and ORS sachets for elderly street vendor resting in shade)"
                 className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-[#1E60F2] focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -271,7 +317,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
                   required
                   value={locationName}
                   onChange={(e) => setLocationName(e.target.value)}
-                  placeholder="Street name, landmark, or neighborhood"
+                  placeholder="Street name, landmark, cross road, or ward"
                   className="w-full pl-9 pr-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-[#1E60F2] focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -281,7 +327,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Contact Name
+                  Contact / Resident Name
                 </label>
                 <div className="relative">
                   <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
@@ -297,7 +343,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Callback Phone
+                  Callback Phone Number
                 </label>
                 <div className="relative">
                   <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
@@ -314,13 +360,13 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
             {/* Priority Selector */}
             <div className="flex items-center justify-between pt-1">
-              <span className="text-xs font-semibold text-slate-700">Priority Level:</span>
+              <span className="text-xs font-semibold text-slate-700">Urgency Level:</span>
               <div className="flex items-center gap-1.5">
                 {(['low', 'medium', 'urgent'] as const).map((p) => (
                   <button
                     key={p}
                     type="button"
-                    onClick={() => setPriority(p === 'urgent' ? 'urgent' : p)}
+                    onClick={() => setPriority(p)}
                     className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-all ${
                       priority === p
                         ? p === 'urgent'
@@ -349,7 +395,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
                 disabled={isSubmitting || !description.trim() || !locationName.trim()}
                 className="px-6 py-2.5 rounded-xl bg-[#1E60F2] hover:bg-[#184FD0] text-white text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
               >
-                {isSubmitting ? 'Sending request...' : 'Submit request'}
+                {isSubmitting ? 'Registering request...' : 'Submit Assistance Request'}
               </button>
             </div>
           </form>

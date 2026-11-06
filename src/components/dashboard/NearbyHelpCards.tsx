@@ -13,7 +13,9 @@ import {
   Phone,
   ShieldCheck,
   Compass,
-  Eye
+  Eye,
+  AlertTriangle,
+  PhoneCall
 } from 'lucide-react';
 import { useLocationTracker } from '../../context/LocationContext';
 import { mockDb } from '../../lib/mockDb';
@@ -27,7 +29,7 @@ export interface NearbyHelpCardsProps {
 }
 
 // Haversine distance formula in kilometers
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -42,13 +44,15 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): 
 }
 
 // Format distance: < 1 km -> "155 m", >= 1 km -> "1.8 km"
-function formatDistance(distKm: number): string {
+export function formatDistance(distKm: number): string {
   if (distKm < 1) {
     const meters = Math.round(distKm * 1000);
     return `${meters} m`;
   }
   return `${distKm.toFixed(1)} km`;
 }
+
+const MAX_NEARBY_RADIUS_KM = 10;
 
 export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
   userLat: propsLat,
@@ -58,97 +62,70 @@ export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
 }) => {
   const context = useLocationTracker();
 
-  // Active coordinates
-  const lat = propsLat ?? context.currentLocation?.latitude ?? context.selectedZone?.latitude ?? 28.6139;
-  const lon = propsLon ?? context.currentLocation?.longitude ?? context.selectedZone?.longitude ?? 77.2090;
+  // Active coordinates from props, tracker, or selected zone
+  const lat = propsLat ?? context.currentLocation?.latitude ?? context.selectedZone?.latitude ?? 13.0854;
+  const lon = propsLon ?? context.currentLocation?.longitude ?? context.selectedZone?.longitude ?? 77.6250;
+  const locationLabel = context.currentLocation?.localityName || context.selectedZone?.name || 'your current area';
 
-  // Compute nearest facilities sorted by real proximity
-  const { nearestWater, nearestCooling, nearestMedical } = useMemo(() => {
+  // Compute nearest facilities sorted strictly by real proximity, capped at 10 km
+  const { nearestWater, nearestCooling, nearestMedical, allEmptyWithin10km } = useMemo(() => {
     const waterList = mockDb.getWaterStations();
-    const coolingList = mockDb.getCoolingCentres();
+    const coolingList = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
     const hospitalList = mockDb.getHospitals();
 
-    // Sort water stations
-    const sortedWater = [...waterList]
+    // Sort water stations and filter to within 10 km (NO FAKE DATA)
+    const validWater = waterList
       .map((w) => ({
         ...w,
         distKm: getDistanceKm(lat, lon, w.latitude, w.longitude),
       }))
+      .filter((w) => w.distKm <= MAX_NEARBY_RADIUS_KM)
       .sort((a, b) => a.distKm - b.distKm);
 
-    // Sort cooling centres
-    const sortedCooling = [...coolingList]
+    // Sort cooling centres and filter to within 10 km
+    const validCooling = coolingList
       .map((c) => ({
         ...c,
         distKm: getDistanceKm(lat, lon, c.latitude, c.longitude),
       }))
+      .filter((c) => c.distKm <= MAX_NEARBY_RADIUS_KM)
       .sort((a, b) => a.distKm - b.distKm);
 
-    // Sort hospitals
-    const sortedHospitals = [...hospitalList]
+    // Sort hospitals and filter to within 10 km
+    const validMedical = hospitalList
       .map((h) => ({
         ...h,
         distKm: getDistanceKm(lat, lon, h.latitude, h.longitude),
       }))
+      .filter((h) => h.distKm <= MAX_NEARBY_RADIUS_KM)
       .sort((a, b) => a.distKm - b.distKm);
 
+    const hasNone = validWater.length === 0 && validCooling.length === 0 && validMedical.length === 0;
+
     return {
-      nearestWater: sortedWater[0] || null,
-      nearestCooling: sortedCooling[0] || null,
-      nearestMedical: sortedHospitals[0] || null,
+      nearestWater: validWater[0] || null,
+      nearestCooling: validCooling[0] || null,
+      nearestMedical: validMedical[0] || null,
+      allEmptyWithin10km: hasNone,
     };
   }, [lat, lon]);
 
-  // Fallbacks if mock database is empty
-  const waterData = nearestWater || {
-    id: 'w-fallback',
-    name: 'Municipal Water ATM Point',
-    address: 'Near Central Metro Station, Gate 2',
-    distKm: 0.155,
-    operating_hours: '24 Hours',
-    latitude: lat + 0.001,
-    longitude: lon + 0.001,
-  };
-
-  const coolingData = nearestCooling || {
-    id: 'c-fallback',
-    name: 'Community Climate Cooling Sanctuary',
-    address: 'Sector Public Library & Community Hall',
-    distKm: 0.267,
-    operating_hours: '08:00 AM - 08:00 PM',
-    latitude: lat + 0.002,
-    longitude: lon + 0.002,
-  };
-
-  const medicalData = nearestMedical || {
-    id: 'm-fallback',
-    name: 'District Heat Stroke Emergency Hospital',
-    address: 'Block B, Sector Road (24/7 Heat ICU Ward)',
-    distKm: 1.8,
-    emergency_phone: '108 / 011-23365525',
-    latitude: lat + 0.015,
-    longitude: lon + 0.012,
-  };
-
-  // Google directions URL for hospital
-  const medicalDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${medicalData.latitude},${medicalData.longitude}`;
-
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* SECTION HEADER (Requirement 13) */}
+      {/* SECTION HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              <span>Nearby Help</span>
+              <span>Nearby Help & Lifelines</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-              Live Proximity
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              Within 10 km
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Verified life-support facilities closest to your active location, sorted by walking and driving distance.
+            Verified life-support facilities closest to {locationLabel}, sorted by real travel distance.
           </p>
         </div>
 
@@ -161,180 +138,302 @@ export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
         </Link>
       </div>
 
-      {/* 3 PRIMARY CARDS (Requirement 13: Water, Cooling, Medical) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-        
-        {/* CARD 1: WATER (Name, Distance, "Verified point", Action button [Locate]) */}
-        <div className="bg-white rounded-[24px] border border-[#E5EDF5] p-5 shadow-xs hover:-translate-y-1 hover:border-blue-300 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group">
-          <div className="space-y-3.5">
-            {/* Top row: Icon, "Verified point" badge, Distance pill */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100/80 text-[#1E60F2] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                <Droplets className="w-5 h-5" />
-              </div>
+      {/* OVERARCHING EMPTY STATE (NO FAKE DATA: when no facilities exist within 10 km) */}
+      {allEmptyWithin10km ? (
+        <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-6 sm:p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center mx-auto shadow-xs">
+            <AlertTriangle className="w-7 h-7" />
+          </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  <span>Verified point</span>
-                </span>
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
-                  {formatDistance(waterData.distKm)}
-                </span>
-              </div>
-            </div>
-
-            {/* Middle: Name & Address */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
-                Hydration Station
-              </div>
-              <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#1E60F2] transition-colors line-clamp-1">
-                {waterData.name}
-              </h4>
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
-                <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                <span>{waterData.address}</span>
-              </p>
+          <div className="max-w-md mx-auto space-y-1.5">
+            <h4 className="text-base font-extrabold text-slate-900">
+              No registered facilities within 10 km
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              No municipal cooling shelter, public water ATM, or heat emergency facility is registered within 10 km of <span className="font-semibold text-slate-800">{locationLabel}</span>.
+            </p>
+            <div className="pt-2 text-sm font-bold text-red-600 flex items-center justify-center gap-2">
+              <PhoneCall className="w-4 h-4 animate-bounce" />
+              <span>Heat emergency helpline: 108 / 112</span>
             </div>
           </div>
 
-          {/* Bottom Action: [Locate] button */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{('operating_hours' in waterData && waterData.operating_hours) || '24 Hours Open'}</span>
-            </span>
-
-            {onLocateOnMap ? (
-              <button
-                onClick={() => onLocateOnMap('water', waterData.id)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-[#1E60F2] text-[#1E60F2] hover:text-white border border-blue-200 hover:border-[#1E60F2] text-xs font-bold transition-all shadow-xs btn-press"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Locate</span>
-              </button>
-            ) : (
-              <Link
-                to="/water-stations"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-[#1E60F2] text-[#1E60F2] hover:text-white border border-blue-200 hover:border-[#1E60F2] text-xs font-bold transition-all shadow-xs btn-press"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Locate</span>
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* CARD 2: COOLING (Name, Distance, "Cooling centre", Action button [View]) */}
-        <div className="bg-white rounded-[24px] border border-[#E5EDF5] p-5 shadow-xs hover:-translate-y-1 hover:border-emerald-300 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group">
-          <div className="space-y-3.5">
-            {/* Top row: Icon, "Cooling centre" badge, Distance pill */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                <Building2 className="w-5 h-5" />
-              </div>
-
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  <span>Cooling centre</span>
-                </span>
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
-                  {formatDistance(coolingData.distKm)}
-                </span>
-              </div>
-            </div>
-
-            {/* Middle: Name & Address */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                Climate Shelter
-              </div>
-              <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
-                {coolingData.name}
-              </h4>
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
-                <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                <span>{coolingData.address}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Action: [View] button */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{('operating_hours' in coolingData && coolingData.operating_hours) || 'Open during peak heat'}</span>
-            </span>
-
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <a
+              href="tel:108"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Call Heat Ambulance (108)</span>
+            </a>
+            <a
+              href="tel:112"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>National Emergency (112)</span>
+            </a>
             <Link
               to="/cooling-centres"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold transition-all shadow-xs btn-press"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1E60F2] font-bold text-xs border border-blue-200 transition-colors"
             >
-              <Eye className="w-3.5 h-3.5" />
-              <span>View</span>
+              <Compass className="w-3.5 h-3.5" />
+              <span>Browse State Directory</span>
             </Link>
           </div>
         </div>
+      ) : (
+        /* 3 PRIMARY CARDS: Water, Cooling, Medical (Real data or category-specific honest empty state) */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          
+          {/* CARD 1: WATER */}
+          {nearestWater ? (
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <Droplets className="w-5 h-5" />
+                  </div>
 
-        {/* CARD 3: MEDICAL (Name, Distance, "Emergency facility", Action button [Directions]) */}
-        <div className="bg-white rounded-[24px] border border-[#E5EDF5] p-5 shadow-xs hover:-translate-y-1 hover:border-rose-300 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group">
-          <div className="space-y-3.5">
-            {/* Top row: Icon, "Emergency facility" badge, Distance pill */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100/80 text-rose-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                <HeartPulse className="w-5 h-5" />
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span>Verified point</span>
+                    </span>
+                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
+                      {formatDistance(nearestWater.distKm)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                    Water ATM Point
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#1E60F2] transition-colors line-clamp-1">
+                    {nearestWater.name}
+                  </h4>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
+                    <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                    <span>{nearestWater.address}</span>
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/80">
-                  <HeartPulse className="w-3 h-3 text-rose-600" />
-                  <span>Emergency facility</span>
+              <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{nearestWater.operating_hours || '24 Hours Open'}</span>
                 </span>
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
-                  {formatDistance(medicalData.distKm)}
-                </span>
+
+                {onLocateOnMap ? (
+                  <button
+                    onClick={() => onLocateOnMap('water', nearestWater.id)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-[#1E60F2] text-[#1E60F2] hover:text-white border border-blue-200 hover:border-[#1E60F2] text-xs font-bold transition-all shadow-xs"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    <span>Locate</span>
+                  </button>
+                ) : (
+                  <Link
+                    to="/water-stations"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-[#1E60F2] text-[#1E60F2] hover:text-white border border-blue-200 hover:border-[#1E60F2] text-xs font-bold transition-all shadow-xs"
+                  >
+                    <Compass className="w-3.5 h-3.5" />
+                    <span>Locate</span>
+                  </Link>
+                )}
               </div>
             </div>
-
-            {/* Middle: Name & Address */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
-                Heatstroke Care ICU
+          ) : (
+            /* Honest empty state for Water */
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 flex flex-col justify-between text-center space-y-3">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <Droplets className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">No Water Stations within 10 km</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  No registered water refill ATM found near your location.
+                </p>
+                <div className="text-[11px] font-semibold text-red-600">
+                  Heat helpline: 108 / 112
+                </div>
               </div>
-              <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-rose-700 transition-colors line-clamp-1">
-                {medicalData.name}
-              </h4>
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
-                <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                <span>{medicalData.address}</span>
-              </p>
+              <div className="pt-2 border-t border-slate-100">
+                <Link
+                  to="/water-stations"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200"
+                >
+                  <span>Water Directory</span>
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom Action: [Directions] button (deep links to Google Maps or /hospital-directory) */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <Phone className="w-3 h-3 text-rose-500" />
-              <span>{('emergency_phone' in medicalData && medicalData.emergency_phone) || 'SOS 108'}</span>
-            </span>
+          {/* CARD 2: COOLING */}
+          {nearestCooling ? (
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <Building2 className="w-5 h-5" />
+                  </div>
 
-            <a
-              href={medicalDirectionsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 hover:border-rose-600 text-xs font-bold transition-all shadow-xs btn-press"
-              title="Open directions in Google Maps"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>Directions</span>
-              <ExternalLink className="w-3 h-3 opacity-70" />
-            </a>
-          </div>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      <span>Cooling centre</span>
+                    </span>
+                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
+                      {formatDistance(nearestCooling.distKm)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                    Climate Shelter
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
+                    {nearestCooling.name}
+                  </h4>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
+                    <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                    <span>{nearestCooling.address}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{nearestCooling.operating_hours || 'Open peak heat'}</span>
+                </span>
+
+                <Link
+                  to="/cooling-centres"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold transition-all shadow-xs"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* Honest empty state for Cooling */
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 flex flex-col justify-between text-center space-y-3">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">No Cooling Centre within 10 km</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  No public cooling sanctuary registered within 10 km.
+                </p>
+                <div className="text-[11px] font-semibold text-red-600">
+                  Heat helpline: 108 / 112
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-100">
+                <Link
+                  to="/cooling-centres"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200"
+                >
+                  <span>Cooling Directory</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* CARD 3: MEDICAL */}
+          {nearestMedical ? (
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <HeartPulse className="w-5 h-5" />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      <HeartPulse className="w-3 h-3 text-rose-600" />
+                      <span>Emergency facility</span>
+                    </span>
+                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono">
+                      {formatDistance(nearestMedical.distKm)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
+                    Heatstroke Care ICU
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-rose-700 transition-colors line-clamp-1">
+                    {nearestMedical.name}
+                  </h4>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex items-start gap-1">
+                    <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                    <span>{nearestMedical.address}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-rose-500" />
+                  <span>{nearestMedical.emergency_phone || 'SOS 108'}</span>
+                </span>
+
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${nearestMedical.latitude},${nearestMedical.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 hover:border-rose-600 text-xs font-bold transition-all shadow-xs"
+                  title="Open directions in Google Maps"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>Directions</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              </div>
+            </div>
+          ) : (
+            /* Honest empty state for Medical */
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 flex flex-col justify-between text-center space-y-3">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <HeartPulse className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">No Hospitals within 10 km</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Call emergency dispatch directly for emergency transport.
+                </p>
+                <div className="text-[11px] font-semibold text-red-600">
+                  Heat emergency helpline: 108 / 112
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-2">
+                <a
+                  href="tel:108"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold"
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>Dial 108</span>
+                </a>
+                <Link
+                  to="/hospital-directory"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200"
+                >
+                  <span>Directory</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
         </div>
-
-      </div>
+      )}
     </div>
   );
 };

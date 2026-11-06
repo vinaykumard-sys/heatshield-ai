@@ -200,6 +200,30 @@ export const HospitalDirectoryPage: React.FC = () => {
       </div>
 
       {/* Hospital Cards Grid (Section 27) */}
+      {filteredHospitals.length === 0 ? (
+        <div className="p-8 rounded-3xl border border-slate-100 bg-white text-center shadow-sm space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h4 className="text-base font-bold text-slate-900">No registered facilities within 10 km</h4>
+          <p className="text-xs text-slate-500">
+            No hospitals match your search in this area. Call emergency dispatch immediately.
+          </p>
+          <div className="pt-1 text-sm font-bold text-red-600 flex items-center justify-center gap-1.5">
+            <PhoneCall className="w-4 h-4 animate-bounce" />
+            <span>Heat emergency helpline: 108 / 112</span>
+          </div>
+          <div className="pt-2">
+            <a
+              href="tel:108"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-colors"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>Call Heat Ambulance (108)</span>
+            </a>
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredHospitals.map(h => (
           <div
@@ -272,6 +296,7 @@ export const HospitalDirectoryPage: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };

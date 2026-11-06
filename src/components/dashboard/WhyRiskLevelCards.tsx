@@ -14,7 +14,8 @@ import {
   Satellite,
   Gauge,
   TrendingUp,
-  Cpu
+  Cpu,
+  Sparkles
 } from 'lucide-react';
 import { useLocationTracker } from '../../context/LocationContext';
 import { EnvironmentalReading, HeatRiskAssessment, LocationZone, RiskCategory } from '../../types';
@@ -51,10 +52,10 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
   const zone = propsZone !== undefined ? propsZone : context.selectedZone;
 
   // Real or realistic fallback metrics
-  const currentTemp = reading?.temperature_c ?? 38.5;
-  const feelsLike = reading?.feels_like_c ?? 42.1;
-  const humidity = reading?.relative_humidity_pct ?? 56;
-  const uvIndex = reading?.uv_index ?? 7.8;
+  const currentTemp = reading?.temperature_c ?? 28.5;
+  const feelsLike = reading?.feels_like_c ?? 31.0;
+  const humidity = reading?.relative_humidity_pct ?? 55;
+  const uvIndex = reading?.uv_index ?? 6.2;
   const wetBulb = reading?.wet_bulb_c ?? calculateWetBulb(currentTemp, humidity);
 
   // Urban heat island anomaly
@@ -63,9 +64,8 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
     return Math.round((factor - 1.0) * 10 * 10) / 10;
   }, [zone]);
 
-  // Baseline temperature variation vs morning (e.g. +1.8°C vs morning)
+  // Baseline temperature variation vs morning
   const tempDeltaMorning = useMemo(() => {
-    // Diurnal curve approximation: midday is typically +1.8°C to +3.5°C over 8 AM
     const delta = Math.round((currentTemp * 0.055) * 10) / 10;
     return delta > 0 ? `+${delta.toFixed(1)}°C vs morning` : `${delta.toFixed(1)}°C vs morning`;
   }, [currentTemp]);
@@ -98,7 +98,7 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
   const tempStatus = getTempStatus(currentTemp);
   const uvStatus = getUvStatus(uvIndex);
 
-  // 5 Clean Friendly Cards Data (Requirement 7)
+  // 5 Clean Friendly Cards Data
   const factorCards = [
     {
       id: 'temperature',
@@ -144,7 +144,7 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
     },
     {
       id: 'urban_heat',
-      name: 'Urban Heat',
+      name: 'Urban Heat Island',
       value: `+${uhiAnomaly.toFixed(1)}°C anomaly`,
       status: uhiAnomaly >= 3 ? 'High Trap' : 'Moderate',
       statusClass: uhiAnomaly >= 3 ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -173,27 +173,27 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
   ];
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* SECTION HEADER (Requirement 7: friendly titles) */}
+    <div className={`space-y-5 ${className}`}>
+      {/* SECTION HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
               Why is my heat risk <span className="capitalize text-[#1E60F2]">{riskLevelName}</span>?
             </h3>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70 hidden sm:inline-flex">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70">
               Explainable AI
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            These conditions are affecting your current heat risk.
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+            Biometeorological factors driving your neighborhood's current thermal stress score
           </p>
         </div>
 
         {/* Technical Breakdown Toggle Button */}
         <button
           onClick={() => setShowTechnicalBreakdown(!showTechnicalBreakdown)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs btn-press self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
           aria-expanded={showTechnicalBreakdown}
           aria-controls="technical-breakdown-panel"
         >
@@ -207,38 +207,38 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
         </button>
       </div>
 
-      {/* 5 CLEAN CARDS GRID (Requirement 7) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* 5 CLEAN CARDS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {factorCards.map((card) => {
           const IconComponent = card.icon;
           return (
             <div
               key={card.id}
-              className="bg-white rounded-[22px] border border-[#E5EDF5] p-4 shadow-xs hover:-translate-y-1 hover:border-blue-200/90 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group"
+              className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm shadow-blue-500/5 hover:-translate-y-1 hover:border-blue-200/90 hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
             >
               {/* Card Header: Icon & Status Badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <div className={`w-9 h-9 rounded-xl ${card.iconBg} border ${card.iconBorder} ${card.iconColor} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                <div className={`w-9 h-9 rounded-2xl ${card.iconBg} border ${card.iconBorder} ${card.iconColor} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
                   <IconComponent className="w-4 h-4" />
                 </div>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${card.statusClass}`}>
+                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${card.statusClass}`}>
                   {card.status}
                 </span>
               </div>
 
               {/* Card Body: Factor Name & Value */}
               <div className="space-y-1 mb-2.5">
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   {card.name}
                 </div>
-                <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+                <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-sans">
                   {card.value}
                 </div>
               </div>
 
-              {/* Card Footer: Simple Note (friendly explanation without jargon) */}
+              {/* Card Footer: Simple Note without jargon */}
               <div className="pt-2.5 border-t border-slate-100 mt-auto">
-                <p className="text-[11px] text-slate-600 leading-snug">
+                <p className="text-[11px] text-slate-500 leading-snug font-medium">
                   {card.note}
                 </p>
               </div>
@@ -247,15 +247,15 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
         })}
       </div>
 
-      {/* EXPANDABLE TECHNICAL BREAKDOWN PANEL (Requirement 7) */}
+      {/* EXPANDABLE TECHNICAL BREAKDOWN PANEL */}
       {showTechnicalBreakdown && (
         <div 
           id="technical-breakdown-panel"
-          className="bg-slate-900 text-white rounded-[24px] p-5 sm:p-6 shadow-md border border-slate-800 space-y-5 animate-fade-in"
+          className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-lg border border-slate-800 space-y-6 animate-fade-in"
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3.5">
+            <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400 flex items-center justify-center">
                 <Cpu className="w-4 h-4" />
               </div>
@@ -267,12 +267,12 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
                   </span>
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  How the AI engine combines biometeorological observations into a unified 0-100 heat risk index
+                  How the biometeorological engine synthesizes sensor telemetry into a 0-100 heat risk rating
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-mono text-blue-400">
-              Risk Score: {risk?.risk_score ?? 78}/100
+            <span className="text-[11px] font-mono text-blue-400 font-bold">
+              Current Risk Score: {risk?.risk_score ?? 48}/100
             </span>
           </div>
 
@@ -285,7 +285,7 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {factorCards.map((card) => (
-                <div key={card.id} className="bg-slate-800/80 rounded-xl p-3 border border-slate-700/60 space-y-1.5">
+                <div key={card.id} className="bg-slate-800/80 rounded-2xl p-3.5 border border-slate-700/60 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-300 font-semibold">{card.name}</span>
                     <span className="text-blue-400 font-mono font-bold">{card.weight}</span>
@@ -307,12 +307,12 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
           {/* Scientific Formulas & Ground Truth Telemetry Sources */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
             {/* Formulas */}
-            <div className="space-y-2 bg-slate-800/50 p-4 rounded-xl border border-slate-700/40">
+            <div className="space-y-2.5 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/40">
               <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Binary className="w-3.5 h-3.5" />
                 <span>Underlying Mathematical Models</span>
               </span>
-              <ul className="text-[11px] text-slate-300 space-y-1.5 font-mono">
+              <ul className="text-[11px] text-slate-300 space-y-2 font-mono">
                 <li>
                   <strong className="text-slate-100">Heat Index (NOAA/NWS):</strong> 
                   <span className="text-slate-400 block text-[10px] font-sans">
@@ -335,7 +335,7 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
             </div>
 
             {/* Telemetry Sensor Fusion */}
-            <div className="space-y-2 bg-slate-800/50 p-4 rounded-xl border border-slate-700/40">
+            <div className="space-y-2.5 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/40">
               <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Satellite className="w-3.5 h-3.5" />
                 <span>Multi-Source Telemetry Feeds</span>

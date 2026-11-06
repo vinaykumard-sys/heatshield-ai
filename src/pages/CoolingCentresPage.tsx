@@ -278,8 +278,11 @@ export const CoolingCentresPage: React.FC = () => {
               <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                 <Search className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">No shelters match your criteria</h3>
+              <h3 className="text-base font-bold text-slate-900">No registered cooling shelters within 10 km</h3>
               <p className="text-xs text-slate-500 mt-1">Try clearing filters or searching for another locality.</p>
+              <div className="pt-2 text-xs font-bold text-red-600">
+                Heat emergency helpline: 108 / 112
+              </div>
             </div>
           ) : (
             filteredCentres.map((centre) => {

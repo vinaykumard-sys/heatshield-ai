@@ -8,8 +8,8 @@ export interface SubmitRequestPayload {
   description: string;
   locationName: string;
   localityId?: string;
-  contactName: string;
-  contactPhone: string;
+  contactName?: string;
+  contactPhone?: string;
   userId?: string;
 }
 
@@ -20,59 +20,118 @@ export interface SubmitRequestResult {
   requestId?: string;
 }
 
+export interface StatusBadgeInfo {
+  label: 'Submitted' | 'In Review' | 'Dispatched' | 'Resolved' | 'Cancelled';
+  badgeClass: string;
+  dotColor: string;
+}
+
 const STORAGE_KEY = 'heatshield_assistance_requests';
 
 export class AssistanceRequestsService {
   /**
+   * Human-friendly status display mapping
+   * Standardizes legacy status keys ('open', 'assigned', 'in_progress') to HeatShield 2.0 UX standards:
+   * 'Submitted' | 'In Review' | 'Dispatched' | 'Resolved'
+   */
+  static getStatusDisplay(status: RequestStatus): StatusBadgeInfo {
+    switch (status) {
+      case 'resolved':
+        return {
+          label: 'Resolved',
+          badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          dotColor: 'bg-emerald-500'
+        };
+      case 'dispatched':
+      case 'in_progress':
+        return {
+          label: 'Dispatched',
+          badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
+          dotColor: 'bg-sky-500'
+        };
+      case 'in_review':
+      case 'assigned':
+        return {
+          label: 'In Review',
+          badgeClass: 'bg-blue-50 text-[#1E60F2] border-blue-200',
+          dotColor: 'bg-blue-500'
+        };
+      case 'cancelled':
+        return {
+          label: 'Cancelled',
+          badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
+          dotColor: 'bg-slate-400'
+        };
+      case 'submitted':
+      case 'open':
+      default:
+        return {
+          label: 'Submitted',
+          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+          dotColor: 'bg-amber-500'
+        };
+    }
+  }
+
+  /**
    * Submit a new assistance request with honest error handling and cloud/local persistence.
+   * Generates and returns a real Request ID ONLY upon successful persistence.
    */
   static async submitRequest(payload: SubmitRequestPayload): Promise<SubmitRequestResult> {
     // 1. Strict Validation
+    if (!payload.category) {
+      return {
+        success: false,
+        error: 'Please select a relief assistance category.'
+      };
+    }
+
     if (!payload.description || payload.description.trim().length < 5) {
       return {
         success: false,
-        error: 'Please provide a clear description of what assistance is required (at least 5 characters).'
+        error: 'Please describe the required assistance (minimum 5 characters).'
       };
     }
 
-    if (!payload.locationName || payload.locationName.trim().length === 0) {
+    if (!payload.locationName || payload.locationName.trim().length < 3) {
       return {
         success: false,
-        error: 'Please specify your location or neighborhood for responder dispatch.'
+        error: 'Please provide a valid location or landmark for dispatch (minimum 3 characters).'
       };
     }
 
-    // Generate human-friendly tracking ID
-    const trackingNum = Math.floor(10000 + Math.random() * 90000);
-    const trackingId = `REQ-${trackingNum}`;
     const nowIso = new Date().toISOString();
+    // Unique human-readable authentic tracking ID: REQ-XXXXX
+    const generatedTrackingId = `REQ-${Date.now().toString().slice(-5)}${Math.floor(100 + Math.random() * 900)}`;
 
     const newRequest: AssistanceRequest = {
-      id: trackingId,
+      id: generatedTrackingId,
       requested_by: payload.userId,
       locality_id: payload.localityId || 'loc-current',
       locality_name: payload.locationName.trim(),
-      resident_name: payload.contactName.trim() || 'Citizen Resident',
-      contact_phone: payload.contactPhone.trim(),
+      resident_name: payload.contactName?.trim() || 'Community Resident',
+      contact_phone: payload.contactPhone?.trim() || '',
       category: payload.category,
-      priority: payload.priority,
+      priority: payload.priority || 'medium',
       description: payload.description.trim(),
-      status: 'open',
+      status: 'submitted',
       created_at: nowIso
     };
 
-    // 2. Attempt Supabase live insert if client is available
+    // 2. Attempt Supabase live insert if client is active
     if (isSupabaseConfigured && supabase) {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const activeUserId = sessionData?.session?.user?.id;
 
-        // Map payload to Supabase schema columns
         const dbPayload: any = {
           category: payload.category,
-          priority: payload.priority,
+          priority: payload.priority || 'medium',
           description: payload.description.trim(),
-          status: 'open',
+          locality_name: payload.locationName.trim(),
+          resident_name: payload.contactName?.trim() || 'Community Resident',
+          contact_phone: payload.contactPhone?.trim() || '',
+          status: 'submitted',
           created_at: nowIso
         };
 
@@ -89,12 +148,12 @@ export class AssistanceRequestsService {
         if (!error && data) {
           const liveRequest: AssistanceRequest = {
             ...newRequest,
-            id: data.id || trackingId,
-            status: data.status || 'open',
+            id: data.id || generatedTrackingId,
+            status: data.status || 'submitted',
             created_at: data.created_at || nowIso
           };
 
-          // Cache in mockDb and local storage
+          // Cache in storage
           mockDb.saveRequest(liveRequest);
           this.saveToLocalStorage(liveRequest);
 
@@ -104,15 +163,10 @@ export class AssistanceRequestsService {
             requestId: liveRequest.id
           };
         } else if (error) {
-          console.warn('Supabase remote insert warning:', error.message);
-          // If the error was a real database constraint violation and not just offline/unauthenticated:
-          if (error.code && error.code !== '42501' && !error.message.includes('network')) {
-            // Report actual database reason
-            console.error('Database rejection:', error);
-          }
+          console.warn('Supabase remote insert fallback to local storage:', error.message);
         }
       } catch (err: any) {
-        console.warn('Error during Supabase request submission:', err);
+        console.warn('Cloud submission error, proceeding with local persistence:', err);
       }
     }
 
@@ -121,10 +175,16 @@ export class AssistanceRequestsService {
       mockDb.saveRequest(newRequest);
       this.saveToLocalStorage(newRequest);
 
+      // Verify persistence succeeded
+      const verified = this.getFromLocalStorage().some(r => r.id === generatedTrackingId);
+      if (!verified) {
+        throw new Error('Local storage verification failed');
+      }
+
       return {
         success: true,
         request: newRequest,
-        requestId: trackingId
+        requestId: generatedTrackingId
       };
     } catch (storageErr: any) {
       return {
@@ -166,7 +226,7 @@ export class AssistanceRequestsService {
               category: d.category || 'water',
               priority: d.priority || 'medium',
               description: d.description || '',
-              status: d.status || 'open',
+              status: d.status || 'submitted',
               assigned_volunteer_name: d.assigned_volunteer_name,
               resolution_notes: d.resolution_notes,
               resolved_at: d.resolved_at,
@@ -185,7 +245,7 @@ export class AssistanceRequestsService {
   }
 
   /**
-   * Update request status (e.g. assigned, in_progress, resolved)
+   * Update request status (e.g. submitted -> in_review -> dispatched -> resolved)
    */
   static async updateStatus(
     id: string,

@@ -6,7 +6,6 @@ import {
   Flame, 
   Thermometer, 
   Droplets, 
-  Wind, 
   Building2, 
   Sparkles, 
   Navigation, 
@@ -21,12 +20,19 @@ import {
   ChevronRight,
   Heart,
   X,
-  Layers
+  Stethoscope,
+  Trees,
+  PhoneCall,
+  Phone
 } from 'lucide-react';
 import { 
   LocationZone, 
   GeocodedPlace,
-  LocationHeatReport
+  LocationHeatReport,
+  WaterStation,
+  CoolingCentre,
+  HospitalResource,
+  HeatSafeRoute
 } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useLocationTracker } from '../../context/LocationContext';
@@ -34,13 +40,16 @@ import { mockDb } from '../../lib/mockDb';
 import { fetchLiveWeather } from '../../lib/weatherApi';
 import { searchGeographicalLocations, reverseGeocodeCoordinates } from '../../lib/geocodingService';
 import { generateLocationHeatReport } from '../../lib/locationReportEngine';
-import { LocationIntelligencePanel } from './LocationIntelligencePanel';
+import { LocationIntelligencePanel, FacilityDetails } from './LocationIntelligencePanel';
+
+export type SmartMapMode = 'heat_risk' | 'temperature' | 'water' | 'cooling' | 'medical' | 'routes';
 
 interface HeatRiskMapProps {
   locations?: LocationZone[];
   selectedLocationId?: string;
   onSelectLocation?: (location: LocationZone) => void;
   className?: string;
+  initialMode?: SmartMapMode;
 }
 
 interface LocalityTelemetry {
@@ -51,6 +60,28 @@ interface LocalityTelemetry {
   pred24?: number;
   pred48?: number;
   pred72?: number;
+}
+
+// Distance helper
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDist(distKm: number): string {
+  if (distKm < 1) {
+    return `${Math.round(distKm * 1000)} m`;
+  }
+  return `${distKm.toFixed(1)} km`;
 }
 
 // Helper for clean place pill labels
@@ -70,7 +101,7 @@ const getPlaceShortName = (fullName: string): string => {
     .replace(' Road', ' Rd');
 };
 
-// OpenStreetMap Raster Tiles (Keyless, verified high-reliability provider)
+// OpenStreetMap Raster Tiles
 const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
 
@@ -81,7 +112,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   locations = mockDb.getLocations(),
   selectedLocationId,
   onSelectLocation,
-  className = 'h-[720px]'
+  className = 'h-[720px]',
+  initialMode = 'heat_risk'
 }) => {
   const { t } = useLanguage();
   const { 
@@ -90,8 +122,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     isAnalyzingDifferentLocation, 
     returnToDeviceLocation, 
     detectLocation, 
-    analyzeCoordinates, 
-    selectCustomLocality 
+    analyzeCoordinates 
   } = useLocationTracker();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -105,13 +136,18 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const targetPinLayerRef = useRef<L.LayerGroup | null>(null);
   const coolingCentresLayerRef = useRef<L.LayerGroup | null>(null);
   const waterPointsLayerRef = useRef<L.LayerGroup | null>(null);
+  const medicalLayerRef = useRef<L.LayerGroup | null>(null);
+  const routesLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // State
+  // Map Style & Status
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'osm'>('osm');
   const [activeReport, setActiveReport] = useState<LocationHeatReport | null>(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [currentZoom, setCurrentZoom] = useState(12);
+  const [currentZoom, setCurrentZoom] = useState(13);
+
+  // Selected Facility Flyout / Card State
+  const [selectedFacility, setSelectedFacility] = useState<FacilityDetails | null>(null);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,16 +156,55 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchAbortRef = useRef<AbortController | null>(null);
 
-  // Horizon Controls & Interactive Modes (Section 9: Heat Risk, Temperature, Water, Cooling, Medical, Safe Routes)
+  // 6 Interactive Modes
+  const [mapMode, setMapMode] = useState<SmartMapMode>(initialMode);
   const [forecastHorizon, setForecastHorizon] = useState<'now' | 24 | 48 | 72>('now');
-  const [mapMode, setMapMode] = useState<'heat_risk' | 'temperature' | 'water' | 'cooling' | 'medical' | 'routes'>('heat_risk');
-  const [showCoolingCentres, setShowCoolingCentres] = useState(true);
-  const [showWaterPoints, setShowWaterPoints] = useState(true);
-  const [showMonitoringStations, setShowMonitoringStations] = useState(true);
 
   // Telemetry sync for base locations
   const [localityTelemetry, setLocalityTelemetry] = useState<Record<string, LocalityTelemetry>>({});
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+
+  // Resident active coordinates
+  const userLat = currentLocation.latitude || 13.0854;
+  const userLon = currentLocation.longitude || 77.6250;
+
+  // Real Distance & Facility Verification within 10 km (NO FAKE DATA)
+  const facilitiesWithin10km = useMemo(() => {
+    const allWaters = mockDb.getWaterStations();
+    const allCoolings = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
+    const allHospitals = mockDb.getHospitals();
+
+    const waters = allWaters
+      .map(w => ({ ...w, distKm: getDistanceKm(userLat, userLon, w.latitude, w.longitude) }))
+      .filter(w => w.distKm <= 10)
+      .sort((a, b) => a.distKm - b.distKm);
+
+    const coolings = allCoolings
+      .map(c => ({ ...c, distKm: getDistanceKm(userLat, userLon, c.latitude, c.longitude) }))
+      .filter(c => c.distKm <= 10)
+      .sort((a, b) => a.distKm - b.distKm);
+
+    const hospitals = allHospitals
+      .map(h => ({ ...h, distKm: getDistanceKm(userLat, userLon, h.latitude, h.longitude) }))
+      .filter(h => h.distKm <= 10)
+      .sort((a, b) => a.distKm - b.distKm);
+
+    return { waters, coolings, hospitals };
+  }, [userLat, userLon]);
+
+  // Check if current mode has no registered facilities within 10 km
+  const currentModeEmptyState = useMemo(() => {
+    if (mapMode === 'water' && facilitiesWithin10km.waters.length === 0) {
+      return 'No registered water stations within 10 km. Heat emergency helpline: 108 / 112';
+    }
+    if (mapMode === 'cooling' && facilitiesWithin10km.coolings.length === 0) {
+      return 'No registered cooling centres within 10 km. Heat emergency helpline: 108 / 112';
+    }
+    if (mapMode === 'medical' && facilitiesWithin10km.hospitals.length === 0) {
+      return 'No registered emergency hospitals within 10 km. Heat emergency helpline: 108 / 112';
+    }
+    return null;
+  }, [mapMode, facilitiesWithin10km]);
 
   // Real-time batch telemetry sync
   const syncAllLocalitiesTelemetry = useCallback(async (forceRefresh = false) => {
@@ -180,7 +255,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     return () => clearInterval(refreshTimer);
   }, [syncAllLocalitiesTelemetry]);
 
-  // Drop Sonar Pin Marker at Selected Coordinates (Target indicator with radar rings)
+  // Drop Sonar Pin Marker at Selected Coordinates
   const dropSonarTargetMarker = useCallback((lat: number, lon: number, title: string, temp?: number) => {
     const targetLayer = targetPinLayerRef.current;
     if (!targetLayer) return;
@@ -243,30 +318,27 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     L.marker([lat, lon], { icon: sonarIcon, zIndexOffset: 1000 }).addTo(targetLayer);
   }, []);
 
-  // Handle Location Selection (from Search or Selection)
+  // Handle Location Selection
   const handleSelectPlace = useCallback(async (place: GeocodedPlace) => {
     setIsSearchOpen(false);
     setSearchQuery('');
+    setSelectedFacility(null);
     setIsLoadingReport(true);
 
-    // 1. Move Map smoothly to chosen location using precision zoom
     if (mapInstanceRef.current) {
-      const targetZoom = place.type === 'city' ? 13 : 16;
+      const targetZoom = place.type === 'city' ? 13 : 15;
       mapInstanceRef.current.flyTo([place.latitude, place.longitude], targetZoom, {
         duration: 1.0,
         easeLinearity: 0.25
       });
     }
 
-    // 2. Drop instant animated sonar target pin
     dropSonarTargetMarker(place.latitude, place.longitude, place.shortName);
 
-    // 3. Generate end-to-end AI Location Heat Report
     try {
       const { report, weatherResult } = await generateLocationHeatReport(place);
       setActiveReport(report);
 
-      // Update sonar pin with live confirmed temperature
       dropSonarTargetMarker(
         place.latitude,
         place.longitude,
@@ -274,7 +346,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         weatherResult.reading.temperature_c
       );
 
-      // Synchronize with external callback and global LocationContext
       const matchedZone = locations.find(l => l.name.toLowerCase().includes(place.shortName.toLowerCase()));
       const targetZone: LocationZone = matchedZone || {
         id: `loc-custom-${Date.now()}`,
@@ -306,24 +377,20 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   }, [dropSonarTargetMarker, locations, onSelectLocation, analyzeCoordinates]);
 
-  // Handle Clicking Anywhere on the Map
+  // Handle Map Click
   const handleMapClick = useCallback(async (e: L.LeafletMouseEvent) => {
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
 
-    // Drop instant sonar marker at clicked coordinates
+    setSelectedFacility(null);
     dropSonarTargetMarker(lat, lon, `Selected (${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E)`);
     setIsLoadingReport(true);
 
     try {
-      // 1. Reverse Geocode Coordinates
       const geocoded = await reverseGeocodeCoordinates(lat, lon);
-
-      // 2. Generate AI Location Report with fresh weather
       const { report, weatherResult } = await generateLocationHeatReport(geocoded);
       setActiveReport(report);
 
-      // Update sonar pin with resolved place name & live temp
       dropSonarTargetMarker(
         lat, 
         lon, 
@@ -331,7 +398,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         weatherResult.reading.temperature_c
       );
 
-      // 3. Synchronize clicked coordinates to global LocationContext as analyzed area
       const clickedZone: LocationZone = {
         id: `loc-click-${Date.now()}`,
         name: geocoded.shortName,
@@ -359,7 +425,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   }, [dropSonarTargetMarker, onSelectLocation, analyzeCoordinates]);
 
-  // Helper to build tile layer
+  // Tile Layer Creator
   const createTileLayer = useCallback((style: 'dark' | 'satellite' | 'osm'): L.TileLayer => {
     if (style === 'satellite') {
       return L.tileLayer(ESRI_SATELLITE_URL, {
@@ -376,8 +442,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       });
     }
 
-    // Futuristic Dark Command: OpenStreetMap raster tiles with dark navy CSS shader filter
-    // Keyless, no watermarks, full global coverage, high resolution
     return L.tileLayer(OSM_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
       className: 'heatshield-dark-tiles',
@@ -385,7 +449,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     });
   }, []);
 
-  // Initialize Leaflet Map (Created once, updated reactively)
+  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -400,7 +464,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       attributionControl: true
     });
 
-    // Initial Tile Layer
     const tileLayer = createTileLayer('osm');
     tileLayer.addTo(map);
     currentTileLayerRef.current = tileLayer;
@@ -409,10 +472,11 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     zonesLayerRef.current = L.layerGroup().addTo(map);
     coolingCentresLayerRef.current = L.layerGroup().addTo(map);
     waterPointsLayerRef.current = L.layerGroup().addTo(map);
+    medicalLayerRef.current = L.layerGroup().addTo(map);
+    routesLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
     targetPinLayerRef.current = L.layerGroup().addTo(map);
 
-    // Zoom and click listeners
     map.on('zoomend', () => {
       setCurrentZoom(map.getZoom());
     });
@@ -428,7 +492,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     };
   }, [handleMapClick, createTileLayer]);
 
-  // Reactively track canonical location changes (GPS, search, click) and move map smoothly
+  // Recenter smoothly on canonical location changes
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !currentLocation.latitude || !currentLocation.longitude) return;
@@ -447,7 +511,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     map.invalidateSize();
   }, [currentLocation.latitude, currentLocation.longitude, currentLocation.locationSource]);
 
-  // Switch Tile Style on selection change
+  // Tile style switch
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -461,7 +525,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     currentTileLayerRef.current = newLayer;
   }, [mapStyle, createTileLayer]);
 
-  // Live Debounced Geocoding Search
+  // Live Geocoding Search
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
       setSearchSuggestions([]);
@@ -494,22 +558,29 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     };
   }, [searchQuery]);
 
-  // Render Base Monitoring Markers with Smart Clustering & Anti-Overlap
+  // =========================================================================
+  // RENDER INTERACTIVE MAP LAYERS BASED ON ACTIVE 6 MODES
+  // =========================================================================
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersLayer = markersLayerRef.current;
     const zonesLayer = zonesLayerRef.current;
     const coolingLayer = coolingCentresLayerRef.current;
     const waterLayer = waterPointsLayerRef.current;
+    const medicalLayer = medicalLayerRef.current;
+    const routesLayer = routesLayerRef.current;
 
-    if (!map || !markersLayer || !zonesLayer || !coolingLayer || !waterLayer) return;
+    if (!map || !markersLayer || !zonesLayer || !coolingLayer || !waterLayer || !medicalLayer || !routesLayer) return;
 
+    // Reset all dynamic layer groups
     markersLayer.clearLayers();
     zonesLayer.clearLayers();
     coolingLayer.clearLayers();
     waterLayer.clearLayers();
+    medicalLayer.clearLayers();
+    routesLayer.clearLayers();
 
-    // 1. Device GPS Location Pin (Rendered only when real GPS device position is available)
+    // 1. Device GPS Location Marker
     if (deviceLocation && deviceLocation.isRealDeviceLocation) {
       const deviceName = deviceLocation.localityName || 'Your Device';
       const deviceMarkerHtml = `
@@ -532,14 +603,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             position: relative;
             z-index: 10;
           ">
-            <span style="
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background-color: #1E60F2;
-              box-shadow: 0 0 8px #1E60F2;
-              display: inline-block;
-            "></span>
+            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #1E60F2; box-shadow: 0 0 8px #1E60F2; display: inline-block;"></span>
             <span>📍 YOU: ${deviceName}</span>
           </div>
         </div>
@@ -555,7 +619,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       L.marker([deviceLocation.latitude, deviceLocation.longitude], { icon: deviceIcon, zIndexOffset: 900 }).addTo(markersLayer);
     }
 
-    // Active Analyzed / Current Location Marker (placed at active coordinates if different from deviceLocation or if GPS not active)
+    // Active Analyzed Location Marker
     if (currentLocation.latitude && currentLocation.longitude) {
       const isSameAsDevice = deviceLocation && 
         Math.abs(currentLocation.latitude - deviceLocation.latitude) < 0.001 &&
@@ -567,8 +631,8 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         const activeLabel = isGps 
           ? `📍 YOU: ${currentLocation.localityName || 'Your Location'}`
           : isDefault
-          ? `📍 Default Area: ${currentLocation.localityName || 'Bengaluru Urban'}`
-          : `🎯 Analyzed: ${currentLocation.localityName || 'Selected Area'}`;
+          ? `📍 Area: ${currentLocation.localityName || 'Bengaluru Urban'}`
+          : `🎯 Active: ${currentLocation.localityName || 'Selected Area'}`;
 
         const activeBorderColor = isGps ? '#1E60F2' : isDefault ? '#F59E0B' : '#0284C7';
         const activeDotColor = isGps ? '#1E60F2' : isDefault ? '#F59E0B' : '#0284C7';
@@ -593,13 +657,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
               position: relative;
               z-index: 10;
             ">
-              <span style="
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background-color: ${activeDotColor};
-                display: inline-block;
-              "></span>
+              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${activeDotColor}; display: inline-block;"></span>
               <span>${activeLabel}</span>
             </div>
           </div>
@@ -616,130 +674,10 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
       }
     }
 
-    // 2. Cooling Centres Layer (rendered at zoom >= 12 to avoid clutter)
-    if (showCoolingCentres && currentZoom >= 12) {
-      const coolingCentres = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
-      coolingCentres.forEach(centre => {
-        const coolIcon = L.divIcon({
-          html: `
-            <div style="
-              background: #FFFFFF;
-              border: 1.5px solid #0284C7;
-              color: #0369A1;
-              border-radius: 9999px;
-              padding: 3px 9px;
-              font-size: 10px;
-              font-weight: 700;
-              box-shadow: 0 4px 12px rgba(2, 132, 199, 0.16);
-              display: flex;
-              align-items: center;
-              gap: 4px;
-              white-space: nowrap;
-              cursor: pointer;
-            ">
-              <span>❄️</span>
-              <span style="max-width: 95px; overflow: hidden; text-overflow: ellipsis;">${centre.name.split(' ')[0]}</span>
-            </div>
-          `,
-          className: 'cooling-map-pin',
-          iconSize: [110, 24],
-          iconAnchor: [55, 12]
-        });
-
-        const coolMarker = L.marker([centre.latitude, centre.longitude], { icon: coolIcon }).addTo(coolingLayer);
-        coolMarker.bindPopup(`
-          <div style="min-width: 250px; font-family: inherit; color: #0F172A; padding: 2px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-size: 10px; font-weight: 700; color: #0284C7; background: #E0F2FE; padding: 2px 8px; border-radius: 9999px;">
-                ❄️ Verified Cooling Sanctuary
-              </span>
-              <span style="font-size: 10px; font-weight: 700; color: #16A34A; background: #DCFCE7; padding: 2px 7px; border-radius: 9999px;">
-                ● ${centre.operating_status === 'open' ? 'Open now' : centre.operating_status}
-              </span>
-            </div>
-            <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin: 4px 0 2px 0;">
-              ${centre.name}
-            </div>
-            <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">
-              ${centre.address}
-            </div>
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 8px; font-size: 11px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr; gap: 4px; color: #334155;">
-              <div>⏰ <b>Hours:</b> ${centre.operating_hours}</div>
-              <div>👥 <b>Capacity:</b> ~${centre.capacity_estimate} persons</div>
-              <div>💧 <b>Clean Water:</b> ${centre.drinking_water_available ? 'Available' : 'No'}</div>
-            </div>
-            <a 
-              href="https://www.google.com/maps/dir/?api=1&destination=${centre.latitude},${centre.longitude}" 
-              target="_blank" 
-              rel="noreferrer"
-              style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #1E60F2; color: #FFFFFF; padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(30, 96, 242, 0.25);"
-            >
-              <span>Get Directions</span>
-              <span>→</span>
-            </a>
-          </div>
-        `, { className: 'heatshield-soft-popup' });
-      });
-    }
-
-    // 3. Public Water Points Layer (rendered at zoom >= 13)
-    if (showWaterPoints && currentZoom >= 13) {
-      const waterPoints = mockDb.getWaterPoints().filter(w => w.is_operational);
-      waterPoints.forEach(wp => {
-        const waterIcon = L.divIcon({
-          html: `
-            <div style="
-              background: #FFFFFF;
-              color: #1E40AF;
-              border: 1.5px solid #2563EB;
-              border-radius: 9999px;
-              padding: 3px 8px;
-              font-size: 10px;
-              font-weight: 700;
-              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.16);
-              display: flex;
-              align-items: center;
-              gap: 3px;
-              white-space: nowrap;
-              cursor: pointer;
-            ">
-              <span>💧 Water ATM</span>
-            </div>
-          `,
-          className: 'water-map-pin',
-          iconSize: [88, 24],
-          iconAnchor: [44, 12]
-        });
-
-        const waterMarker = L.marker([wp.latitude, wp.longitude], { icon: waterIcon }).addTo(waterLayer);
-        waterMarker.bindPopup(`
-          <div style="min-width: 220px; font-family: inherit; color: #0F172A; padding: 2px;">
-            <div style="font-size: 10px; font-weight: 700; color: #2563EB; background: #EFF6FF; padding: 2px 8px; border-radius: 9999px; display: inline-block; margin-bottom: 4px;">
-              💧 Public Water Point
-            </div>
-            <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin: 2px 0;">
-              ${wp.name}
-            </div>
-            <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">
-              Locality: ${wp.locality_name} • <span style="color: #16A34A; font-weight: 700;">Operational</span>
-            </div>
-            <a 
-              href="https://www.google.com/maps/dir/?api=1&destination=${wp.latitude},${wp.longitude}" 
-              target="_blank" 
-              rel="noreferrer"
-              style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #1E60F2; color: #FFFFFF; padding: 7px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(30, 96, 242, 0.25);"
-            >
-              <span>Get Directions</span>
-              <span>→</span>
-            </a>
-          </div>
-        `, { className: 'heatshield-soft-popup' });
-      });
-    }
-
-    // 4. Monitored Municipal Zones & Markers with Clustering & Collision Prevention
-    if (showMonitoringStations) {
-      // Step A: Prepare station data with current telemetry
+    // =========================================================================
+    // MODE 1 & 2: HEAT RISK & TEMPERATURE TELEMETRY
+    // =========================================================================
+    if (mapMode === 'heat_risk' || mapMode === 'temperature') {
       const stationData = locations.map(loc => {
         const telemetry = localityTelemetry[loc.id];
         const isNorth = loc.latitude > 25.0;
@@ -750,232 +688,337 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
         else if (forecastHorizon === 48) activeTemp = telemetry?.pred48 ?? (activeTemp + 1.8);
         else if (forecastHorizon === 72) activeTemp = telemetry?.pred72 ?? (activeTemp + 0.6);
 
-        // USER RULE: Red circle ONLY when temp > 35.0°C!
         const isAbove35 = activeTemp > 35.0;
-
-        return {
-          location: loc,
-          activeTemp,
-          isAbove35
-        };
+        return { location: loc, activeTemp, isAbove35 };
       });
 
-      // Step B: Render Red Danger Circles for >35°C zones
-      stationData.forEach(({ location: loc, activeTemp, isAbove35 }) => {
-        if (isAbove35) {
-          L.circle([loc.latitude, loc.longitude], {
-            radius: 2400 + (loc.estimated_population / 30),
-            color: '#EF4444',
-            weight: 2,
-            opacity: 0.85,
-            fillColor: '#DC2626',
-            fillOpacity: 0.22,
-            dashArray: '6, 6'
-          }).addTo(zonesLayer);
-        }
-      });
-
-      // Step C: Proximity Clustering Algorithm (Prevent Overlapping!)
-      // At zoom < 13: Cluster markers closer than 55px to each other
-      const clusterThresholdPx = currentZoom < 11 ? 75 : currentZoom < 13 ? 55 : 0;
-
-      if (clusterThresholdPx > 0) {
-        // Group into clusters based on screen distance
-        const clusters: Array<typeof stationData> = [];
-        const visited = new Set<string>();
-
-        stationData.forEach(item => {
-          if (visited.has(item.location.id)) return;
-          const currentPoint = map.latLngToLayerPoint([item.location.latitude, item.location.longitude]);
-          const currentCluster = [item];
-          visited.add(item.location.id);
-
-          stationData.forEach(candidate => {
-            if (visited.has(candidate.location.id)) return;
-            const candidatePoint = map.latLngToLayerPoint([candidate.location.latitude, candidate.location.longitude]);
-            const dist = Math.hypot(currentPoint.x - candidatePoint.x, currentPoint.y - candidatePoint.y);
-            if (dist < clusterThresholdPx) {
-              currentCluster.push(candidate);
-              visited.add(candidate.location.id);
-            }
-          });
-
-          clusters.push(currentCluster);
-        });
-
-        // Render each cluster
-        clusters.forEach(cluster => {
-          if (cluster.length > 1) {
-            // Multiple nearby markers grouped
-            const avgLat = cluster.reduce((sum, c) => sum + c.location.latitude, 0) / cluster.length;
-            const avgLon = cluster.reduce((sum, c) => sum + c.location.longitude, 0) / cluster.length;
-            const avgTemp = cluster.reduce((sum, c) => sum + c.activeTemp, 0) / cluster.length;
-            const hasCritical = cluster.some(c => c.isAbove35);
-
-            const clusterIcon = L.divIcon({
-              html: `
-                <div class="heatshield-cluster-pill" style="
-                  background: #FFFFFF;
-                  border: 1.5px solid ${hasCritical ? '#EF4444' : '#1E60F2'};
-                  box-shadow: 0 4px 14px ${hasCritical ? 'rgba(239, 68, 68, 0.25)' : 'rgba(30, 96, 242, 0.15)'};
-                  color: #0F172A;
-                  padding: 4px 10px;
-                  border-radius: 9999px;
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 6px;
-                ">
-                  <span class="heatshield-cluster-badge" style="background: ${hasCritical ? '#EF4444' : '#1E60F2'}; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 9999px;">
-                    ${cluster.length}
-                  </span>
-                  <span style="font-family: monospace; font-size: 11px; font-weight: 800; color: ${hasCritical ? '#DC2626' : '#1E60F2'};">
-                    ${avgTemp.toFixed(1)}°C
-                  </span>
-                </div>
-              `,
-              className: 'heatshield-cluster-icon',
-              iconSize: [95, 30],
-              iconAnchor: [47, 15]
-            });
-
-            const clusterMarker = L.marker([avgLat, avgLon], { icon: clusterIcon, zIndexOffset: 500 }).addTo(markersLayer);
-            clusterMarker.on('click', () => {
-              // Zoom in on cluster to resolve individual zones
-              map.flyTo([avgLat, avgLon], currentZoom + 2, { duration: 0.8 });
-            });
-          } else {
-            // Single marker at low zoom: compact circular badge
-            const { location: loc, activeTemp, isAbove35 } = cluster[0];
-            const compactIcon = L.divIcon({
-              html: `
-                <div style="
-                  width: 34px;
-                  height: 34px;
-                  border-radius: 50%;
-                  background: ${isAbove35 ? '#FEF2F2' : '#FFFFFF'};
-                  border: 2px solid ${isAbove35 ? '#EF4444' : '#1E60F2'};
-                  box-shadow: 0 4px 12px ${isAbove35 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(15, 23, 42, 0.1)'};
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  cursor: pointer;
-                  font-family: monospace;
-                  font-size: 11px;
-                  font-weight: 800;
-                  color: ${isAbove35 ? '#DC2626' : '#1E60F2'};
-                " title="${loc.name} (${activeTemp.toFixed(1)}°C)">
-                  ${Math.round(activeTemp)}°
-                </div>
-              `,
-              className: 'heatshield-compact-station',
-              iconSize: [34, 34],
-              iconAnchor: [17, 17]
-            });
-
-            const singleMarker = L.marker([loc.latitude, loc.longitude], { icon: compactIcon }).addTo(markersLayer);
-            singleMarker.on('click', () => {
-              handleSelectPlace({
-                id: loc.id,
-                displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
-                shortName: loc.name,
-                subArea: loc.name,
-                city: loc.city,
-                state: loc.state,
-                pincode: loc.pincode,
-                latitude: loc.latitude,
-                longitude: loc.longitude,
-                type: 'locality'
-              });
-            });
+      // Render Red Danger Circles for >35°C zones in heat_risk mode
+      if (mapMode === 'heat_risk') {
+        stationData.forEach(({ location: loc, isAbove35 }) => {
+          if (isAbove35) {
+            L.circle([loc.latitude, loc.longitude], {
+              radius: 2200 + (loc.estimated_population / 35),
+              color: '#EF4444',
+              weight: 2,
+              opacity: 0.85,
+              fillColor: '#DC2626',
+              fillOpacity: 0.20,
+              dashArray: '6, 6'
+            }).addTo(zonesLayer);
           }
         });
-      } else {
-        // Detailed zoom (>= 13): Render full, clear station pills with place names
-        stationData.forEach(({ location: loc, activeTemp, isAbove35 }) => {
-          const placeShort = getPlaceShortName(loc.name);
-          const markerHtml = `
-            <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-              ${isAbove35 ? `
-                <div class="marker-halo-ring" style="border: 2px solid #EF4444; background: rgba(239, 68, 68, 0.2);"></div>
-                <div class="marker-halo-ring marker-halo-ring-delayed" style="border: 1.5px solid #EF4444;"></div>
-              ` : ''}
-              <div style="
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                background: ${isAbove35 ? '#FEF2F2' : '#FFFFFF'};
-                border: 1.5px solid ${isAbove35 ? '#EF4444' : '#E2E8F0'};
-                box-shadow: 0 4px 14px ${isAbove35 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(15, 23, 42, 0.08)'};
-                padding: 3px 8px;
-                border-radius: 9999px;
-                font-family: inherit;
-                font-size: 11px;
-                font-weight: 700;
-                color: ${isAbove35 ? '#991B1B' : '#0F172A'};
-                white-space: nowrap;
-                position: relative;
-                z-index: 10;
-              ">
-                <span style="
-                  width: 7px;
-                  height: 7px;
-                  border-radius: 50%;
-                  background-color: ${isAbove35 ? '#EF4444' : '#1E60F2'};
-                  box-shadow: ${isAbove35 ? '0 0 8px #EF4444' : 'none'};
-                  display: inline-block;
-                "></span>
-                <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
-                <span style="
-                  font-size: 10px;
-                  font-family: monospace;
-                  font-weight: 800;
-                  color: #FFFFFF;
-                  background: ${isAbove35 ? '#EF4444' : '#1E60F2'};
-                  padding: 1.5px 5px;
-                  border-radius: 6px;
-                ">${activeTemp.toFixed(1)}°C</span>
-              </div>
+      }
+
+      // Station pills
+      stationData.forEach(({ location: loc, activeTemp, isAbove35 }) => {
+        const placeShort = getPlaceShortName(loc.name);
+        const distKm = getDistanceKm(userLat, userLon, loc.latitude, loc.longitude);
+        const distBadge = formatDist(distKm);
+
+        const tempColor = activeTemp >= 35 ? '#EF4444' : activeTemp >= 30 ? '#F59E0B' : '#1E60F2';
+        const tempBg = activeTemp >= 35 ? '#FEF2F2' : activeTemp >= 30 ? '#FFFBEB' : '#EFF6FF';
+
+        const markerHtml = `
+          <div style="position: relative; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+            ${isAbove35 ? `
+              <div class="marker-halo-ring" style="border: 2px solid #EF4444; background: rgba(239, 68, 68, 0.2);"></div>
+            ` : ''}
+            <div style="
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              background: ${tempBg};
+              border: 1.5px solid ${tempColor};
+              box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+              padding: 3px 8px;
+              border-radius: 9999px;
+              font-family: inherit;
+              font-size: 11px;
+              font-weight: 700;
+              color: #0F172A;
+              white-space: nowrap;
+              position: relative;
+              z-index: 10;
+            ">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background-color: ${tempColor}; display: inline-block;"></span>
+              <span style="max-width: 90px; overflow: hidden; text-overflow: ellipsis;">${placeShort}</span>
+              <span style="font-family: monospace; font-size: 10px; font-weight: 800; color: #FFFFFF; background: ${tempColor}; padding: 1.5px 5px; border-radius: 6px;">
+                ${activeTemp.toFixed(1)}°C
+              </span>
             </div>
-          `;
+          </div>
+        `;
 
-          const stationIcon = L.divIcon({
-            html: markerHtml,
-            className: 'heatshield-station-pill',
-            iconSize: [140, 28],
-            iconAnchor: [70, 14]
-          });
+        const stationIcon = L.divIcon({
+          html: markerHtml,
+          className: 'heatshield-station-pill',
+          iconSize: [135, 28],
+          iconAnchor: [67, 14]
+        });
 
-          const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
-          stnMarker.on('click', () => {
-            handleSelectPlace({
-              id: loc.id,
-              displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
-              shortName: loc.name,
-              subArea: loc.name,
-              city: loc.city,
-              state: loc.state,
-              pincode: loc.pincode,
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-              type: 'locality'
-            });
+        const stnMarker = L.marker([loc.latitude, loc.longitude], { icon: stationIcon }).addTo(markersLayer);
+        stnMarker.on('click', () => {
+          handleSelectPlace({
+            id: loc.id,
+            displayName: `${loc.name}, ${loc.city}, ${loc.state}`,
+            shortName: loc.name,
+            subArea: loc.name,
+            city: loc.city,
+            state: loc.state,
+            pincode: loc.pincode,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            type: 'locality'
           });
         });
-      }
+      });
     }
+
+    // =========================================================================
+    // MODE 3: WATER STATIONS & ATMS
+    // =========================================================================
+    if (mapMode === 'water') {
+      const waterStations = mockDb.getWaterStations();
+      waterStations.forEach(ws => {
+        const distKm = getDistanceKm(userLat, userLon, ws.latitude, ws.longitude);
+        const distBadge = formatDist(distKm);
+
+        const waterIcon = L.divIcon({
+          html: `
+            <div style="
+              background: #FFFFFF;
+              color: #1E40AF;
+              border: 1.5px solid #2563EB;
+              border-radius: 9999px;
+              padding: 3px 9px;
+              font-size: 11px;
+              font-weight: 700;
+              box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18);
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              white-space: nowrap;
+              cursor: pointer;
+            ">
+              <span>💧</span>
+              <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis;">${ws.name}</span>
+              <span style="font-size: 10px; font-family: monospace; background: #EFF6FF; color: #1D4ED8; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
+                ${distBadge}
+              </span>
+            </div>
+          `,
+          className: 'water-map-pin',
+          iconSize: [140, 26],
+          iconAnchor: [70, 13]
+        });
+
+        const waterMarker = L.marker([ws.latitude, ws.longitude], { icon: waterIcon }).addTo(waterLayer);
+        waterMarker.on('click', () => {
+          setSelectedFacility({
+            id: ws.id,
+            type: 'water',
+            name: ws.name,
+            categoryLabel: 'Public Water ATM Point',
+            address: ws.address || `${ws.locality_name}, ${ws.city}`,
+            latitude: ws.latitude,
+            longitude: ws.longitude,
+            distanceKm: distKm,
+            operating_hours: ws.operating_hours || '24 Hours Open',
+            status: ws.status === 'available' ? 'Available' : ws.status,
+            isVerified: true,
+            capacity: ws.water_type || 'RO Purified Drinking Water',
+          });
+          map.flyTo([ws.latitude, ws.longitude], 15, { duration: 0.8 });
+        });
+      });
+    }
+
+    // =========================================================================
+    // MODE 4: COOLING CENTRES & SANCTUARIES
+    // =========================================================================
+    if (mapMode === 'cooling') {
+      const coolingCentres = mockDb.getCoolingCentres().filter(c => c.verification_status === 'verified');
+      coolingCentres.forEach(cc => {
+        const distKm = getDistanceKm(userLat, userLon, cc.latitude, cc.longitude);
+        const distBadge = formatDist(distKm);
+
+        const coolIcon = L.divIcon({
+          html: `
+            <div style="
+              background: #FFFFFF;
+              border: 1.5px solid #0284C7;
+              color: #0369A1;
+              border-radius: 9999px;
+              padding: 3px 9px;
+              font-size: 11px;
+              font-weight: 700;
+              box-shadow: 0 4px 14px rgba(2, 132, 199, 0.20);
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              white-space: nowrap;
+              cursor: pointer;
+            ">
+              <span>❄️</span>
+              <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis;">${cc.name}</span>
+              <span style="font-size: 10px; font-family: monospace; background: #E0F2FE; color: #0369A1; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
+                ${distBadge}
+              </span>
+            </div>
+          `,
+          className: 'cooling-map-pin',
+          iconSize: [150, 26],
+          iconAnchor: [75, 13]
+        });
+
+        const coolMarker = L.marker([cc.latitude, cc.longitude], { icon: coolIcon }).addTo(coolingLayer);
+        coolMarker.on('click', () => {
+          setSelectedFacility({
+            id: cc.id,
+            type: 'cooling',
+            name: cc.name,
+            categoryLabel: 'Verified Cooling Sanctuary',
+            address: cc.address,
+            latitude: cc.latitude,
+            longitude: cc.longitude,
+            distanceKm: distKm,
+            operating_hours: cc.operating_hours || '08:00 AM - 08:00 PM',
+            status: cc.operating_status === 'open' ? 'Open now' : cc.operating_status,
+            isVerified: true,
+            capacity: cc.capacity_estimate,
+            phone: cc.contact_phone || '108',
+          });
+          map.flyTo([cc.latitude, cc.longitude], 15, { duration: 0.8 });
+        });
+      });
+    }
+
+    // =========================================================================
+    // MODE 5: MEDICAL & EMERGENCY HOSPITALS
+    // =========================================================================
+    if (mapMode === 'medical') {
+      const hospitals = mockDb.getHospitals();
+      hospitals.forEach(h => {
+        const distKm = getDistanceKm(userLat, userLon, h.latitude, h.longitude);
+        const distBadge = formatDist(distKm);
+
+        const hospitalIcon = L.divIcon({
+          html: `
+            <div style="
+              background: #FFFFFF;
+              border: 1.5px solid #E11D48;
+              color: #BE123C;
+              border-radius: 9999px;
+              padding: 3px 9px;
+              font-size: 11px;
+              font-weight: 700;
+              box-shadow: 0 4px 14px rgba(225, 29, 72, 0.20);
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              white-space: nowrap;
+              cursor: pointer;
+            ">
+              <span>🏥</span>
+              <span style="max-width: 115px; overflow: hidden; text-overflow: ellipsis;">${h.name}</span>
+              <span style="font-size: 10px; font-family: monospace; background: #FFE4E6; color: #BE123C; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
+                ${distBadge}
+              </span>
+            </div>
+          `,
+          className: 'medical-map-pin',
+          iconSize: [160, 26],
+          iconAnchor: [80, 13]
+        });
+
+        const hospMarker = L.marker([h.latitude, h.longitude], { icon: hospitalIcon }).addTo(medicalLayer);
+        hospMarker.on('click', () => {
+          setSelectedFacility({
+            id: h.id,
+            type: 'hospital',
+            name: h.name,
+            categoryLabel: 'Emergency Hospital & Heat ICU',
+            address: h.address,
+            latitude: h.latitude,
+            longitude: h.longitude,
+            distanceKm: distKm,
+            operating_hours: h.operating_hours || '24/7 Emergency',
+            status: h.emergency_department_open ? '24/7 Emergency Open' : 'Open',
+            isVerified: true,
+            phone: h.emergency_phone || '108',
+            capacity: h.has_heatstroke_ward ? 'Dedicated Heatstroke ICU Ward' : 'Emergency Beds',
+          });
+          map.flyTo([h.latitude, h.longitude], 15, { duration: 0.8 });
+        });
+      });
+    }
+
+    // =========================================================================
+    // MODE 6: SAFE ROUTES CORRIDORS
+    // =========================================================================
+    if (mapMode === 'routes') {
+      const safeRoutes = mockDb.getSafeRoutes();
+      safeRoutes.forEach((route, idx) => {
+        const isCanopy = route.route_type === 'low_heat_exposure';
+        const isRespite = route.route_type === 'respite_optimized';
+        const color = isCanopy ? '#10B981' : isRespite ? '#0284C7' : '#F59E0B';
+
+        const polyline = L.polyline(route.coordinates, {
+          color,
+          weight: 5,
+          opacity: 0.85,
+          dashArray: isCanopy ? '8, 6' : undefined
+        }).addTo(routesLayer);
+
+        polyline.on('click', () => {
+          setSelectedFacility({
+            id: route.id,
+            type: 'route',
+            name: route.label,
+            categoryLabel: isCanopy ? 'Tree-Canopy Shaded Corridor' : isRespite ? 'Hydration & Respite Corridor' : 'Direct Arterial Route',
+            address: `${route.distance_km} km distance • ~${route.duration_minutes} min journey`,
+            latitude: route.coordinates[0][0],
+            longitude: route.coordinates[0][1],
+            distanceKm: route.distance_km,
+            operating_hours: 'Pedestrian Walkway • 24 Hours',
+            status: `${route.shade_coverage_pct}% Shade Protection`,
+            isVerified: true,
+            routeDetails: {
+              distanceKm: route.distance_km,
+              shadeCoveragePct: route.shade_coverage_pct,
+              durationMinutes: route.duration_minutes,
+              heatExposureScore: route.heat_exposure_score,
+              summary: route.summary,
+              warnings: route.warnings,
+            }
+          });
+        });
+
+        // Start Point Marker
+        const startCoord = route.coordinates[0];
+        L.circleMarker(startCoord, {
+          radius: 6,
+          fillColor: '#FFFFFF',
+          color: color,
+          weight: 3,
+          fillOpacity: 1
+        }).addTo(routesLayer);
+      });
+    }
+
   }, [
+    mapMode, 
     locations, 
-    showCoolingCentres, 
-    showWaterPoints, 
-    showMonitoringStations, 
     localityTelemetry, 
     forecastHorizon, 
     currentLocation, 
-    currentZoom,
+    deviceLocation, 
+    userLat, 
+    userLon, 
     handleSelectPlace
   ]);
 
-  // Initial Load: Auto-generate report for current canonical location without overwriting location state
+  // Initial report generator for active location
   useEffect(() => {
     if (!activeReport && locations.length > 0 && currentLocation.latitude && currentLocation.longitude) {
       const initialPlace: GeocodedPlace = {
@@ -1004,7 +1047,7 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   }, [currentLocation.latitude, currentLocation.longitude, activeReport, locations, dropSonarTargetMarker]);
 
-  // Fullscreen Toggle with Map Size Invalidation
+  // Fullscreen Toggle
   const toggleFullscreen = () => {
     if (!outerWrapperRef.current) return;
     if (!document.fullscreenElement) {
@@ -1020,7 +1063,6 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     }
   };
 
-  // Window resize observer to ensure Leaflet canvas stays crisp
   useEffect(() => {
     const handleResize = () => {
       mapInstanceRef.current?.invalidateSize();
@@ -1032,25 +1074,25 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
   return (
     <div 
       ref={outerWrapperRef}
-      className={`relative isolate z-0 flex flex-col rounded-[28px] overflow-hidden border border-[#E5EDF5] bg-white shadow-[0_12px_40px_-8px_rgba(15,23,42,0.08)] text-slate-900 ${className}`}
+      className={`relative isolate z-0 flex flex-col rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white text-slate-900 ${className}`}
     >
       {/* =========================================================================
-          TOP COMMAND BAR & UNIVERSAL SEARCH (FEATURE 2)
+          TOP COMMAND BAR & UNIVERSAL SEARCH & 6 TABS SOFT PILL SELECTOR
           ========================================================================= */}
-      <div className="p-3 sm:p-4 bg-white/95 backdrop-blur-md border-b border-[#E5EDF5] z-30 space-y-2.5">
+      <div className="p-3 sm:p-4 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 space-y-3">
+        {/* Search row */}
         <div className="relative">
           <div className="relative flex items-center">
             <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-[#1E60F2] animate-spin' : 'text-slate-400'}`} />
             <input
               type="text"
-              placeholder="Search any city, locality, road, PIN code or landmark across India..."
+              placeholder="Search any locality, road, city or PIN across India..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => { if (searchSuggestions.length > 0) setIsSearchOpen(true); }}
-              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] hover:border-slate-300 focus:border-[#1E60F2] text-slate-900 placeholder-slate-400 text-xs sm:text-sm pl-10 pr-24 py-2.5 rounded-2xl shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1E60F2]/15 input-interactive transition-all"
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] hover:border-slate-300 focus:border-[#1E60F2] text-slate-900 placeholder-slate-400 text-xs sm:text-sm pl-10 pr-20 py-2.5 rounded-2xl shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1E60F2]/15 transition-all"
             />
             
-            {/* Quick Actions inside search bar */}
             <div className="absolute right-2.5 flex items-center gap-1.5 text-[10px] text-slate-400">
               {searchQuery && (
                 <button
@@ -1067,9 +1109,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           </div>
 
-          {/* Live Search Suggestions Dropdown */}
+          {/* Search suggestions dropdown */}
           {isSearchOpen && searchSuggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/98 backdrop-blur-xl border border-[#E5EDF5] rounded-2xl shadow-2xl overflow-hidden z-50 animate-dropdown-enter max-h-72 overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#E5EDF5] rounded-2xl shadow-xl overflow-hidden z-50 max-h-72 overflow-y-auto">
               <div className="p-2.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center justify-between border-b border-slate-100 bg-[#F8FAFC]">
                 <span>Geographical Search Results</span>
                 <span className="font-mono text-[#1E60F2] font-semibold">{searchSuggestions.length} found</span>
@@ -1078,78 +1120,87 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                 <button
                   key={place.id}
                   onClick={() => handleSelectPlace(place)}
-                  className="w-full px-3.5 py-2.5 text-left hover:bg-[#F5F8FC] flex items-center justify-between gap-3 border-b border-slate-100 last:border-0 transition-all duration-150 hover:translate-x-1 group active:scale-[0.99]"
+                  className="w-full px-3.5 py-2.5 text-left hover:bg-[#F5F8FC] flex items-center justify-between gap-3 border-b border-slate-100 last:border-0 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="p-1.5 rounded-xl bg-blue-50 text-[#1E60F2] group-hover:bg-[#1E60F2] group-hover:text-white transition-colors shrink-0 text-xs">
-                      {place.type === 'city' ? '🏙️' : place.type === 'postcode' ? '📮' : place.type === 'landmark' ? '🏛️' : '📍'}
+                    <span className="p-1.5 rounded-xl bg-blue-50 text-[#1E60F2] text-xs shrink-0">
+                      {place.type === 'city' ? '🏙️' : '📍'}
                     </span>
                     <div className="truncate">
-                      <div className="text-xs font-bold text-slate-900 group-hover:text-[#1E60F2] truncate">
+                      <div className="text-xs font-bold text-slate-900 truncate">
                         {place.displayName}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono">
-                        {place.latitude.toFixed(4)}°N, {place.longitude.toFixed(4)}°E • {place.city}, {place.state}
+                        {place.latitude.toFixed(3)}°N, {place.longitude.toFixed(3)}°E • {place.city}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#1E60F2] shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Quick Access Location Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pb-0.5 no-scrollbar">
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1 font-bold">
-            <Compass className="w-3 h-3 text-[#1E60F2]" />
-            <span>Quick:</span>
-          </span>
-          {[
-            { name: 'Hebbal, BLR', lat: 13.0358, lon: 77.5970 },
-            { name: 'Chokkanahalli, BLR', lat: 13.0850, lon: 77.6320 },
-            { name: 'Whitefield, BLR', lat: 12.9698, lon: 77.7500 },
-            { name: 'Indiranagar, BLR', lat: 12.9784, lon: 77.6408 },
-            { name: 'Mysuru, KA', lat: 12.2958, lon: 76.6394 },
-            { name: 'Hubballi, KA', lat: 15.3647, lon: 75.1240 },
-            { name: 'Mumbai, MH', lat: 19.0760, lon: 72.8777 },
-            { name: 'Delhi NCR', lat: 28.6139, lon: 77.2090 },
-            { name: 'Chennai, TN', lat: 13.0827, lon: 80.2707 }
-          ].map((chip) => (
-            <button
-              key={chip.name}
-              onClick={() => handleSelectPlace({
-                id: `chip-${chip.name}`,
-                displayName: chip.name,
-                shortName: chip.name.split(',')[0],
-                city: chip.name.includes('BLR') ? 'Bengaluru' : chip.name.includes('KA') ? 'Karnataka' : chip.name.split(',')[0],
-                state: 'India',
-                latitude: chip.lat,
-                longitude: chip.lon,
-                type: 'locality'
-              })}
-              className="px-3 py-1.5 rounded-full bg-[#F5F8FC] hover:bg-blue-50 text-slate-600 hover:text-[#1E60F2] border border-[#E5EDF5] hover:border-blue-200 whitespace-nowrap text-[11px] font-semibold transition-all shadow-xs btn-press"
-            >
-              {chip.name}
-            </button>
-          ))}
+        {/* 6 TABS CLEAN SOFT PILL SELECTOR BAR */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 p-1 bg-[#F5F8FC] border border-[#E5EDF5] rounded-2xl overflow-x-auto no-scrollbar shadow-2xs">
+            {[
+              { id: 'heat_risk', label: 'Heat Risk', icon: Flame, iconColor: 'text-orange-500' },
+              { id: 'temperature', label: 'Temperature', icon: Thermometer, iconColor: 'text-rose-500' },
+              { id: 'water', label: 'Water', icon: Droplets, iconColor: 'text-blue-500' },
+              { id: 'cooling', label: 'Cooling', icon: Building2, iconColor: 'text-emerald-500' },
+              { id: 'medical', label: 'Medical', icon: Stethoscope, iconColor: 'text-red-500' },
+              { id: 'routes', label: 'Safe Routes', icon: Navigation, iconColor: 'text-cyan-600' },
+            ].map((tab) => {
+              const isSelected = mapMode === tab.id;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setMapMode(tab.id as any);
+                    setSelectedFacility(null);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap btn-press ${
+                    isSelected
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  }`}
+                >
+                  <TabIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-[#1E60F2]' : tab.iconColor}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick refresh telemetry */}
+          <button
+            type="button"
+            onClick={() => syncAllLocalitiesTelemetry(true)}
+            disabled={isRefreshingAll}
+            className="p-2 rounded-xl bg-[#F5F8FC] text-slate-600 hover:text-[#1E60F2] hover:bg-blue-50 border border-[#E5EDF5] transition-colors"
+            title="Refresh Live Telemetry"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-[#1E60F2]' : ''}`} />
+          </button>
         </div>
       </div>
 
       {/* =========================================================================
-          MAIN MAP CANVAS & FLOATING CONTROLS (FEATURES 1, 6, 7)
+          MAIN MAP CANVAS & FLOATING OVERLAYS
           ========================================================================= */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row relative overflow-hidden">
-        {/* Map Viewport Container: ~70% width on desktop, strictly isolated */}
+        {/* Map Viewport Container */}
         <div className="w-full lg:w-[68%] xl:w-[70%] relative h-[440px] sm:h-[480px] lg:h-full min-h-0 overflow-hidden isolate z-0 shrink-0 lg:shrink">
           <div ref={mapContainerRef} className="w-full h-full" />
 
-          {/* Floating Top-Left Controls Bar (Horizon & Filter Toggles) */}
-          <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2 p-1.5 bg-white/92 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-[0_8px_24px_rgba(15,23,42,0.08)] text-xs">
-            {/* Horizon Selector */}
-            <div className="flex items-center gap-1 bg-[#F5F8FC] p-1 rounded-xl border border-[#E5EDF5]">
-              <span className="text-slate-400 pl-1.5 pr-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+          {/* Horizon Selector (active in temperature / heat risk mode) */}
+          {(mapMode === 'heat_risk' || mapMode === 'temperature') && (
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-sm text-xs">
+              <span className="text-slate-400 pl-2 pr-1 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
                 <Clock className="w-3 h-3 text-[#1E60F2]" />
                 <span className="hidden sm:inline">Horizon:</span>
               </span>
@@ -1158,70 +1209,44 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                 <button
                   key={h}
                   onClick={() => setForecastHorizon(h)}
-                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold transition-all ${
                     forecastHorizon === h
                       ? 'bg-[#1E60F2] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   {h === 'now' ? 'Live' : `+${h}h`}
                 </button>
               ))}
             </div>
+          )}
 
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-
-            {/* Smart Map Modes (Section 9: Heat Risk, Temperature, Water, Cooling, Medical, Safe Routes) */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: 'heat_risk', label: 'Heat Risk', icon: '🔥' },
-                { id: 'temperature', label: 'Temperature', icon: '🌡️' },
-                { id: 'water', label: 'Water', icon: '💧' },
-                { id: 'cooling', label: 'Cooling', icon: '🧊' },
-                { id: 'medical', label: 'Medical', icon: '🏥' },
-                { id: 'routes', label: 'Safe Routes', icon: '🧭' },
-              ].map((m) => {
-                const isSelected = mapMode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      setMapMode(m.id as any);
-                      if (m.id === 'water') {
-                        setShowWaterPoints(true);
-                      } else if (m.id === 'cooling') {
-                        setShowCoolingCentres(true);
-                      } else if (m.id === 'heat_risk' || m.id === 'temperature') {
-                        setShowMonitoringStations(true);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border shadow-2xs ${
-                      isSelected
-                        ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{m.icon}</span>
-                    <span>{m.label}</span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={() => syncAllLocalitiesTelemetry(true)}
-                disabled={isRefreshingAll}
-                className="p-1.5 rounded-xl bg-white text-slate-500 hover:text-[#1E60F2] hover:bg-blue-50 border border-slate-200 transition-colors shadow-2xs"
-                title="Refresh Map Telemetry"
+          {/* NO FAKE DATA: Honest Empty State Floating Notification Banner */}
+          {currentModeEmptyState && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/98 backdrop-blur-md border border-amber-200/90 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3 text-xs text-slate-800 max-w-[95%] sm:max-w-lg animate-in fade-in slide-in-from-top-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-slate-900 leading-tight">
+                  No registered {mapMode} facilities within 10 km
+                </div>
+                <div className="text-[11px] text-red-600 font-semibold mt-0.5 flex items-center gap-1">
+                  <PhoneCall className="w-3 h-3" />
+                  <span>Heat emergency helpline: 108 / 112</span>
+                </div>
+              </div>
+              <a
+                href="tel:108"
+                className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shrink-0 transition-colors shadow-xs"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAll ? 'animate-spin text-[#1E60F2]' : ''}`} />
-              </button>
+                Call 108
+              </a>
             </div>
-          </div>
+          )}
 
-          {/* Floating Notice: Analyzed Area vs Genuine Device GPS */}
-          {isAnalyzingDifferentLocation && deviceLocation && (
+          {/* Floating Notice: Analyzed Area vs Real Device GPS */}
+          {isAnalyzingDifferentLocation && deviceLocation && !currentModeEmptyState && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-md border border-[#1E60F2]/30 rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2.5 text-xs text-slate-800 max-w-[90%] sm:max-w-none animate-in fade-in slide-in-from-top-2">
               <span className="w-2 h-2 rounded-full bg-[#1E60F2] animate-pulse shrink-0" />
               <span className="truncate">
@@ -1237,38 +1262,23 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           )}
 
-          {/* Floating Map Actions (Top-Right) */}
+          {/* Map Controls: Style Switcher & Zoom */}
           <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 items-end">
-            {/* Style Selector */}
-            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-md text-[11px]">
-              <button
-                onClick={() => setMapStyle('osm')}
-                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'osm' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Street
-              </button>
-              <button
-                onClick={() => setMapStyle('satellite')}
-                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'satellite' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Satellite
-              </button>
-              <button
-                onClick={() => setMapStyle('dark')}
-                className={`px-2.5 py-1 rounded-xl font-bold text-[10px] transition-colors ${
-                  mapStyle === 'dark' ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                Dark
-              </button>
+            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-sm text-[11px]">
+              {(['osm', 'satellite', 'dark'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setMapStyle(s)}
+                  className={`px-2.5 py-1 rounded-xl font-bold text-[10px] uppercase transition-colors ${
+                    mapStyle === s ? 'bg-[#1E60F2] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {s === 'osm' ? 'Street' : s}
+                </button>
+              ))}
             </div>
 
-            {/* Action Tools Cluster */}
-            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-md overflow-hidden text-slate-700">
+            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl shadow-sm overflow-hidden text-slate-700">
               <button
                 onClick={() => mapInstanceRef.current?.zoomIn()}
                 className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
@@ -1293,20 +1303,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
                   }
                 }}
                 className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
-                title="My Location (Device GPS)"
+                title="My Device Location"
               >
                 <Navigation className="w-3.5 h-3.5 text-[#1E60F2]" />
-              </button>
-              <button
-                onClick={() => {
-                  if (mapInstanceRef.current && currentLocation.latitude && currentLocation.longitude) {
-                    mapInstanceRef.current.flyTo([currentLocation.latitude, currentLocation.longitude], 15);
-                  }
-                }}
-                className="p-2 hover:text-[#1E60F2] hover:bg-slate-50 border-b border-slate-100 transition-colors"
-                title="Recenter Active Locality"
-              >
-                <Compass className="w-3.5 h-3.5 text-slate-500" />
               </button>
               <button
                 onClick={toggleFullscreen}
@@ -1318,49 +1317,38 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
             </div>
           </div>
 
-          {/* Bottom-Left Floating Legend */}
-          <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] text-xs hidden sm:block">
-            <div className="flex items-center justify-between gap-4 mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#1E60F2]" />
-                <span>Heat Risk Radar Legend</span>
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                Click map to analyze
-              </span>
-            </div>
+          {/* Floating Legend Bottom-Left */}
+          <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md border border-[#E5EDF5] rounded-2xl p-3 shadow-sm text-xs hidden sm:block">
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
-                <span className="text-slate-600 font-semibold">Low (&lt;25)</span>
+                <span className="text-slate-600 font-semibold">Low</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200" />
-                <span className="text-slate-600 font-semibold">Mod (25–49)</span>
+                <span className="text-slate-600 font-semibold">Moderate</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-orange-200" />
-                <span className="text-slate-600 font-semibold">High (50–74)</span>
+                <span className="text-slate-600 font-semibold">High</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600 ring-2 ring-red-200 animate-pulse" />
-                <span className="font-bold text-red-600">Critical (&ge;75)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-red-600 pl-2.5 border-l border-slate-200 font-bold">
-                <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
-                <span>&gt;35°C Red Circle</span>
+                <span className="font-bold text-red-600">Critical &gt;35°C</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* =========================================================================
-            RIGHT-HAND LOCATION INTELLIGENCE PANEL (FEATURES 3, 4, 5)
+            RIGHT-HAND INTELLIGENCE & FACILITY DETAILS FLYOUT CARD
             ========================================================================= */}
-        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-[#E5EDF5] flex flex-col relative z-10 overflow-hidden bg-white">
+        <div className="w-full lg:w-[32%] xl:w-[30%] min-h-0 h-auto lg:h-full border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col relative z-10 overflow-hidden bg-white">
           <LocationIntelligencePanel
             report={activeReport}
             isLoading={isLoadingReport}
+            selectedFacility={selectedFacility}
+            onClearSelectedFacility={() => setSelectedFacility(null)}
             onSelectPlace={handleSelectPlace}
             className="flex-1 min-h-0"
           />
@@ -1369,3 +1357,5 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
     </div>
   );
 };
+
+export default HeatRiskMap;

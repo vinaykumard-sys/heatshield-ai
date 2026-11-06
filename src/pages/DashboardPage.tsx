@@ -65,8 +65,8 @@ export const DashboardPage: React.FC = () => {
   const currentTemp = currentReading?.temperature_c ?? 28;
   const feelsLike = currentReading?.feels_like_c ?? (currentTemp + 2);
   const humidity = currentReading?.relative_humidity_pct ?? 55;
-  const uv = currentReading?.uv_index ?? 6;
-  const wind = currentReading?.wind_speed_kmh ?? 12;
+  const uv = currentReading?.uv_index ?? 6.2;
+  const wind = currentReading?.wind_speed_kmh ?? 12.5;
 
   // Single authoritative Action Engine evaluation for entire page
   const actionResult = useMemo(() => {
@@ -89,17 +89,12 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-7 pb-28 max-w-7xl mx-auto px-2 sm:px-4 animate-page-enter">
+    <div className="bg-[#f4f7fc] min-h-screen -m-2 sm:-m-4 p-3 sm:p-5 lg:p-6 space-y-7 pb-28 max-w-[1600px] mx-auto animate-page-enter">
       {/* 0. GPS & TELEMETRY LIVE STATUS BAR */}
       <LocationTrackerBar />
 
       {/* ===================================================================
-          CORE PRODUCT RULE (SECTION 1 & 8): STRICT 3-SECOND COMPREHENSION
-          1. Location
-          2. Current temperature
-          3. Feels-like
-          4. Heat risk
-          5. Peak heat
+          1. TOP HERO SECTION: Hero Weather Card, 4-Day Forecast, Highlights Grid
           =================================================================== */}
       <section aria-label="Hero Weather & Location Status">
         <TopHeroSection
@@ -118,7 +113,7 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 6. WHAT SHOULD YOU DO NOW? (Signature Component - Section 7) */}
+      {/* 2. WHAT SHOULD YOU DO NOW? (Signature 4 Actionable Safety Cards) */}
       <section aria-label="What Should You Do Now">
         <WhatShouldIDoNow
           actions={actionResult.immediateActions}
@@ -127,7 +122,7 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 7. HEAT-SAFE DAY PLAN (Dynamic Timeline from Forecast - Section 6) */}
+      {/* 3. HEAT-SAFE DAY PLAN (Dynamic Timeline with Clear Badges) */}
       <section aria-label="Heat Safe Day Plan">
         <HeatSafeDayPlan
           dayPlan={actionResult.dayPlan}
@@ -135,7 +130,7 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* DAILY WELLNESS CHECK-IN */}
+      {/* 4. DAILY WELLNESS CHECK-IN */}
       <section aria-label="Daily Safety Check-in">
         <ConfirmSafeCelebration 
           userName={user?.full_name} 
@@ -144,12 +139,12 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* QUICK ACTIONS BAR (Cooling Shelter, Locate Water, Plan Safe Route, Request Aid) */}
+      {/* 5. QUICK ACTIONS BAR (Cooling Shelter, Locate Water, Plan Safe Route, Request Aid) */}
       <section aria-label="Quick Action Cards">
         <QuickActionsGrid showHeader={true} />
       </section>
 
-      {/* 8. FORECAST STRIP & TEMPERATURE GRAPH */}
+      {/* 6. FORECAST STRIP & 24-HOUR DIURNAL TEMPERATURE WAVE */}
       <section aria-label="Forecast Strip & Temperature Graph">
         <HorizontalForecastStrip
           forecastDaily={forecastDaily}
@@ -158,7 +153,7 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 9. NEARBY HELP LIFELINES (Water, Cooling, Medical) */}
+      {/* 7. NEARBY HELP LIFELINES (Water, Cooling, Medical) */}
       <section aria-label="Nearby Help Lifelines">
         <NearbyHelpCards
           userLat={currentLocation?.latitude}
@@ -167,9 +162,9 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 10. SMART HEAT MAP (Section 9) */}
+      {/* 8. SMART HEAT MAP */}
       <section id="thermal-heat-risk-map" aria-label="Thermal Heat Risk Map">
-        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-7 shadow-sm shadow-blue-500/5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -177,18 +172,18 @@ export const DashboardPage: React.FC = () => {
                   <span>Smart Interactive Heat Map</span>
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 </h3>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-[#1E60F2] border border-blue-200">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1E60F2] border border-blue-200/80">
                   Multimodal Layers
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
                 Explore Heat Risk, Cooling Centers, Drinking Water Points, and Hospitals in {currentLocation.localityName || currentLocation.city}
               </p>
             </div>
             
             <Link 
               to="/map" 
-              className="text-xs text-[#1E60F2] font-semibold hover:underline flex items-center gap-1 self-start sm:self-auto"
+              className="text-xs text-[#1E60F2] font-bold hover:underline flex items-center gap-1 self-start sm:self-auto"
             >
               <span>Full interactive map</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -199,12 +194,12 @@ export const DashboardPage: React.FC = () => {
             locations={locations} 
             selectedLocationId={selectedZone?.id} 
             onSelectLocation={selectCustomLocality}
-            className="h-[380px] sm:h-[420px] rounded-2xl shadow-xs border border-slate-200 overflow-hidden" 
+            className="h-[380px] sm:h-[420px] rounded-2xl shadow-2xs border border-slate-100 overflow-hidden" 
           />
         </div>
       </section>
 
-      {/* 11. WHY IS MY HEAT RISK {LEVEL}? (Explainable AI Factor Breakdown) */}
+      {/* 9. WHY IS MY HEAT RISK {LEVEL}? (Explainable AI Factor Breakdown) */}
       <section aria-label="Explainable AI Factor Breakdown">
         <WhyRiskLevelCards
           currentReading={currentReading}
@@ -213,7 +208,7 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* OTHER REGIONAL HOTSPOTS & SOLAR ARC TRACKER */}
+      {/* 10. OTHER REGIONAL HOTSPOTS & SOLAR ARC TRACKER */}
       <section aria-label="Other Hotspots & Solar Arc Tracker" className="space-y-6">
         <OtherCitiesRail />
 
@@ -224,7 +219,7 @@ export const DashboardPage: React.FC = () => {
               category={actionResult.riskLevel === 'extreme' ? 'critical' : actionResult.riskLevel}
               hourlyForecast={forecastHourly}
               trend={(forecastHourly && forecastHourly.length >= 2 && ((forecastHourly[1].temperature_c ?? 0) < (forecastHourly[0].temperature_c ?? 0))) ? 'Decreasing' : 'Increasing'}
-              className="h-full"
+              className="h-full rounded-3xl border border-slate-100 shadow-sm shadow-blue-500/5"
             />
           </div>
 
@@ -234,7 +229,7 @@ export const DashboardPage: React.FC = () => {
               sunset="06:42 PM"
               title="Celestial Solar Arc"
               showControls={true}
-              className="h-full"
+              className="h-full rounded-3xl border border-slate-100 shadow-sm shadow-blue-500/5"
             />
           </div>
         </div>
