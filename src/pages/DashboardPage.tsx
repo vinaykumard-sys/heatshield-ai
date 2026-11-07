@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { EmergencyModal } from '../components/common/EmergencyModal';
+import { NewRequestModal } from '../components/requests/NewRequestModal';
 import { SolarArcGauge } from '../components/common/SolarArcGauge';
 import { HeatRiskCard } from '../components/common/HeatRiskCard';
 import { HeatRiskMap } from '../components/map/HeatRiskMap';
@@ -35,6 +36,8 @@ import { NearbyHelpCards } from '../components/dashboard/NearbyHelpCards';
 import { WhyRiskLevelCards } from '../components/dashboard/WhyRiskLevelCards';
 import { OtherCitiesRail } from '../components/dashboard/OtherCitiesRail';
 import { FloatingEmergencySOS } from '../components/dashboard/FloatingEmergencySOS';
+import { HourlyWeatherModal } from '../components/dashboard/HourlyWeatherModal';
+import { DailyForecastModal } from '../components/dashboard/DailyForecastModal';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -44,6 +47,8 @@ export const DashboardPage: React.FC = () => {
     currentRisk, 
     forecastHourly, 
     forecastDaily,
+    todayHourly,
+    liveBanner,
     selectedZone,
     selectCustomLocality,
     forceTelemetryRefresh,
@@ -52,6 +57,9 @@ export const DashboardPage: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isHourlyModalOpen, setIsHourlyModalOpen] = useState(false);
+  const [dailyModalDayIndex, setDailyModalDayIndex] = useState<number | null>(null);
 
   const locations = mockDb.getLocations();
 
@@ -104,12 +112,16 @@ export const DashboardPage: React.FC = () => {
           currentRisk={currentRisk}
           forecastDaily={forecastDaily}
           forecastHourly={forecastHourly}
+          todayHourly={todayHourly}
+          liveBanner={liveBanner}
           lastSyncTime={lastSyncTime}
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
           selectedZone={selectedZone}
           locations={locations}
           onSelectLocality={selectCustomLocality}
+          onOpenHourlyModal={() => setIsHourlyModalOpen(true)}
+          onOpenDailyModal={(dayIdx) => setDailyModalDayIndex(dayIdx)}
         />
       </section>
 
@@ -141,7 +153,10 @@ export const DashboardPage: React.FC = () => {
 
       {/* 5. QUICK ACTIONS BAR (Cooling Shelter, Locate Water, Plan Safe Route, Request Aid) */}
       <section aria-label="Quick Action Cards">
-        <QuickActionsGrid showHeader={true} />
+        <QuickActionsGrid 
+          showHeader={true} 
+          onRequestAid={() => setIsRequestModalOpen(true)}
+        />
       </section>
 
       {/* 6. FORECAST STRIP & 24-HOUR DIURNAL TEMPERATURE WAVE */}
@@ -150,6 +165,8 @@ export const DashboardPage: React.FC = () => {
           forecastDaily={forecastDaily}
           forecastHourly={forecastHourly}
           showHourlyGraph={true}
+          onOpenDailyModal={(dayIdx) => setDailyModalDayIndex(dayIdx)}
+          onOpenHourlyModal={() => setIsHourlyModalOpen(true)}
         />
       </section>
 
@@ -241,8 +258,39 @@ export const DashboardPage: React.FC = () => {
         onClose={() => setIsEmergencyOpen(false)}
       />
 
+      {/* New Assistance Request Modal Triggered Immediately from Quick Actions */}
+      <NewRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onSuccess={() => setIsRequestModalOpen(false)}
+      />
+
       {/* Floating Emergency SOS Pill */}
       <FloatingEmergencySOS onOpenEmergency={() => setIsEmergencyOpen(true)} />
+
+      {/* Hourly 24-Hour Forecast Modal */}
+      <HourlyWeatherModal
+        isOpen={isHourlyModalOpen}
+        onClose={() => setIsHourlyModalOpen(false)}
+        todayHourly={todayHourly || []}
+        currentReading={currentReading}
+        liveBanner={liveBanner}
+        locationName={currentLocation.localityName || currentLocation.locality || currentLocation.city}
+        cityName={currentLocation.city}
+        lastSyncTime={lastSyncTime}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+      />
+
+      {/* Detailed 7-Day Daily Forecast Modal */}
+      <DailyForecastModal
+        isOpen={dailyModalDayIndex !== null}
+        initialDayIndex={dailyModalDayIndex ?? 0}
+        onClose={() => setDailyModalDayIndex(null)}
+        forecastDaily={forecastDaily || []}
+        locationName={currentLocation.localityName || currentLocation.locality || currentLocation.city}
+        cityName={currentLocation.city}
+      />
     </div>
   );
 };

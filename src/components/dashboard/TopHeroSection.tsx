@@ -19,12 +19,16 @@ import {
   Wind,
   Compass,
   CloudRain,
+  CloudLightning,
+  CloudDrizzle,
+  Snowflake,
   Cpu,
   Thermometer,
   ShieldAlert
 } from 'lucide-react';
 import { CountUp } from '../common/CountUp';
 import { HeatRiskGauge } from '../common/HeatRiskGauge';
+import { WeatherDetailsModal } from './WeatherDetailsModal';
 import { LocationZone, EnvironmentalReading, HeatRiskAssessment } from '../../types';
 import { formatTimeAgo } from '../../lib/utils';
 import { evaluateHeatSafety } from '../../lib/actionEngine';
@@ -43,12 +47,16 @@ interface TopHeroSectionProps {
   currentRisk: HeatRiskAssessment | null;
   forecastDaily?: any[];
   forecastHourly?: any[];
+  todayHourly?: any[];
+  liveBanner?: any;
   lastSyncTime: Date | null;
   isRefreshing: boolean;
   onRefresh: () => void;
   selectedZone: LocationZone | null;
   locations: LocationZone[];
   onSelectLocality: (loc: LocationZone) => void;
+  onOpenHourlyModal?: () => void;
+  onOpenDailyModal?: (dayIndex: number) => void;
   className?: string;
 }
 
@@ -70,15 +78,20 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
   currentRisk,
   forecastDaily = [],
   forecastHourly = [],
+  todayHourly = [],
+  liveBanner = null,
   lastSyncTime,
   isRefreshing,
   onRefresh,
   selectedZone,
   locations,
   onSelectLocality,
+  onOpenHourlyModal,
+  onOpenDailyModal,
   className = '',
 }) => {
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
 
   const currentTemp = currentReading?.temperature_c ?? 27;
   const feelsLike = currentReading?.feels_like_c ?? (currentTemp + 2);
@@ -166,9 +179,10 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
   const miniForecast = useMemo(() => {
     if (forecastDaily && forecastDaily.length >= 4) {
       return forecastDaily.slice(0, 4).map((d: any, idx: number) => {
-        let dayName = 'Today';
-        if (idx === 1) dayName = 'Tomorrow';
-        else if (idx > 1) {
+        let dayName = d.dayName || 'Today';
+        if (idx === 0) dayName = 'Today';
+        else if (idx === 1) dayName = 'Tomorrow';
+        else if (!d.dayName && idx > 1) {
           const dt = new Date(Date.now() + idx * 86400000);
           dayName = dt.toLocaleDateString([], { weekday: 'short' });
         }
@@ -176,18 +190,42 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
           dayName,
           high: Math.round(d.temperature_max_c ?? d.max_temp_c ?? 34),
           low: Math.round(d.temperature_min_c ?? d.min_temp_c ?? 22),
-          risk: d.risk_category || d.risk_level || 'moderate'
+          risk: d.risk_category || d.risk_level || 'moderate',
+          iconName: d.iconName || 'sun',
+          emoji: d.emoji || '☀️',
+          condition: d.weather_condition || 'Clear Sky',
         };
       });
     }
 
     return [
-      { dayName: 'Today', high: Math.round(currentTemp + 4), low: Math.round(currentTemp - 4), risk: riskLevel },
-      { dayName: 'Tomorrow', high: Math.round(currentTemp + 5), low: Math.round(currentTemp - 3), risk: riskLevel },
-      { dayName: 'Day 3', high: Math.round(currentTemp + 3), low: Math.round(currentTemp - 4), risk: 'moderate' },
-      { dayName: 'Day 4', high: Math.round(currentTemp + 2), low: Math.round(currentTemp - 5), risk: 'low' },
+      { dayName: 'Today', high: Math.round(currentTemp + 2), low: Math.round(currentTemp - 5), risk: riskLevel, iconName: 'sun', emoji: '☀️', condition: 'Sunny' },
+      { dayName: 'Tomorrow', high: Math.round(currentTemp + 3), low: Math.round(currentTemp - 4), risk: riskLevel, iconName: 'cloud-sun', emoji: '🌤️', condition: 'Mainly Clear' },
+      { dayName: 'Day 3', high: Math.round(currentTemp + 1), low: Math.round(currentTemp - 5), risk: 'moderate', iconName: 'cloud-sun', emoji: '⛅', condition: 'Partly Cloudy' },
+      { dayName: 'Day 4', high: Math.round(currentTemp + 2), low: Math.round(currentTemp - 6), risk: 'low', iconName: 'sun', emoji: '☀️', condition: 'Clear Sky' },
     ];
   }, [forecastDaily, currentTemp, riskLevel]);
+
+  const renderForecastIcon = (iconName?: string, className: string = 'w-4 h-4') => {
+    switch (iconName) {
+      case 'cloud-lightning':
+        return <CloudLightning className={`${className} text-purple-600`} />;
+      case 'cloud-rain':
+        return <CloudRain className={`${className} text-blue-600`} />;
+      case 'cloud-drizzle':
+        return <CloudDrizzle className={`${className} text-sky-500`} />;
+      case 'cloud-fog':
+      case 'cloud':
+        return <CloudSun className={`${className} text-slate-500`} />;
+      case 'cloud-sun':
+        return <CloudSun className={`${className} text-amber-500`} />;
+      case 'snowflake':
+        return <Snowflake className={`${className} text-cyan-400`} />;
+      case 'sun':
+      default:
+        return <Sun className={`${className} text-amber-500`} />;
+    }
+  };
 
   // Current daylight position calculation for Solar Arc (0 to 180 degrees)
   const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
@@ -260,25 +298,71 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
       {/* ------------------------------------------------------------------ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
-        {/* HERO WEATHER CARD (7 Cols) - Modern Soft-UI Aesthetic */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm shadow-blue-500/5 flex flex-col justify-between space-y-6 relative overflow-hidden bg-gradient-to-br from-white via-white to-blue-50/20">
+        {/* HERO WEATHER CARD (7 Cols) - Modern Soft-UI Aesthetic & Instant Hourly View Trigger */}
+        <div 
+          onClick={() => {
+            if (onOpenHourlyModal) onOpenHourlyModal();
+            else setIsWeatherModalOpen(true);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onOpenHourlyModal) onOpenHourlyModal();
+              else setIsWeatherModalOpen(true);
+            }
+          }}
+          aria-label="Click to open comprehensive hourly forecast dialog"
+          className="group lg:col-span-7 bg-white rounded-3xl border border-slate-100 hover:border-blue-300 p-6 sm:p-8 shadow-sm hover:shadow-md shadow-blue-500/5 flex flex-col justify-between space-y-6 relative overflow-hidden bg-gradient-to-br from-white via-white to-blue-50/20 transition-all duration-200 cursor-pointer"
+        >
           
           {/* Subtle decorative ambient backdrop */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-radial from-blue-100/40 via-blue-50/10 to-transparent pointer-events-none rounded-full blur-2xl -mr-20 -mt-20" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-radial from-blue-100/40 via-blue-50/10 to-transparent pointer-events-none rounded-full blur-2xl -mr-20 -mt-20 group-hover:scale-105 transition-transform" />
 
-          {/* Location & Time Stamp */}
+          {/* Location & Time Stamp + Modal Trigger Affordance */}
           <div className="flex items-center justify-between text-xs text-slate-600 font-semibold relative z-10 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 bg-slate-50/80 px-3 py-1 rounded-full border border-slate-200/60">
-              <MapPin className="w-3.5 h-3.5 text-[#1E60F2]" />
-              <span className="font-extrabold text-slate-900 tracking-tight">{localityDisplayName}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-600 font-medium">{currentLocation.city}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-50/80 px-3 py-1 rounded-full border border-slate-200/60">
+                <MapPin className="w-3.5 h-3.5 text-[#1E60F2]" />
+                <span className="font-extrabold text-slate-900 tracking-tight">{localityDisplayName}</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-slate-600 font-medium">{currentLocation.city}</span>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 group-hover:text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                <Clock className="w-3 h-3 text-[#1E60F2]" />
+                <span>24h Hourly View</span>
+                <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </span>
             </div>
             <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-400" />
               {lastSyncTime ? `Observed ${formatTimeAgo(lastSyncTime.toISOString())}` : 'Updated just now'}
             </span>
           </div>
+
+          {/* Real-time Weather Alert Banner */}
+          {liveBanner && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenHourlyModal) onOpenHourlyModal();
+              }}
+              className={`p-3 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer hover:opacity-95 transition-all shadow-2xs relative z-10 ${liveBanner.badgeClass}`}
+              title="Click to view full hour-by-hour forecast"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">{liveBanner.icon}</span>
+                <div>
+                  <span className="text-xs font-black block">{liveBanner.headline}</span>
+                  <span className="text-[11px] opacity-90">{liveBanner.details}</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-white/70 border border-current/20 shrink-0">
+                Hourly View &rarr;
+              </span>
+            </div>
+          )}
 
           {/* Large Temperature, Feels-like Pill & Circular Risk Gauge */}
           <div className="flex items-center justify-between gap-4 relative z-10">
@@ -360,18 +444,26 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
               return (
                 <div
                   key={idx}
-                  className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all border ${
+                  onClick={() => {
+                    if (isToday && onOpenHourlyModal) {
+                      onOpenHourlyModal();
+                    } else if (onOpenDailyModal) {
+                      onOpenDailyModal(idx);
+                    }
+                  }}
+                  className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all border cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                     isToday
                       ? 'bg-blue-50/80 border-blue-200/90 shadow-2xs ring-1 ring-blue-300/30'
                       : 'bg-slate-50/70 border-slate-200/60 hover:bg-white hover:border-slate-300'
                   }`}
+                  title={`Click to view complete ${item.dayName} breakdown`}
                 >
                   <span className={`text-[11px] font-extrabold truncate w-full ${isToday ? 'text-[#1E60F2]' : 'text-slate-600'}`}>
                     {item.dayName}
                   </span>
 
                   <div className="my-2.5 w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-2xs">
-                    <Sun className="w-4 h-4 text-amber-500" />
+                    {renderForecastIcon(item.iconName, 'w-4 h-4')}
                   </div>
 
                   <div className="text-xs font-extrabold text-slate-900">
@@ -380,6 +472,9 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
                   <div className="text-[10px] font-semibold text-slate-400">
                     {item.low}°
                   </div>
+                  <span className="text-[9px] font-semibold text-slate-400 truncate w-full mt-0.5">
+                    {item.condition}
+                  </span>
                 </div>
               );
             })}
@@ -389,13 +484,14 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
             <span className="text-slate-500 text-[11px] font-medium truncate max-w-[200px]">
               {actionResult.recommendedOutdoorWindow.label}
             </span>
-            <Link
-              to="/predictions"
-              className="text-[#1E60F2] font-bold text-[11px] hover:underline inline-flex items-center gap-0.5 shrink-0"
+            <button
+              type="button"
+              onClick={() => onOpenDailyModal ? onOpenDailyModal(0) : undefined}
+              className="text-[#1E60F2] font-bold text-[11px] hover:underline inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
             >
-              <span>Full stats</span>
+              <span>Full 7-day stats</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -809,6 +905,18 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
           </div>
         )}
       </div>
+
+      {/* Comprehensive Biometeorology & Telemetry Modal */}
+      <WeatherDetailsModal
+        isOpen={isWeatherModalOpen}
+        onClose={() => setIsWeatherModalOpen(false)}
+        localityDisplayName={localityDisplayName}
+        cityName={currentLocation.city}
+        currentReading={currentReading}
+        currentRisk={currentRisk}
+        lastSyncTime={lastSyncTime}
+        actionResult={actionResult}
+      />
     </div>
   );
 };

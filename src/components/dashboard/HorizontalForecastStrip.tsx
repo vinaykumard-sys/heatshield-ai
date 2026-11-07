@@ -11,7 +11,11 @@ import {
   ChevronDown,
   ChevronUp,
   Activity,
-  Sparkles
+  Sparkles,
+  Clock,
+  CloudRain,
+  CloudLightning,
+  CloudDrizzle,
 } from 'lucide-react';
 import { useLocationTracker } from '../../context/LocationContext';
 import { TemperatureGraph, HourlyForecastPoint } from '../common/TemperatureGraph';
@@ -27,11 +31,13 @@ export interface DailyForecastCardItem {
 }
 
 export interface HorizontalForecastStripProps {
-  forecastDaily?: DailyForecastCardItem[];
+  forecastDaily?: any[];
   forecastHourly?: HourlyForecastPoint[];
   showHourlyGraph?: boolean;
   selectedDayIndex?: number;
   onSelectDay?: (dayIndex: number) => void;
+  onOpenDailyModal?: (dayIndex: number) => void;
+  onOpenHourlyModal?: () => void;
   className?: string;
 }
 
@@ -66,6 +72,8 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
   showHourlyGraph = true,
   selectedDayIndex: controlledSelectedIndex,
   onSelectDay,
+  onOpenDailyModal,
+  onOpenHourlyModal,
   className = '',
 }) => {
   const context = useLocationTracker();
@@ -94,12 +102,40 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
     { date: 'Day +4', max_temp_c: 30, min_temp_c: 21, avg_humidity_pct: 55, uv_index_max: 8.4, risk_level: 'high' },
   ];
 
-  const dailyList: DailyForecastCardItem[] = dailyRaw && dailyRaw.length >= 4 
-    ? dailyRaw.slice(0, 5) 
+  const dailyList: any[] = dailyRaw && dailyRaw.length >= 4 
+    ? dailyRaw.slice(0, 7) 
     : defaultDailyList;
 
-  // Icon selector based on risk & temp
-  const renderWeatherIcon = (risk: string = 'moderate', maxTemp: number) => {
+  // Icon selector based on condition, risk & temp
+  const renderWeatherIcon = (risk: string = 'moderate', maxTemp: number, iconName?: string) => {
+    if (iconName === 'cloud-lightning') {
+      return (
+        <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 shadow-2xs">
+          <CloudLightning className="w-4 h-4" />
+        </div>
+      );
+    }
+    if (iconName === 'cloud-rain') {
+      return (
+        <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
+          <CloudRain className="w-4 h-4" />
+        </div>
+      );
+    }
+    if (iconName === 'cloud-drizzle') {
+      return (
+        <div className="w-8 h-8 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-2xs">
+          <CloudDrizzle className="w-4 h-4" />
+        </div>
+      );
+    }
+    if (iconName === 'cloud-sun' || iconName === 'cloud') {
+      return (
+        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-2xs">
+          <CloudSun className="w-4 h-4" />
+        </div>
+      );
+    }
     if (risk === 'critical' || maxTemp >= 40) {
       return (
         <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-2xs">
@@ -152,39 +188,52 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
               <Calendar className="w-5 h-5 text-[#1E60F2]" />
             </div>
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-              5-Day Outlook & 24h Prediction Wave
+              7-Day High-Resolution Forecast & Diurnal Curve
             </h3>
           </div>
           <p className="text-xs text-slate-500 mt-0.5 font-medium">
-            Multi-day high/low temperature trajectory and thermal risk progression
+            Click any day to open detailed time-of-day blocks and thermal risk progression
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          {onOpenHourlyModal && (
+            <button
+              type="button"
+              onClick={onOpenHourlyModal}
+              className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-3 py-1.5 rounded-xl border border-blue-200/90 shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Open 24-hour hour-by-hour forecast"
+            >
+              <Clock className="w-3.5 h-3.5 text-[#1E60F2]" />
+              <span>Today's 24h Hourly</span>
+            </button>
+          )}
+
           {showHourlyGraph && (
             <button
               type="button"
               onClick={() => setIsGraphExpanded(!isGraphExpanded)}
-              className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs transition-colors flex items-center gap-1.5"
+              className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Activity className="w-3.5 h-3.5 text-[#1E60F2]" />
-              <span>{isGraphExpanded ? 'Hide Wave Line' : 'Show Wave Line'}</span>
+              <span>{isGraphExpanded ? 'Hide Wave' : 'Show Wave'}</span>
               {isGraphExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
             </button>
           )}
 
-          <Link
-            to="/predictions"
-            className="text-xs font-bold text-[#1E60F2] hover:text-blue-700 hover:underline flex items-center gap-1 group"
+          <button
+            type="button"
+            onClick={() => onOpenDailyModal ? onOpenDailyModal(0) : undefined}
+            className="text-xs font-bold text-[#1E60F2] hover:text-blue-700 hover:underline flex items-center gap-1 group cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs"
           >
-            <span>Full 7-day model</span>
+            <span>Full 7-day modal</span>
             <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
-          </Link>
+          </button>
         </div>
       </div>
 
-      {/* Horizontal Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+      {/* Horizontal Cards Row (7 Days) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {dailyList.map((day, idx) => {
           const isToday = idx === 0;
           const isSelected = selectedIndex === idx;
@@ -197,19 +246,25 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
             <button
               key={`${day.date}-${idx}`}
               type="button"
-              onClick={() => handleSelect(idx)}
-              className={`text-left p-4 rounded-3xl transition-all duration-200 relative flex flex-col justify-between cursor-pointer group select-none ${
+              onClick={() => {
+                handleSelect(idx);
+                if (onOpenDailyModal) {
+                  onOpenDailyModal(idx);
+                }
+              }}
+              className={`text-left p-3.5 rounded-3xl transition-all duration-200 relative flex flex-col justify-between cursor-pointer group select-none hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                 isToday
                   ? 'bg-blue-50/80 border border-blue-200/90 ring-1 ring-blue-300/40 text-blue-900 shadow-xs'
                   : isSelected
                   ? 'bg-slate-50/90 border border-blue-300 text-slate-900 shadow-2xs'
                   : 'bg-white border border-slate-100 text-slate-700 hover:border-slate-200 hover:bg-slate-50/50 shadow-sm shadow-blue-500/5'
               }`}
+              title={`Click to inspect complete ${dayLabel} forecast`}
             >
               {/* Active Today Ribbon indicator */}
               {isToday && (
                 <div className="absolute top-3 right-3">
-                  <span className="px-2 py-0.5 rounded-full bg-[#1E60F2] text-white text-[9px] font-black uppercase tracking-wider shadow-2xs">
+                  <span className="px-1.5 py-0.5 rounded-full bg-[#1E60F2] text-white text-[8px] font-black uppercase tracking-wider shadow-2xs">
                     Current
                   </span>
                 </div>
@@ -217,7 +272,7 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
 
               {/* Day title & date */}
               <div className="space-y-0.5">
-                <span className={`text-xs sm:text-sm font-black block ${isToday ? 'text-blue-950' : 'text-slate-900'}`}>
+                <span className={`text-xs font-black block truncate ${isToday ? 'text-blue-950' : 'text-slate-900'}`}>
                   {dayLabel}
                 </span>
                 <span className={`text-[10px] block font-semibold ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -226,35 +281,46 @@ export const HorizontalForecastStrip: React.FC<HorizontalForecastStripProps> = (
               </div>
 
               {/* Icon & Temperature */}
-              <div className="my-3.5 flex items-center justify-between">
-                {renderWeatherIcon(day.risk_level, maxTemp)}
+              <div className="my-2.5 flex items-center justify-between">
+                {renderWeatherIcon(day.risk_level, maxTemp, day.iconName)}
 
                 <div className="text-right">
                   <div className="flex items-baseline justify-end gap-1">
-                    <span className={`text-xl sm:text-2xl font-black ${isToday ? 'text-blue-950' : 'text-slate-900'}`}>
+                    <span className={`text-lg sm:text-xl font-black ${isToday ? 'text-blue-950' : 'text-slate-900'}`}>
                       {maxTemp}°
                     </span>
-                    <span className={`text-xs font-bold ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
-                      / {minTemp}°
+                    <span className={`text-[10px] font-bold ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
+                      /{minTemp}°
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Risk Tag & Humidity */}
-              <div className="pt-2.5 border-t border-slate-100/80 flex items-center justify-between">
+              {day.weather_condition && (
+                <span className="text-[10px] font-semibold text-slate-500 truncate block mb-1">
+                  {day.weather_condition}
+                </span>
+              )}
+
+              {/* Bottom Risk Tag & Rain / Humidity */}
+              <div className="pt-2 border-t border-slate-100/80 flex items-center justify-between">
                 <span 
-                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border ${riskInfo.style}`}
+                  className={`px-1.5 py-0.5 rounded-full text-[8px] font-extrabold tracking-wider uppercase border ${riskInfo.style}`}
                 >
                   {riskInfo.text}
                 </span>
 
-                {day.avg_humidity_pct !== undefined && (
-                  <span className="text-[10px] text-slate-400 flex items-center gap-0.5 font-bold">
+                {day.precipitation_probability_max !== undefined && day.precipitation_probability_max > 0 ? (
+                  <span className="text-[9px] text-sky-600 flex items-center gap-0.5 font-bold">
+                    <Droplets className="w-2.5 h-2.5 text-sky-500" />
+                    {day.precipitation_probability_max}%
+                  </span>
+                ) : day.avg_humidity_pct !== undefined ? (
+                  <span className="text-[9px] text-slate-400 flex items-center gap-0.5 font-bold">
                     <Droplets className="w-2.5 h-2.5 text-sky-400" />
                     {Math.round(day.avg_humidity_pct)}%
                   </span>
-                )}
+                ) : null}
               </div>
             </button>
           );

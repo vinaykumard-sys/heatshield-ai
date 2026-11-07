@@ -195,7 +195,7 @@ export const FloatingAssistantWidget: React.FC = () => {
   }
 
   return (
-    <aside aria-label="AI Assistant" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 pointer-events-auto">
+    <aside aria-label="AI Assistant" className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 pointer-events-auto">
       {/* Floating Toggle Button (Visible when closed) */}
       {!isOpen && (
         <button

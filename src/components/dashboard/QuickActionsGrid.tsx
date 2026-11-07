@@ -28,11 +28,13 @@ export interface QuickActionItem {
 export interface QuickActionsGridProps {
   className?: string;
   showHeader?: boolean;
+  onRequestAid?: () => void;
 }
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
   className = '',
   showHeader = true,
+  onRequestAid,
 }) => {
   const actions: QuickActionItem[] = [
     {
@@ -117,13 +119,10 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {actions.map((action) => {
           const Icon = action.icon;
+          const isRequestAid = action.id === 'request-aid';
 
-          return (
-            <Link
-              key={action.id}
-              to={action.path}
-              className={`p-4 sm:p-5 rounded-[22px] bg-white border border-[#E5EDF5] shadow-xs hover:shadow-card-hover transition-all duration-200 ease-out group flex flex-col justify-between hover:-translate-y-1 active:scale-[0.98] ${action.borderHover}`}
-            >
+          const content = (
+            <>
               <div className="space-y-3">
                 {/* Header row: Soft-tinted icon container + Micro Badge */}
                 <div className="flex items-center justify-between">
@@ -156,6 +155,29 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
                 <span>{action.ctaText}</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
+            </>
+          );
+
+          if (isRequestAid && onRequestAid) {
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={onRequestAid}
+                className={`text-left p-4 sm:p-5 rounded-[22px] bg-white border border-[#E5EDF5] shadow-xs hover:shadow-card-hover transition-all duration-200 ease-out group flex flex-col justify-between hover:-translate-y-1 active:scale-[0.98] cursor-pointer ${action.borderHover}`}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={action.id}
+              to={action.path}
+              className={`p-4 sm:p-5 rounded-[22px] bg-white border border-[#E5EDF5] shadow-xs hover:shadow-card-hover transition-all duration-200 ease-out group flex flex-col justify-between hover:-translate-y-1 active:scale-[0.98] ${action.borderHover}`}
+            >
+              {content}
             </Link>
           );
         })}

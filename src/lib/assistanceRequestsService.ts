@@ -28,11 +28,65 @@ export interface StatusBadgeInfo {
 
 const STORAGE_KEY = 'heatshield_assistance_requests';
 
+/**
+ * Validates whether a string is a standard UUID v4
+ */
+function isValidUuid(id?: string): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim());
+}
+
+/**
+ * Extracts embedded contact and dispatch metadata from a description string
+ */
+function parseRequestDescription(rawDescription: string): {
+  cleanDescription: string;
+  categoryOverride?: RequestCategory;
+  parsedLocationName?: string;
+  parsedContactName?: string;
+  parsedContactPhone?: string;
+} {
+  let text = rawDescription || '';
+  let categoryOverride: RequestCategory | undefined;
+
+  if (text.includes('[Category: Medical Emergency Aid]')) {
+    categoryOverride = 'medical';
+    text = text.replace(/\[Category:\s*Medical Emergency Aid\]\s*/gi, '');
+  }
+
+  let parsedLocationName: string | undefined;
+  let parsedContactName: string | undefined;
+  let parsedContactPhone: string | undefined;
+
+  const dispatchMarker = text.indexOf('[Dispatch Details]');
+  if (dispatchMarker !== -1) {
+    const metaBlock = text.slice(dispatchMarker);
+    text = text.slice(0, dispatchMarker).trim();
+
+    const locMatch = metaBlock.match(/(?:Landmark\s*\/\s*Location|Location)\s*:\s*([^\n\r]+)/i);
+    if (locMatch) parsedLocationName = locMatch[1].trim();
+
+    const contactMatch = metaBlock.match(/(?:Resident\s*\/\s*Contact|Contact)\s*:\s*([^\n\r]+)/i);
+    if (contactMatch) parsedContactName = contactMatch[1].trim();
+
+    const phoneMatch = metaBlock.match(/Phone\s*:\s*([^\n\r]+)/i);
+    if (phoneMatch) parsedContactPhone = phoneMatch[1].trim();
+  }
+
+  return {
+    cleanDescription: text.trim(),
+    categoryOverride,
+    parsedLocationName,
+    parsedContactName,
+    parsedContactPhone
+  };
+}
+
 export class AssistanceRequestsService {
   /**
    * Human-friendly status display mapping
    * Standardizes legacy status keys ('open', 'assigned', 'in_progress') to HeatShield 2.0 UX standards:
-   * 'Submitted' | 'In Review' | 'Dispatched' | 'Resolved'
+   * 'Submitted' | 'In Review' | 'Dispatched' | 'Resolved' | 'Cancelled'
    */
   static getStatusDisplay(status: RequestStatus): StatusBadgeInfo {
     switch (status) {
@@ -100,16 +154,43 @@ export class AssistanceRequestsService {
       };
     }
 
-    const nowIso = new Date().toISOString();
-    // Unique human-readable authentic tracking ID: REQ-XXXXX
-    const generatedTrackingId = `REQ-${Date.now().toString().slice(-5)}${Math.floor(100 + Math.random() * 900)}`;
+    if (!payload.contactName || payload.contactName.trim().length < 2) {
+      return {
+        success: false,
+        error: 'Please provide a contact or resident name (minimum 2 characters).'
+      };
+    }
 
-    const newRequest: AssistanceRequest = {
-      id: generatedTrackingId,
+    const cleanPhone = (payload.contactPhone || '').replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 7) {
+      return {
+        success: false,
+        error: 'Please provide a valid callback telephone or mobile number for responder coordination.'
+      };
+    }
+
+    const nowIso = new Date().toISOString();
+    // Deterministic UUID for database record
+    const recordUuid = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
+
+    // Build rich, structured description embedding dispatch details
+    const isMedical = payload.category === 'medical';
+    const categoryTag = isMedical ? '[Category: Medical Emergency Aid]\n' : '';
+    const formattedDescription = `${categoryTag}${payload.description.trim()}
+
+[Dispatch Details]
+Landmark / Location: ${payload.locationName.trim()}
+Resident / Contact: ${payload.contactName.trim()}
+Phone: ${payload.contactPhone?.trim() || ''}`;
+
+    const localRequest: AssistanceRequest = {
+      id: recordUuid,
       requested_by: payload.userId,
       locality_id: payload.localityId || 'loc-current',
       locality_name: payload.locationName.trim(),
-      resident_name: payload.contactName?.trim() || 'Community Resident',
+      resident_name: payload.contactName.trim(),
       contact_phone: payload.contactPhone?.trim() || '',
       category: payload.category,
       priority: payload.priority || 'medium',
@@ -124,67 +205,107 @@ export class AssistanceRequestsService {
         const { data: sessionData } = await supabase.auth.getSession();
         const activeUserId = sessionData?.session?.user?.id;
 
-        const dbPayload: any = {
-          category: payload.category,
+        // Resolve valid locality UUID from database if available
+        let resolvedLocalityId: string | undefined = isValidUuid(payload.localityId) 
+          ? payload.localityId 
+          : undefined;
+
+        if (!resolvedLocalityId) {
+          const { data: locs, error: locErr } = await supabase
+            .from('locations')
+            .select('id, name, city')
+            .limit(15);
+
+          if (!locErr && locs && locs.length > 0) {
+            const needle = payload.locationName.toLowerCase();
+            const match = locs.find(l => 
+              l.name.toLowerCase().includes(needle) || 
+              needle.includes(l.name.toLowerCase()) ||
+              (l.city && needle.includes(l.city.toLowerCase()))
+            );
+            resolvedLocalityId = match ? match.id : locs[0].id;
+          }
+        }
+
+        // Database schema constraints:
+        // status IN ('open', 'assigned', 'in_progress', 'resolved', 'cancelled')
+        // category IN ('water', 'cooling', 'general_welfare', 'cooling_centre_transport', 'other')
+        const dbCategory = isMedical ? 'other' : payload.category;
+
+        const dbPayload: Record<string, any> = {
+          id: recordUuid,
+          category: dbCategory,
           priority: payload.priority || 'medium',
-          description: payload.description.trim(),
-          locality_name: payload.locationName.trim(),
-          resident_name: payload.contactName?.trim() || 'Community Resident',
-          contact_phone: payload.contactPhone?.trim() || '',
-          status: 'submitted',
-          created_at: nowIso
+          description: formattedDescription,
+          status: 'open',
+          created_at: nowIso,
+          updated_at: nowIso
         };
 
-        if (activeUserId) {
+        // Attach foreign keys only if valid UUIDs
+        if (activeUserId && isValidUuid(activeUserId)) {
           dbPayload.requested_by = activeUserId;
+        } else if (payload.userId && isValidUuid(payload.userId)) {
+          dbPayload.requested_by = payload.userId;
+        } else {
+          dbPayload.requested_by = null;
+        }
+
+        if (resolvedLocalityId && isValidUuid(resolvedLocalityId)) {
+          dbPayload.locality_id = resolvedLocalityId;
         }
 
         const { data, error } = await supabase
           .from('assistance_requests')
           .insert(dbPayload)
-          .select()
-          .single();
+          .select();
 
-        if (!error && data) {
-          const liveRequest: AssistanceRequest = {
-            ...newRequest,
-            id: data.id || generatedTrackingId,
-            status: data.status || 'submitted',
-            created_at: data.created_at || nowIso
-          };
-
-          // Cache in storage
-          mockDb.saveRequest(liveRequest);
-          this.saveToLocalStorage(liveRequest);
-
+        if (error) {
+          console.error('Supabase assistance_requests insert error:', error);
+          // Return honest actionable error message — DO NOT falsely claim success
           return {
-            success: true,
-            request: liveRequest,
-            requestId: liveRequest.id
+            success: false,
+            error: `Database registration failed: ${error.message} ${error.hint ? `(${error.hint})` : ''}. Please sign in with an authenticated account or check network connection.`
           };
-        } else if (error) {
-          console.warn('Supabase remote insert fallback to local storage:', error.message);
         }
+
+        const returnedRow = data && data.length > 0 ? data[0] : null;
+        const liveId = returnedRow?.id || recordUuid;
+
+        const liveRequest: AssistanceRequest = {
+          ...localRequest,
+          id: liveId,
+          status: 'submitted',
+          created_at: returnedRow?.created_at || nowIso
+        };
+
+        // Persist to local cache for instant zero-latency UI updates
+        mockDb.saveRequest(liveRequest);
+        this.saveToLocalStorage(liveRequest);
+
+        return {
+          success: true,
+          request: liveRequest,
+          requestId: liveId
+        };
       } catch (err: any) {
-        console.warn('Cloud submission error, proceeding with local persistence:', err);
+        console.error('Assistance request submission exception:', err);
+        return {
+          success: false,
+          error: `Network or service error: ${err.message || 'Could not communicate with HeatShield relief database.'}`
+        };
       }
     }
 
-    // 3. Resilient Local & Offline Queue Persistence
+    // 3. Resilient Local Database Mode (Active when Supabase is not configured)
     try {
-      mockDb.saveRequest(newRequest);
-      this.saveToLocalStorage(newRequest);
-
-      // Verify persistence succeeded
-      const verified = this.getFromLocalStorage().some(r => r.id === generatedTrackingId);
-      if (!verified) {
-        throw new Error('Local storage verification failed');
-      }
+      mockDb.saveRequest(localRequest);
+      this.saveToLocalStorage(localRequest);
 
       return {
         success: true,
-        request: newRequest,
-        requestId: generatedTrackingId
+        request: localRequest,
+        requestId: localRequest.id
       };
     } catch (storageErr: any) {
       return {
@@ -195,18 +316,20 @@ export class AssistanceRequestsService {
   }
 
   /**
-   * Get all active and resolved requests (merging cloud & local)
+   * Get all active and resolved requests (merging cloud & local, deduplicated by ID)
    */
   static async getAllRequests(): Promise<AssistanceRequest[]> {
     const localRequests = this.getFromLocalStorage();
     const mockList = mockDb.getRequests();
 
-    // Combine local items de-duplicating by ID
+    // Map to deduplicate by ID
     const map = new Map<string, AssistanceRequest>();
+
+    // Seed with mock and local cache
     mockList.forEach(r => map.set(r.id, r));
     localRequests.forEach(r => map.set(r.id, r));
 
-    // Try fetching from Supabase if configured
+    // Fetch from Supabase if configured
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -216,23 +339,41 @@ export class AssistanceRequestsService {
 
         if (!error && Array.isArray(data)) {
           data.forEach((d: any) => {
+            const parsed = parseRequestDescription(d.description || '');
+
+            // Standardize database status to UX lifecycle status
+            let uxStatus: RequestStatus = 'submitted';
+            if (d.status === 'resolved') uxStatus = 'resolved';
+            else if (d.status === 'in_progress' || d.status === 'dispatched') uxStatus = 'dispatched';
+            else if (d.status === 'assigned' || d.status === 'in_review') uxStatus = 'in_review';
+            else if (d.status === 'cancelled') uxStatus = 'cancelled';
+            else uxStatus = 'submitted';
+
+            const resolvedCategory = parsed.categoryOverride || d.category || 'water';
+
+            // Check if local cache has extra fields like assigned volunteer name or resident name
+            const existing = map.get(d.id);
+
             map.set(d.id, {
               id: d.id,
               requested_by: d.requested_by,
               locality_id: d.locality_id,
-              locality_name: d.locality_name || 'Designated Ward',
-              resident_name: d.resident_name || 'Community Member',
-              contact_phone: d.contact_phone || '',
-              category: d.category || 'water',
+              locality_name: parsed.parsedLocationName || existing?.locality_name || 'Designated Community Sector',
+              resident_name: parsed.parsedContactName || existing?.resident_name || 'Community Resident',
+              contact_phone: parsed.parsedContactPhone || existing?.contact_phone || '',
+              category: resolvedCategory,
               priority: d.priority || 'medium',
-              description: d.description || '',
-              status: d.status || 'submitted',
-              assigned_volunteer_name: d.assigned_volunteer_name,
-              resolution_notes: d.resolution_notes,
-              resolved_at: d.resolved_at,
+              description: parsed.cleanDescription || d.description || '',
+              status: uxStatus,
+              assigned_volunteer_name: existing?.assigned_volunteer_name,
+              assigned_volunteer_id: d.assigned_volunteer_id,
+              resolution_notes: d.resolution_notes || existing?.resolution_notes,
+              resolved_at: d.resolved_at || existing?.resolved_at,
               created_at: d.created_at
             });
           });
+        } else if (error) {
+          console.warn('Could not fetch cloud assistance requests:', error.message);
         }
       } catch (e) {
         console.warn('Could not fetch cloud assistance requests:', e);
@@ -245,14 +386,14 @@ export class AssistanceRequestsService {
   }
 
   /**
-   * Update request status (e.g. submitted -> in_review -> dispatched -> resolved)
+   * Update request status (e.g. submitted -> in_review -> dispatched -> resolved | cancelled)
    */
   static async updateStatus(
     id: string,
     status: RequestStatus,
     resolutionNotes?: string,
     volunteerName?: string
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; error?: string }> {
     const nowIso = new Date().toISOString();
 
     // 1. Update mockDb and local storage
@@ -268,24 +409,44 @@ export class AssistanceRequestsService {
       this.setInLocalStorage(list);
     }
 
-    // 2. Try Supabase update if connected
+    // 2. Map UX status to Supabase enum ('open', 'assigned', 'in_progress', 'resolved', 'cancelled')
+    let dbStatus = 'open';
+    if (status === 'resolved') dbStatus = 'resolved';
+    else if (status === 'dispatched' || status === 'in_progress') dbStatus = 'in_progress';
+    else if (status === 'in_review' || status === 'assigned') dbStatus = 'assigned';
+    else if (status === 'cancelled') dbStatus = 'cancelled';
+    else dbStatus = 'open';
+
+    // 3. Sync to Supabase if connected
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase
+        const updatePayload: Record<string, any> = {
+          status: dbStatus,
+          updated_at: nowIso
+        };
+        if (resolutionNotes) {
+          updatePayload.resolution_notes = resolutionNotes;
+        }
+        if (status === 'resolved') {
+          updatePayload.resolved_at = nowIso;
+        }
+
+        const { error } = await supabase
           .from('assistance_requests')
-          .update({
-            status,
-            resolution_notes: resolutionNotes,
-            resolved_at: status === 'resolved' ? nowIso : undefined,
-            updated_at: nowIso
-          })
+          .update(updatePayload)
           .eq('id', id);
-      } catch (e) {
+
+        if (error) {
+          console.warn('Supabase status update warning:', error.message);
+          return { success: false, error: error.message };
+        }
+      } catch (e: any) {
         console.warn('Cloud status update error:', e);
+        return { success: false, error: e.message || 'Cloud update failed' };
       }
     }
 
-    return true;
+    return { success: true };
   }
 
   private static getFromLocalStorage(): AssistanceRequest[] {

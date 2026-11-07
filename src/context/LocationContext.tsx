@@ -30,6 +30,9 @@ export interface LocationContextType {
   isLiveWeather: boolean;
   forecastHourly: any[];
   forecastDaily: any[];
+  todayHourly: any[];
+  liveBanner: any | null;
+  weatherResult: any | null;
   lastSyncTime: Date | null;
   forceTelemetryRefresh: () => Promise<void>;
 }
@@ -121,6 +124,9 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentRisk, setCurrentRisk] = useState<HeatRiskAssessment | null>(null);
   const [forecastHourly, setForecastHourly] = useState<any[]>([]);
   const [forecastDaily, setForecastDaily] = useState<any[]>([]);
+  const [todayHourly, setTodayHourly] = useState<any[]>([]);
+  const [liveBanner, setLiveBanner] = useState<any | null>(null);
+  const [weatherResult, setWeatherResult] = useState<any | null>(null);
   const [isLiveWeather, setIsLiveWeather] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
@@ -168,6 +174,9 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setIsLiveWeather(weather.isLive);
         setForecastHourly(weather.forecastHourly);
         setForecastDaily(weather.forecastDaily);
+        setTodayHourly(weather.todayHourly || []);
+        setLiveBanner(weather.liveBanner || null);
+        setWeatherResult(weather);
         setLastSyncTime(new Date());
 
         const risk = evaluateHeatRisk({
@@ -542,6 +551,9 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isLiveWeather,
         forecastHourly,
         forecastDaily,
+        todayHourly,
+        liveBanner,
+        weatherResult,
         lastSyncTime,
         forceTelemetryRefresh,
       }}

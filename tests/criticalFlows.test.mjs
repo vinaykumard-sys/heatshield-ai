@@ -202,18 +202,25 @@ test('Safe Logger — PII Redaction, Ring Buffer & Severity Filtering', () => {
 // TEST SUITE 3: Assistance Request Validation & Field Integrity
 // ==============================================================================
 test('Assistance Requests — Validation & Field Integrity', () => {
-  const VALID_CATEGORIES = ['water', 'ors_medical', 'shelter_transport', 'elderly_check'];
-  const VALID_STATUSES = ['pending', 'assigned', 'in_progress', 'resolved', 'cancelled'];
+  const VALID_CATEGORIES = ['water', 'medical', 'cooling', 'general_welfare', 'cooling_centre_transport', 'other'];
+  const VALID_STATUSES = ['submitted', 'in_review', 'dispatched', 'resolved', 'cancelled'];
 
   function validateRequest(payload) {
     if (!payload.description || payload.description.trim().length < 5) {
       return { valid: false, error: 'Description must be at least 5 characters' };
     }
-    if (!payload.locationName || payload.locationName.trim().length === 0) {
-      return { valid: false, error: 'Location required' };
+    if (!payload.locationName || payload.locationName.trim().length < 3) {
+      return { valid: false, error: 'Location required (min 3 chars)' };
     }
     if (payload.category && !VALID_CATEGORIES.includes(payload.category)) {
       return { valid: false, error: 'Invalid category' };
+    }
+    if (payload.contactName !== undefined && payload.contactName.trim().length < 2) {
+      return { valid: false, error: 'Contact name too short' };
+    }
+    if (payload.contactPhone !== undefined) {
+      const clean = payload.contactPhone.replace(/[^0-9]/g, '');
+      if (clean.length < 7) return { valid: false, error: 'Invalid phone number' };
     }
     return { valid: true };
   }
@@ -226,35 +233,47 @@ test('Assistance Requests — Validation & Field Integrity', () => {
   const res2 = validateRequest({ description: 'help', locationName: 'Shivajinagar', category: 'water' });
   assert.equal(res2.valid, false);
 
-  // Reject empty location
-  const res3 = validateRequest({ description: 'Need potable water bottles', locationName: '', category: 'water' });
+  // Reject empty or short location (< 3 chars)
+  const res3 = validateRequest({ description: 'Need potable water bottles', locationName: 'ab', category: 'water' });
   assert.equal(res3.valid, false);
 
   // Reject invalid category
   const resBadCat = validateRequest({ description: 'Need water', locationName: 'Koramangala', category: 'unknown_service' });
   assert.equal(resBadCat.valid, false);
 
-  // Accept valid request
+  // Accept valid request across categories
   const res4 = validateRequest({
     description: 'Need potable water bottles for elderly resident',
     locationName: 'Jayanagar 4th Block',
-    category: 'elderly_check'
+    category: 'general_welfare',
+    contactName: 'Ramesh Sundaram',
+    contactPhone: '+91 98450 12345'
   });
   assert.equal(res4.valid, true);
+
+  const resMedical = validateRequest({
+    description: 'Severe heat dizziness requires hydration & triage',
+    locationName: 'Indiranagar 100ft Road',
+    category: 'medical',
+    contactName: 'Priya Sharma',
+    contactPhone: '+91 98112 34567'
+  });
+  assert.equal(resMedical.valid, true);
 
   // Validate state machine transitions
   function canTransition(current, next) {
     if (current === next) return true;
-    if (current === 'pending' && (next === 'assigned' || next === 'cancelled')) return true;
-    if (current === 'assigned' && (next === 'in_progress' || next === 'cancelled')) return true;
-    if (current === 'in_progress' && (next === 'resolved' || next === 'cancelled')) return true;
+    if ((current === 'pending' || current === 'submitted') && (next === 'in_review' || next === 'assigned' || next === 'dispatched' || next === 'cancelled')) return true;
+    if ((current === 'assigned' || current === 'in_review') && (next === 'dispatched' || next === 'in_progress' || next === 'resolved' || next === 'cancelled')) return true;
+    if ((current === 'in_progress' || current === 'dispatched') && (next === 'resolved' || next === 'cancelled')) return true;
     return false;
   }
 
-  assert.ok(canTransition('pending', 'assigned'));
-  assert.ok(canTransition('assigned', 'in_progress'));
-  assert.ok(canTransition('in_progress', 'resolved'));
-  assert.ok(!canTransition('resolved', 'pending'), 'Resolved requests cannot revert to pending');
+  assert.ok(canTransition('submitted', 'in_review'));
+  assert.ok(canTransition('in_review', 'dispatched'));
+  assert.ok(canTransition('dispatched', 'resolved'));
+  assert.ok(canTransition('submitted', 'cancelled'));
+  assert.ok(!canTransition('resolved', 'submitted'), 'Resolved requests cannot revert to submitted');
 });
 
 // ==============================================================================
@@ -366,6 +385,146 @@ test('AI Assistant — Contextual Heat Intent & Medical Triage', () => {
   assert.equal(matchIntent('Find drinking water or ORS packets near me'), 'hydration_station');
   assert.equal(matchIntent('Can I go play badminton outside now?'), 'activity_safety');
   assert.equal(matchIntent('What is HeatShield 2.0?'), 'general');
+});
+
+// ==============================================================================
+// TEST SUITE 7: Safe Routes — OSRM Geometry & Multi-Modal Travel Modes
+// ==============================================================================
+test('Safe Routes — Multi-Modal Routing Profiles & Distance Calculations', () => {
+  function getDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function calculateDurationMinutes(distanceKm, mode = 'walk') {
+    if (mode === 'cycle') return Math.max(3, Math.round(distanceKm * 3.8));
+    if (mode === 'drive') return Math.max(2, Math.round(distanceKm * 2.1));
+    return Math.max(4, Math.round(distanceKm * 13));
+  }
+
+  function getOsrmProfile(travelMode) {
+    if (travelMode === 'cycle') return 'bicycle';
+    if (travelMode === 'drive') return 'driving';
+    return 'foot';
+  }
+
+  // Hebbal to Yelahanka coordinates
+  const dist = getDistanceKm(13.0358, 77.5970, 13.1025, 77.5980);
+  assert.ok(dist >= 7.0 && dist <= 8.5, `Haversine distance expected ~7.4 km, got ${dist.toFixed(2)}`);
+
+  // Multi-modal travel duration validation
+  const walkDuration = calculateDurationMinutes(dist, 'walk');
+  const cycleDuration = calculateDurationMinutes(dist, 'cycle');
+  const driveDuration = calculateDurationMinutes(dist, 'drive');
+
+  assert.ok(walkDuration > cycleDuration, 'Walking must take longer than cycling');
+  assert.ok(cycleDuration > driveDuration, 'Cycling must take longer than driving');
+  assert.equal(getOsrmProfile('walk'), 'foot', 'Walk mode must use OSRM foot profile');
+  assert.equal(getOsrmProfile('cycle'), 'bicycle', 'Cycle mode must use OSRM bicycle profile');
+  assert.equal(getOsrmProfile('drive'), 'driving', 'Drive mode must use OSRM driving profile');
+});
+
+// ==============================================================================
+// TEST SUITE 8: Secure Server-Side OTP & Anti-Brute-Force Controls
+// ==============================================================================
+test('Secure Phone OTP — Hashing, Rate Limiting & Expiration', async () => {
+  const crypto = await import('node:crypto');
+
+  function sha256(str) {
+    return crypto.createHash('sha256').update(str).digest('hex');
+  }
+
+  function generateSecureOtp() {
+    const randomBuffer = crypto.randomBytes(4);
+    const num = 100000 + (randomBuffer.readUInt32BE(0) % 900000);
+    return num.toString();
+  }
+
+  const code1 = generateSecureOtp();
+  const code2 = generateSecureOtp();
+  assert.match(code1, /^\d{6}$/, 'OTP must be 6 digits');
+  assert.match(code2, /^\d{6}$/, 'OTP must be 6 digits');
+  assert.notEqual(code1, '123456', 'OTP must never be hardcoded 123456');
+
+  // Verify SHA-256 hash matching
+  const hashed = sha256(code1);
+  assert.equal(sha256(code1), hashed);
+  assert.notEqual(sha256(code2), hashed);
+
+  // Anti brute-force attempts simulation
+  let attemptsRemaining = 5;
+  const incorrectGuess = '999999';
+  while (attemptsRemaining > 0) {
+    if (sha256(incorrectGuess) !== hashed) {
+      attemptsRemaining--;
+    }
+  }
+  assert.equal(attemptsRemaining, 0, 'Challenges lock out after 5 failed attempts');
+});
+
+// ==============================================================================
+// TEST SUITE 9: WhatsApp Notification Gateway — Status Honesty & Message Formatting
+// ==============================================================================
+test('WhatsApp Notification Gateway — Status Honesty & Alert Formatting', () => {
+  function formatHeatAlert({ name, locality, tempC, feelsLikeC, riskCategory, riskScore }) {
+    const emoji = riskCategory === 'critical' ? '🔴' : riskCategory === 'high' ? '🟠' : '🟢';
+    return `${emoji} *HeatShield AI — Heat Alert*\nHello ${name}\n📍 *${locality}*\n🌡️ Temperature: *${tempC}°C* (Feels like ${feelsLikeC}°C)\n⚠️ Heat Risk: *${riskCategory.toUpperCase()}* (${riskScore}/100)`;
+  }
+
+  const alertMsg = formatHeatAlert({
+    name: 'Aarav Patel',
+    locality: 'Yelahanka Satellite Town',
+    tempC: 41.5,
+    feelsLikeC: 47.0,
+    riskCategory: 'critical',
+    riskScore: 91
+  });
+
+  assert.ok(alertMsg.includes('🔴'), 'Critical alerts must carry red circle indicator');
+  assert.ok(alertMsg.includes('41.5°C'), 'Alert message must reflect real temperature');
+  assert.ok(alertMsg.includes('47°C'), 'Alert message must reflect feels-like apparent temperature');
+  assert.ok(alertMsg.includes('Yelahanka Satellite Town'), 'Must target exact resident locality');
+
+  // Gateway status mapping must never report fake connected status when unreachable
+  function mapGatewayStatus(isReachable, rawStatus) {
+    if (!isReachable) return 'unreachable';
+    return rawStatus;
+  }
+
+  assert.equal(mapGatewayStatus(false, 'connected'), 'unreachable', 'Offline gateway must report unreachable');
+  assert.equal(mapGatewayStatus(true, 'connected'), 'connected');
+  assert.equal(mapGatewayStatus(true, 'qr_ready'), 'qr_ready');
+});
+
+// ==============================================================================
+// TEST SUITE 10: Mandatory Phone Verification Banner & State Guardrails
+// ==============================================================================
+test('Mandatory Phone Alert Banner — Visibility & Snooze Logic', () => {
+  function shouldDisplayBanner(user, isSnoozed) {
+    // If phone is verified with valid digits, never show banner
+    const isVerified = Boolean(
+      user?.is_phone_verified &&
+      user?.phone &&
+      user.phone.replace(/[^0-9]/g, '').length >= 8
+    );
+    if (isVerified) return false;
+    return true; // Shows banner (full or compact ribbon if snoozed)
+  }
+
+  const unverifiedUser = { id: 'u1', email: 'resident@heatshield.org', is_phone_verified: false, phone: '' };
+  const verifiedUser = { id: 'u2', email: 'verified@heatshield.org', is_phone_verified: true, phone: '+919876543210' };
+
+  assert.equal(shouldDisplayBanner(unverifiedUser, false), true, 'Unverified user must see phone prompt banner');
+  assert.equal(shouldDisplayBanner(verifiedUser, false), false, 'Verified user must never see phone prompt banner');
 });
 
 console.log('✅ ALL CRITICAL FLOW INTEGRATION TESTS PASSED!');

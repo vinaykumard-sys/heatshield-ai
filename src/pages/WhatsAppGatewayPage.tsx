@@ -36,6 +36,8 @@ import {
   disconnectWhatsApp,
   formatHeatAlertMessage,
   formatEmergencyAlertMessage,
+  formatDailyBriefingMessage,
+  triggerDailyBriefing,
   WAContact,
   WAStatus,
   WADeliveryLog,
@@ -95,7 +97,8 @@ export const WhatsAppGatewayPage: React.FC = () => {
   // Broadcast message
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
-  const [broadcastType, setBroadcastType] = useState<'custom' | 'heat_alert' | 'emergency'>('custom');
+  const [broadcastType, setBroadcastType] = useState<'custom' | 'heat_alert' | 'emergency' | 'briefing'>('custom');
+  const [isTriggeringBriefing, setIsTriggeringBriefing] = useState(false);
 
   const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -228,6 +231,34 @@ export const WhatsAppGatewayPage: React.FC = () => {
         headline: 'Extreme Heatwave Warning — Red Alert',
         description: 'Temperatures exceeding 44°C expected until 6 PM. All outdoor activities strongly discouraged.',
       }));
+    } else if (broadcastType === 'briefing') {
+      setBroadcastMsg(formatDailyBriefingMessage({
+        locality: 'Bengaluru Urban',
+        temp: 32,
+        peakTemp: 36,
+        riskLevel: 'High (Orange)',
+        humidity: 50,
+        rainChance: 10,
+        peakHours: '12:00 PM – 4:00 PM',
+        safetyAdvice: 'Drink water frequently, seek shaded transit routes, and avoid direct midday sun.'
+      }));
+    }
+  };
+
+  const handleTriggerDailyBriefing = async () => {
+    setIsTriggeringBriefing(true);
+    try {
+      const res = await triggerDailyBriefing(true);
+      if (res.success) {
+        showToast(`6:00 AM Daily Briefing executed! Sent: ${res.sent}, Skipped: ${res.skipped}, Total: ${res.totalEligible}`);
+        fetchDeliveryLogs().then(setLogs).catch(() => {});
+      } else {
+        showToast(res.error || 'Daily briefing dispatch failed', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to trigger daily briefing', 'error');
+    } finally {
+      setIsTriggeringBriefing(false);
     }
   };
 
@@ -625,11 +656,12 @@ export const WhatsAppGatewayPage: React.FC = () => {
             {/* Template picker */}
             <div>
               <label className="text-xs font-semibold text-slate-700 mb-2 block">Message Template</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {([
                   { key: 'custom', label: '✏️ Custom' },
                   { key: 'heat_alert', label: '🌡️ Heat Alert' },
                   { key: 'emergency', label: '🚨 Emergency' },
+                  { key: 'briefing', label: '☀️ 6 AM Briefing' },
                 ] as const).map(({ key, label }) => (
                   <button
                     key={key}
@@ -661,12 +693,25 @@ export const WhatsAppGatewayPage: React.FC = () => {
             <button
               onClick={handleBroadcast}
               disabled={selectedContacts.size === 0 || !broadcastMsg.trim() || status !== 'connected' || isBroadcasting}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366] hover:bg-[#1aad50] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366] hover:bg-[#1aad50] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isBroadcasting
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending to {selectedContacts.size} contacts…</>
                 : <><Send className="w-4 h-4" /> Send to {selectedContacts.size} contact{selectedContacts.size !== 1 ? 's' : ''}</>}
             </button>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500 font-medium">Daily Routine:</span>
+              <button
+                type="button"
+                onClick={handleTriggerDailyBriefing}
+                disabled={isTriggeringBriefing}
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                {isTriggeringBriefing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                <span>Trigger 6:00 AM Daily Briefing</span>
+              </button>
+            </div>
 
             {status !== 'connected' && (
               <p className="text-[11px] text-amber-600 text-center flex items-center justify-center gap-1">

@@ -31,6 +31,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useLocationTracker } from '../context/LocationContext';
 import { mockDb } from '../lib/mockDb';
 import { PhoneVerificationModal } from '../components/auth/PhoneVerificationModal';
+import { WhatsAppOptInCard } from '../components/notifications/WhatsAppOptInCard';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -596,6 +597,9 @@ export const MyAccountPage: React.FC = () => {
             </div>
           </div>
         </Card>
+
+        {/* WHATSAPP NOTIFICATION OPT-IN & DAILY BRIEFING */}
+        <WhatsAppOptInCard />
 
         {/* NOTIFICATION PREFERENCES */}
         <Card padding="lg" className="space-y-4">

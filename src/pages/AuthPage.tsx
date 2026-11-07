@@ -47,12 +47,10 @@ export const AuthPage: React.FC = () => {
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
   useEffect(() => {
-    if (isAuthenticated && !needsPhoneVerification) {
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
-    } else if (isAuthenticated && needsPhoneVerification) {
-      setShowPhoneVerifyModal(true);
     }
-  }, [isAuthenticated, needsPhoneVerification, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

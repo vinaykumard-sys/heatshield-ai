@@ -458,7 +458,9 @@ async function dispatchWhatsAppBroadcast(params: {
       c.locality.toLowerCase().includes(locality.toLowerCase().split(',')[0]) ||
       locality.toLowerCase().includes(c.locality.toLowerCase())
     );
-    const recipients = targets.length > 0 ? targets : contacts;
+    const recipients = (targets.length > 0 ? targets : contacts).filter(c =>
+      c.optedIn !== false && (c.preferences?.extremeHeatAlerts !== false || riskCategory === 'critical')
+    );
     for (const contact of recipients) {
       const message = formatHeatAlertMessage({
         residentName: contact.name,

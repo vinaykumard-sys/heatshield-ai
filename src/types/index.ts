@@ -6,7 +6,7 @@ export type CheckinPriority = 'routine' | 'elevated' | 'urgent' | 'immediate';
 
 export type CheckinStatus = 'pending' | 'in_progress' | 'completed' | 'unable_to_contact' | 'escalated';
 
-export type RequestCategory = 'water' | 'cooling' | 'general_welfare' | 'cooling_centre_transport' | 'other';
+export type RequestCategory = 'water' | 'cooling' | 'general_welfare' | 'cooling_centre_transport' | 'other' | 'medical';
 
 export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -754,6 +754,14 @@ export interface HeatSafeRoute {
   coordinates: Array<[number, number]>;
   summary: string;
   warnings?: string[];
+  avoids_high_risk?: boolean;
+  cooling_point_nearby?: boolean;
+  checkpoints?: Array<{
+    title: string;
+    desc: string;
+    type: 'start' | 'shade' | 'water' | 'shelter' | 'end';
+    coordinates?: [number, number];
+  }>;
 }
 
 // --- PART 9: FAMILY SAFETY DASHBOARD ---

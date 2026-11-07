@@ -144,15 +144,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // Default registered resident session
+    // Default registered resident session (unverified phone until OTP completed)
     const residentUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
       full_name: email.split('@')[0].replace(/[._]/g, ' '),
       role: 'resident',
-      phone: '+91 98450 12345',
+      phone: '',
       country_code: '+91',
-      is_phone_verified: true,
+      is_phone_verified: false,
       is_email_verified: true,
       hourly_notification_consent: true,
       preferred_language: 'en',

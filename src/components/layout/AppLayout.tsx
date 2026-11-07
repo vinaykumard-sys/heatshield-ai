@@ -12,6 +12,8 @@ import { AppHeader } from './AppHeader';
 import { EmergencyModal } from '../common/EmergencyModal';
 import { NotificationDrawer } from '../notifications/NotificationDrawer';
 import { FloatingAssistantWidget } from '../assistant/FloatingAssistantWidget';
+import { CompulsoryPhoneAlertBanner } from '../notifications/CompulsoryPhoneAlertBanner';
+import { PhoneVerificationModal } from '../auth/PhoneVerificationModal';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,6 +22,7 @@ export interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const location = useLocation();
 
   return (
@@ -44,8 +47,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             onOpenEmergency={() => setIsEmergencyModalOpen(true)}
           />
 
+          {/* COMPULSORY RESIDENT PHONE VERIFICATION BANNER */}
+          <CompulsoryPhoneAlertBanner 
+            onOpenPhoneModal={() => setIsPhoneModalOpen(true)} 
+          />
+
           {/* PAGE MAIN CONTENT SCROLL CONTAINER */}
-          <main className="flex-1 overflow-y-auto bg-[#F4F7FE] p-4 sm:p-6 lg:p-7 pb-20 lg:pb-7">
+          <main className="flex-1 overflow-y-auto bg-[#F4F7FE] p-4 sm:p-6 lg:p-7 pb-28 lg:pb-8">
             <div className="max-w-[1440px] w-full mx-auto">
               <div key={location.pathname} className="animate-page-enter">
                 {children}
@@ -112,6 +120,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <EmergencyModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
+      />
+      <PhoneVerificationModal
+        isOpen={isPhoneModalOpen}
+        onClose={() => setIsPhoneModalOpen(false)}
       />
 
       {/* Persistent AI Assistant Widget */}

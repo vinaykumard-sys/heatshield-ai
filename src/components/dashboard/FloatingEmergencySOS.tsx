@@ -11,7 +11,7 @@ export const FloatingEmergencySOS: React.FC<FloatingEmergencySOSProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 ${className}`}>
+    <div className={`fixed bottom-36 right-4 sm:bottom-22 sm:right-6 z-40 pointer-events-auto ${className}`}>
       <button
         onClick={onOpenEmergency}
         className="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white font-extrabold text-xs shadow-xl shadow-red-500/35 hover:shadow-2xl hover:shadow-red-500/50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/30"

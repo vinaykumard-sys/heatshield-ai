@@ -67,16 +67,22 @@ All `POST` and `DELETE` endpoints require the `x-api-secret` header.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` | Service health + WhatsApp status |
+| `GET` | `/health` | Service health + WhatsApp connection status |
 | `GET` | `/status` | Connection state (`connecting` / `qr_ready` / `connected` / `logged_out`) |
 | `GET` | `/qr` | QR code as base64 PNG (poll while status is `qr_ready`) |
-| `POST` | `/send` | Send to one number `{ to, message }` |
-| `POST` | `/broadcast` | Send to multiple `{ contacts: [phone,...], message, delayMs? }` |
+| `POST` | `/api/otp/request` | Issue 6-digit cryptographic OTP (rate-limited, 60s cooldown, 5m expiry) |
+| `POST` | `/api/otp/verify` | Verify 6-digit OTP, invalidate code, return verification token |
+| `POST` | `/api/opt-in` | Register/update resident explicit WhatsApp consent & preferences |
+| `GET` | `/api/opt-in/:phone` | Fetch resident opt-in status and notification preferences |
+| `POST` | `/api/cron/daily-briefing` | Execute idempotent 6:00 AM daily weather briefing for opted-in users |
+| `GET` | `/api/cron/daily-briefing` | Check/trigger daily briefing |
+| `POST` | `/send` | Send to one number `{ to, message }` (requires secret) |
+| `POST` | `/broadcast` | Send to multiple `{ contacts: [phone,...], message, delayMs? }` (requires secret) |
 | `GET` | `/contacts` | List all saved contacts |
-| `POST` | `/contacts` | Add contact `{ name, phone, locality?, countryCode? }` |
-| `DELETE` | `/contacts/:phone` | Remove a contact |
+| `POST` | `/contacts` | Add contact `{ name, phone, locality?, countryCode? }` (requires secret) |
+| `DELETE` | `/contacts/:phone` | Remove a contact (requires secret) |
 | `GET` | `/logs` | Last 100 delivery log entries |
-| `POST` | `/disconnect` | Logout from WhatsApp |
+| `POST` | `/disconnect` | Logout from WhatsApp (requires secret) |
 
 ### Phone number format
 Pass phone numbers **without `+` or spaces**, e.g.:
