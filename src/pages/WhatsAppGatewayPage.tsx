@@ -405,6 +405,30 @@ export const WhatsAppGatewayPage: React.FC = () => {
                 <p className="text-xs text-slate-500">Restart the gateway service to generate a new QR code.</p>
               </div>
             )}
+
+            {status === 'unreachable' && (
+              <div className="text-center py-6 space-y-3 bg-amber-50/50 rounded-2xl border border-amber-200 p-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-600">
+                  <WifiOff className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Local Gateway Offline or Awaiting Launch</p>
+                  <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
+                    The WhatsApp Baileys gateway service is located in <code className="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-mono text-amber-900">whatsapp-service/</code>. Start it locally to generate the live QR code.
+                  </p>
+                </div>
+                <div className="bg-slate-900 text-slate-100 font-mono text-[11px] p-2.5 rounded-xl flex items-center justify-between gap-2 max-w-xs mx-auto text-left shadow-inner">
+                  <span>cd whatsapp-service && npm start</span>
+                </div>
+                <button
+                  onClick={() => refreshStatus()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Check Connection Again
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Quick send panel */}

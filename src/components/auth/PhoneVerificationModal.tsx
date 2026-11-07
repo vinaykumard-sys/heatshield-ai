@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MessageCircle, CheckCircle2, AlertCircle, RefreshCw, Lock, X, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { requestPhoneOtp, verifyPhoneOtp } from '../../lib/phoneAuthService';
@@ -210,20 +211,19 @@ export const PhoneVerificationModal: React.FC<PhoneVerificationModalProps> = ({
           </div>
         </div>
 
-        {/* Honest Gateway Status Banner */}
+        {/* Gateway Status Banner */}
         {!gatewayStatus.connected && (
           <div className="mb-4 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2">
             <span className="text-[11px] leading-tight">
               ⚠️ WhatsApp gateway not linked. Scan QR code in Admin Gateway to link HeatShield AI.
             </span>
-            <a
-              href="/whatsapp-gateway"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[10px] font-bold text-amber-800 underline hover:text-amber-950 shrink-0 inline-flex items-center gap-1"
+            <Link
+              to="/whatsapp-gateway"
+              onClick={() => onClose && onClose()}
+              className="text-[10px] font-bold text-amber-800 underline hover:text-amber-950 shrink-0 inline-flex items-center gap-1 cursor-pointer"
             >
               Link Now <ExternalLink className="w-3 h-3" />
-            </a>
+            </Link>
           </div>
         )}
 
