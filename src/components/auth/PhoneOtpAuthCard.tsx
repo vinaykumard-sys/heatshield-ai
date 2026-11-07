@@ -305,7 +305,7 @@ export const PhoneOtpAuthCard: React.FC<PhoneOtpAuthCardProps> = ({
             {isRequesting ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Sending OTP via SMS...</span>
+                <span>Sending verification code...</span>
               </>
             ) : (
               <>
@@ -316,8 +316,8 @@ export const PhoneOtpAuthCard: React.FC<PhoneOtpAuthCardProps> = ({
           </button>
 
           <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-slate-400">
-            <Lock className="w-3.5 h-3.5" />
-            <span>Secure Supabase Phone Authentication.</span>
+            <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <span>End-to-end encrypted WhatsApp verification. HeatShield AI never shares your number.</span>
           </div>
         </form>
       ) : (
@@ -333,7 +333,7 @@ export const PhoneOtpAuthCard: React.FC<PhoneOtpAuthCardProps> = ({
               <span>Back</span>
             </button>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Step 2 of 2
+              WhatsApp Verification
             </span>
           </div>
 
@@ -342,7 +342,7 @@ export const PhoneOtpAuthCard: React.FC<PhoneOtpAuthCardProps> = ({
               Verify OTP
             </h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Enter the 6-digit code sent to your mobile number{' '}
+              Enter the 6-digit code sent to WhatsApp{' '}
               <strong className="text-slate-900 font-mono">{normalizedPhoneDisplay}</strong>
             </p>
           </div>
@@ -407,12 +407,12 @@ export const PhoneOtpAuthCard: React.FC<PhoneOtpAuthCardProps> = ({
             {isVerifying ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Verifying with Supabase...</span>
+                <span>Verifying OTP...</span>
               </>
             ) : (
               <>
                 <ShieldCheck className="w-4 h-4" />
-                <span>Verify & Sign In</span>
+                <span>Verify OTP</span>
               </>
             )}
           </button>

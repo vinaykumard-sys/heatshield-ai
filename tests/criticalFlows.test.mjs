@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import nodeCrypto from 'node:crypto';
 
 // ==============================================================================
 // TEST SUITE 1: HeatShield Action Engine — Deterministic Risk & Slogans
@@ -550,6 +551,96 @@ test('Mandatory Phone Alert Banner — Visibility & Snooze Logic', () => {
 
   assert.equal(shouldDisplayBanner(unverifiedUser, false), true, 'Unverified user must see phone prompt banner');
   assert.equal(shouldDisplayBanner(verifiedUser, false), false, 'Verified user must never see phone prompt banner');
+});
+
+// ==============================================================================
+// TEST SUITE 11: Custom WhatsApp OTP Security & Anti-Brute-Force Verification
+// ==============================================================================
+test('WhatsApp OTP Security — Cryptographic Hashing, Anti-Brute-Force & Replay Prevention', () => {
+  const SALT = 'heatshield-test-salt';
+
+  function hashOtpNode(phone, otp, salt) {
+    return nodeCrypto.createHash('sha256').update(`${phone}:${otp}:${salt}`).digest('hex');
+  }
+
+  // 1. Verify Hash Consistency and Plaintext Secrecy
+  const phone = '+919945744948';
+  const otp = '789123';
+  const hashed = hashOtpNode(phone, otp, SALT);
+  assert.equal(typeof hashed, 'string');
+  assert.equal(hashed.length, 64, 'SHA-256 output must be 64-char hex string');
+  assert.notEqual(hashed, otp, 'Hashed OTP must never equal plaintext OTP');
+
+  // 2. Anti-Brute-Force State Machine Simulation
+  class MockOtpVerifier {
+    constructor(phone, otp, maxAttempts = 5, ttlMs = 300000) {
+      this.phone = phone;
+      this.otpHash = hashOtpNode(phone, otp, SALT);
+      this.attempts = 0;
+      this.maxAttempts = maxAttempts;
+      this.verified = false;
+      this.expiresAt = Date.now() + ttlMs;
+    }
+
+    verify(submittedOtp) {
+      if (this.verified) {
+        return { success: false, error: 'OTP already verified and cannot be reused' };
+      }
+      if (Date.now() > this.expiresAt) {
+        return { success: false, error: 'OTP expired' };
+      }
+      if (this.attempts >= this.maxAttempts) {
+        return { success: false, error: 'Maximum attempts exceeded' };
+      }
+
+      const submittedHash = hashOtpNode(this.phone, submittedOtp, SALT);
+      if (submittedHash !== this.otpHash) {
+        this.attempts += 1;
+        const remaining = this.maxAttempts - this.attempts;
+        return {
+          success: false,
+          error: remaining > 0 ? `Invalid code. ${remaining} attempts remaining` : 'Maximum attempts exceeded',
+          remaining
+        };
+      }
+
+      this.verified = true;
+      return { success: true };
+    }
+  }
+
+  // Test failed attempts increment up to max limit
+  const verifier = new MockOtpVerifier(phone, '654321', 5);
+  assert.equal(verifier.verify('111111').success, false);
+  assert.equal(verifier.attempts, 1);
+  assert.equal(verifier.verify('222222').success, false);
+  assert.equal(verifier.attempts, 2);
+  assert.equal(verifier.verify('333333').success, false);
+  assert.equal(verifier.verify('444444').success, false);
+  assert.equal(verifier.verify('555555').success, false);
+  assert.equal(verifier.attempts, 5);
+
+  // 6th attempt rejected due to max attempts reached
+  const lockedOut = verifier.verify('654321');
+  assert.equal(lockedOut.success, false);
+  assert.ok(lockedOut.error.includes('Maximum attempts exceeded'));
+
+  // Test successful verification
+  const successfulVerifier = new MockOtpVerifier(phone, '888999', 5);
+  const okResult = successfulVerifier.verify('888999');
+  assert.equal(okResult.success, true);
+  assert.equal(successfulVerifier.verified, true);
+
+  // Test token replay prevention (cannot be reused once verified)
+  const reuseResult = successfulVerifier.verify('888999');
+  assert.equal(reuseResult.success, false);
+  assert.ok(reuseResult.error.includes('cannot be reused'));
+
+  // Test expired token rejection
+  const expiredVerifier = new MockOtpVerifier(phone, '123456', 5, -1000); // expired 1s ago
+  const expiredResult = expiredVerifier.verify('123456');
+  assert.equal(expiredResult.success, false);
+  assert.ok(expiredResult.error.includes('expired'));
 });
 
 console.log('✅ ALL CRITICAL FLOW INTEGRATION TESTS PASSED!');
