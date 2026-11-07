@@ -434,41 +434,66 @@ test('Safe Routes — Multi-Modal Routing Profiles & Distance Calculations', () 
 });
 
 // ==============================================================================
-// TEST SUITE 8: Secure Server-Side OTP & Anti-Brute-Force Controls
+// TEST SUITE 8: Production Supabase Phone Auth & E.164 Mobile Validation
 // ==============================================================================
-test('Secure Phone OTP — Hashing, Rate Limiting & Expiration', async () => {
-  const crypto = await import('node:crypto');
-
-  function sha256(str) {
-    return crypto.createHash('sha256').update(str).digest('hex');
-  }
-
-  function generateSecureOtp() {
-    const randomBuffer = crypto.randomBytes(4);
-    const num = 100000 + (randomBuffer.readUInt32BE(0) % 900000);
-    return num.toString();
-  }
-
-  const code1 = generateSecureOtp();
-  const code2 = generateSecureOtp();
-  assert.match(code1, /^\d{6}$/, 'OTP must be 6 digits');
-  assert.match(code2, /^\d{6}$/, 'OTP must be 6 digits');
-  assert.notEqual(code1, '123456', 'OTP must never be hardcoded 123456');
-
-  // Verify SHA-256 hash matching
-  const hashed = sha256(code1);
-  assert.equal(sha256(code1), hashed);
-  assert.notEqual(sha256(code2), hashed);
-
-  // Anti brute-force attempts simulation
-  let attemptsRemaining = 5;
-  const incorrectGuess = '999999';
-  while (attemptsRemaining > 0) {
-    if (sha256(incorrectGuess) !== hashed) {
-      attemptsRemaining--;
+test('Secure Phone OTP — Normalization, Validation, Cooldown & Security', async () => {
+  // 1. Phone Normalization to E.164
+  function normalizeToE164(countryCode, localNumber) {
+    const cleanCode = (countryCode || '+91').trim().replace(/[^0-9+]/g, '');
+    const prefix = cleanCode.startsWith('+') ? cleanCode : `+${cleanCode}`;
+    const cleanNumber = localNumber.replace(/[^0-9]/g, '');
+    if (cleanNumber.length > 10 && cleanNumber.startsWith('91')) {
+      return `+${cleanNumber}`;
     }
+    return `${prefix}${cleanNumber}`;
   }
-  assert.equal(attemptsRemaining, 0, 'Challenges lock out after 5 failed attempts');
+
+  assert.equal(normalizeToE164('+91', '9945744948'), '+919945744948', 'Correctly normalizes 10-digit Indian number');
+  assert.equal(normalizeToE164('+91', '99457-44948'), '+919945744948', 'Strips punctuation and hyphens');
+  assert.equal(normalizeToE164('+91', '+91 99457 44948'), '+919945744948', 'Handles prefixed country code');
+
+  // 2. Indian Mobile Number Validation
+  function isValidIndianMobileNumber(phoneStr) {
+    const digitsOnly = phoneStr.replace(/[^0-9]/g, '');
+    if (digitsOnly.length === 10) return /^[6-9]\d{9}$/.test(digitsOnly);
+    if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) return /^91[6-9]\d{9}$/.test(digitsOnly);
+    return false;
+  }
+
+  assert.equal(isValidIndianMobileNumber('9945744948'), true, 'Valid Indian mobile starting with 9');
+  assert.equal(isValidIndianMobileNumber('8884012345'), true, 'Valid Indian mobile starting with 8');
+  assert.equal(isValidIndianMobileNumber('7760123456'), true, 'Valid Indian mobile starting with 7');
+  assert.equal(isValidIndianMobileNumber('6360123456'), true, 'Valid Indian mobile starting with 6');
+  assert.equal(isValidIndianMobileNumber('1234567890'), false, 'Invalid Indian mobile starting with 1');
+  assert.equal(isValidIndianMobileNumber('98765'), false, 'Invalid Indian mobile with insufficient digits');
+
+  // 3. 6-Digit OTP Token Constraint
+  function validateOtpToken(token) {
+    const clean = String(token).trim().replace(/[^0-9]/g, '');
+    return clean.length === 6;
+  }
+
+  assert.equal(validateOtpToken('123456'), true, 'Valid 6-digit token');
+  assert.equal(validateOtpToken('12345'), false, 'Rejects 5-digit token');
+  assert.equal(validateOtpToken('1234567'), false, 'Rejects 7-digit token');
+  assert.equal(validateOtpToken('abcdef'), false, 'Rejects non-numeric token');
+
+  // 4. Rate-Limiting & Cooldown Logic
+  const cooldownTimestamps = new Map();
+  function checkRateLimit(phone) {
+    const last = cooldownTimestamps.get(phone);
+    if (last && Date.now() - last < 60000) {
+      return { allowed: false, remainingSeconds: Math.ceil((60000 - (Date.now() - last)) / 1000) };
+    }
+    cooldownTimestamps.set(phone, Date.now());
+    return { allowed: true, remainingSeconds: 60 };
+  }
+
+  const req1 = checkRateLimit('+919945744948');
+  assert.equal(req1.allowed, true, 'First request allowed');
+  const req2 = checkRateLimit('+919945744948');
+  assert.equal(req2.allowed, false, 'Rapid second request prevented by cooldown');
+  assert.ok(req2.remainingSeconds > 0, 'Returns remaining cooldown seconds');
 });
 
 // ==============================================================================

@@ -1,259 +1,235 @@
 /**
- * HEATSHIELD AI — REAL SERVER-SIDE & RESILIENT HYBRID PHONE OTP VERIFICATION SERVICE
- * -----------------------------------------------------------------------------------
- * Integrates with the HeatShield AI backend WhatsApp/OTP service (`whatsapp-service`).
- * If the local gateway is unreachable (e.g. cloud deployment or cross-origin restrictions),
- * automatically and securely falls back to WebCrypto SHA-256 challenge generation so users
- * and administrators can always complete verification reliably without being blocked.
+ * HEATSHIELD AI — PRODUCTION SUPABASE PHONE OTP AUTHENTICATION SERVICE
+ * --------------------------------------------------------------------
+ * Connects directly to Supabase Phone Authentication (`supabase.auth.signInWithOtp`
+ * and `supabase.auth.verifyOtp`).
  *
- * Sender Identity: HeatShield AI
+ * Rules:
+ *  - Frontend NEVER generates, displays, or verifies OTPs.
+ *  - Official Supabase Auth handles OTP generation, SMS dispatch, expiration, and verification.
+ *  - All numbers are normalized to E.164 format (e.g. +919945744948).
+ *  - Cooldowns and rate-limiting safeguards are enforced.
  */
 
-import { requestServerOtp, verifyServerOtp } from './whatsappGateway';
+import { supabase, isSupabaseConfigured } from './supabase';
 
-export interface PhoneVerificationResult {
+export interface PhoneAuthRequestResult {
   success: boolean;
   message: string;
-  verifiedAt?: string;
-  token?: string;
   cooldownSeconds?: number;
-  channel?: 'whatsapp' | 'dev_simulated';
-  gatewayConnected?: boolean;
-  devOtp?: string;
+  errorCode?: string;
 }
 
-// In-memory challenge store for hybrid resilience
-interface ActiveChallenge {
-  canonical: string;
-  hash: string;
-  code: string;
-  expiresAt: number;
-  attempts: number;
+export interface PhoneAuthVerifyResult {
+  success: boolean;
+  message: string;
+  session?: any;
+  user?: any;
+  errorCode?: string;
 }
 
-const activeChallenges = new Map<string, ActiveChallenge>();
-const requestTimestamps = new Map<string, number>();
+// In-memory request timestamp store for client-side spam protection
+const requestCooldownTimestamps = new Map<string, number>();
 
-// Format canonical phone number (e.g. +91 9845012345 or +919845012345)
-export function formatCanonicalPhone(countryCode: string, localNumber: string): string {
-  const cleanCode = countryCode.trim().startsWith('+') ? countryCode.trim() : `+${countryCode.trim()}`;
+/**
+ * Normalizes a phone number to standard E.164 format.
+ * Defaults to India (+91) if no country code is present.
+ * Example: '9945744948' -> '+919945744948'
+ * Example: '+91 99457-44948' -> '+919945744948'
+ */
+export function normalizeToE164(countryCode: string, localNumber: string): string {
+  const cleanCode = (countryCode || '+91').trim().replace(/[^0-9+]/g, '');
+  const prefix = cleanCode.startsWith('+') ? cleanCode : `+${cleanCode}`;
   const cleanNumber = localNumber.replace(/[^0-9]/g, '');
-  return `${cleanCode}${cleanNumber}`;
-}
 
-async function sha256(str: string): Promise<string> {
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuf = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuf))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+  // If localNumber already includes country code
+  if (cleanNumber.length > 10 && cleanNumber.startsWith('91')) {
+    return `+${cleanNumber}`;
   }
-  // Fallback simple hash for non-subtle environments
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return String(Math.abs(hash));
-}
 
-function generateCryptographic6DigitOtp(): string {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    const code = 100000 + (array[0] % 900000);
-    return String(code);
-  }
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return `${prefix}${cleanNumber}`;
 }
 
 /**
- * Initiates phone OTP challenge.
- * Attempts server-side gateway first; if gateway is offline/unreachable,
- * seamlessly uses in-memory WebCrypto challenge so testing and verification are never blocked.
+ * Validates Indian mobile phone number format:
+ * Exactly 10 digits, starting with 6, 7, 8, or 9.
+ */
+export function isValidIndianMobileNumber(phoneStr: string): boolean {
+  const digitsOnly = phoneStr.replace(/[^0-9]/g, '');
+  // 10 digits starting with 6-9
+  if (digitsOnly.length === 10) {
+    return /^[6-9]\d{9}$/.test(digitsOnly);
+  }
+  // 12 digits starting with 91 followed by 6-9
+  if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+    return /^91[6-9]\d{9}$/.test(digitsOnly);
+  }
+  return false;
+}
+
+/**
+ * Requests an SMS OTP from Supabase Phone Authentication.
  */
 export async function requestPhoneOtp(
   countryCode: string,
   localNumber: string
-): Promise<PhoneVerificationResult> {
+): Promise<PhoneAuthRequestResult> {
   const digitsOnly = localNumber.replace(/[^0-9]/g, '');
-  if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+
+  if (!digitsOnly || digitsOnly.length < 10) {
     return {
       success: false,
-      message: 'Please enter a valid mobile phone number (8 to 15 digits).'
+      message: 'Please enter a valid 10-digit mobile number.',
+      errorCode: 'invalid_number'
     };
   }
 
-  const canonical = formatCanonicalPhone(countryCode, localNumber);
+  const normalizedPhone = normalizeToE164(countryCode, localNumber);
 
-  // Enforce 60-second cooldown per canonical number
-  const lastReq = requestTimestamps.get(canonical);
-  if (lastReq && Date.now() - lastReq < 60000) {
-    const remaining = Math.ceil((60000 - (Date.now() - lastReq)) / 1000);
-    return {
-      success: false,
-      message: `Please wait ${remaining} seconds before requesting a new code.`,
-      cooldownSeconds: remaining
-    };
-  }
-
-  // 1. Attempt server-side WhatsApp gateway
-  try {
-    const res = await requestServerOtp(countryCode, localNumber);
-
-    if (res.success) {
-      requestTimestamps.set(canonical, Date.now());
+  // Validate Indian format if +91
+  if (normalizedPhone.startsWith('+91')) {
+    const withoutCode = normalizedPhone.replace(/^\+91/, '');
+    if (!/^[6-9]\d{9}$/.test(withoutCode)) {
       return {
-        success: true,
-        message: res.message || 'HeatShield AI verification code sent.',
-        cooldownSeconds: res.cooldownSeconds || 60,
-        channel: res.channel,
-        gatewayConnected: res.gatewayConnected,
-        devOtp: res.devOtp
+        success: false,
+        message: 'Please enter a valid 10-digit Indian mobile number (must begin with 6, 7, 8, or 9).',
+        errorCode: 'invalid_indian_mobile'
       };
     }
-  } catch {
-    // server unreachable, proceed to resilient WebCrypto fallback below
   }
 
-  // 2. Resilient WebCrypto Fallback (Ensures cloud & mobile users are never blocked)
-  try {
-    const generatedOtp = generateCryptographic6DigitOtp();
-    const hash = await sha256(`${generatedOtp}:heatshield:${canonical}`);
+  // Client-side 60-second cooldown protection
+  const lastRequested = requestCooldownTimestamps.get(normalizedPhone);
+  if (lastRequested && Date.now() - lastRequested < 60000) {
+    const remaining = Math.ceil((60000 - (Date.now() - lastRequested)) / 1000);
+    return {
+      success: false,
+      message: `Please wait ${remaining} seconds before requesting another code.`,
+      cooldownSeconds: remaining,
+      errorCode: 'rate_limited'
+    };
+  }
 
-    activeChallenges.set(canonical, {
-      canonical,
-      hash,
-      code: generatedOtp,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-      attempts: 0
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      message: 'Supabase authentication service is not configured. Please check your environment configuration.',
+      errorCode: 'supabase_not_configured'
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      phone: normalizedPhone,
+      options: {
+        channel: 'sms'
+      }
     });
 
-    requestTimestamps.set(canonical, Date.now());
+    if (error) {
+      console.warn('Supabase signInWithOtp error:', error);
+      let userFriendlyMsg = error.message;
+
+      if (error.message.includes('Unsupported phone provider') || (error as any).code === 'phone_provider_disabled') {
+        userFriendlyMsg = 'SMS Provider is not yet enabled in the Supabase Dashboard. Please enable the Phone provider in Auth Settings.';
+      } else if (error.message.includes('rate limit') || error.status === 429) {
+        userFriendlyMsg = 'Too many requests. Please wait a few minutes before trying again.';
+      } else if (error.message.includes('Invalid phone number')) {
+        userFriendlyMsg = 'The phone number entered was rejected by the SMS gateway. Please check the digits and try again.';
+      }
+
+      return {
+        success: false,
+        message: userFriendlyMsg,
+        errorCode: (error as any).code || 'request_failed'
+      };
+    }
+
+    // Set cooldown
+    requestCooldownTimestamps.set(normalizedPhone, Date.now());
 
     return {
       success: true,
-      message: 'HeatShield AI: Verification code generated successfully.',
-      cooldownSeconds: 60,
-      channel: 'dev_simulated',
-      gatewayConnected: false,
-      devOtp: generatedOtp
+      message: `Verification code sent via SMS to ${normalizedPhone}.`,
+      cooldownSeconds: 60
     };
   } catch (err: any) {
     return {
       success: false,
-      message: err.message || 'Could not generate verification challenge. Please try again.'
+      message: err.message || 'Network error: could not connect to Supabase Auth service.',
+      errorCode: 'network_error'
     };
   }
 }
 
 /**
- * Validates entered 6-digit OTP code against server challenge or WebCrypto challenge.
- * Enforces single-use consumption and max 5 attempts before invalidation.
+ * Verifies the 6-digit SMS OTP using official Supabase Phone Auth API.
  */
 export async function verifyPhoneOtp(
   countryCode: string,
   localNumber: string,
-  enteredCode: string,
-  options?: { userId?: string; preferences?: any }
-): Promise<PhoneVerificationResult> {
-  const cleanEntered = enteredCode.trim().replace(/[^0-9]/g, '');
-  if (cleanEntered.length !== 6) {
+  token: string
+): Promise<PhoneAuthVerifyResult> {
+  const cleanToken = token.trim().replace(/[^0-9]/g, '');
+
+  if (cleanToken.length !== 6) {
     return {
       success: false,
-      message: 'Verification code must be exactly 6 digits.'
+      message: 'Please enter the full 6-digit verification code.',
+      errorCode: 'invalid_token_length'
     };
   }
 
-  const canonical = formatCanonicalPhone(countryCode, localNumber);
+  const normalizedPhone = normalizeToE164(countryCode, localNumber);
 
-  // 1. Attempt server-side verification
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      message: 'Supabase authentication service is not configured.',
+      errorCode: 'supabase_not_configured'
+    };
+  }
+
   try {
-    const res = await verifyServerOtp(countryCode, localNumber, cleanEntered, options);
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: normalizedPhone,
+      token: cleanToken,
+      type: 'sms'
+    });
 
-    if (res.success) {
-      const verifiedAt = res.verifiedAt || new Date().toISOString();
-      persistLocalVerification(canonical, countryCode, localNumber, res.token, verifiedAt);
+    if (error) {
+      console.warn('Supabase verifyOtp error:', error);
+      let userFriendlyMsg = error.message;
+
+      if (error.message.toLowerCase().includes('token has expired') || error.message.toLowerCase().includes('expired')) {
+        userFriendlyMsg = 'Verification code has expired. Please request a new code.';
+      } else if (error.message.toLowerCase().includes('invalid token') || error.message.toLowerCase().includes('token is invalid')) {
+        userFriendlyMsg = 'Incorrect verification code. Please check your SMS and enter the 6 digits again.';
+      } else if (error.status === 429) {
+        userFriendlyMsg = 'Too many failed verification attempts. Please request a new code.';
+      }
+
       return {
-        success: true,
-        message: res.message || 'Mobile number verified successfully with HeatShield AI!',
-        verifiedAt,
-        token: res.token
+        success: false,
+        message: userFriendlyMsg,
+        errorCode: (error as any).code || 'verification_failed'
       };
     }
-  } catch {
-    // proceed to fallback verification
-  }
 
-  // 2. Verify against active WebCrypto challenge
-  const challenge = activeChallenges.get(canonical);
-  if (!challenge) {
+    // Clear cooldown on successful verification
+    requestCooldownTimestamps.delete(normalizedPhone);
+
+    return {
+      success: true,
+      message: 'Mobile number verified successfully!',
+      session: data.session,
+      user: data.user
+    };
+  } catch (err: any) {
     return {
       success: false,
-      message: 'No active verification code found for this number. Please request a new code.'
+      message: err.message || 'Network error during verification. Please try again.',
+      errorCode: 'network_error'
     };
-  }
-
-  if (Date.now() > challenge.expiresAt) {
-    activeChallenges.delete(canonical);
-    return {
-      success: false,
-      message: 'Verification code has expired (5 minutes limit). Please request a new code.'
-    };
-  }
-
-  if (challenge.attempts >= 5) {
-    activeChallenges.delete(canonical);
-    return {
-      success: false,
-      message: 'Too many incorrect attempts. For security, please request a new code.'
-    };
-  }
-
-  const candidateHash = await sha256(`${cleanEntered}:heatshield:${canonical}`);
-  if (candidateHash !== challenge.hash && cleanEntered !== challenge.code) {
-    challenge.attempts += 1;
-    const remaining = 5 - challenge.attempts;
-    return {
-      success: false,
-      message: `Incorrect verification code. ${remaining} attempt(s) remaining.`
-    };
-  }
-
-  // Successful verification
-  activeChallenges.delete(canonical);
-  const verifiedAt = new Date().toISOString();
-  const token = `tok_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-  persistLocalVerification(canonical, countryCode, localNumber, token, verifiedAt);
-
-  return {
-    success: true,
-    message: 'Mobile number verified successfully with HeatShield AI!',
-    verifiedAt,
-    token
-  };
-}
-
-function persistLocalVerification(
-  canonical: string,
-  countryCode: string,
-  localNumber: string,
-  token?: string,
-  verifiedAt: string = new Date().toISOString()
-) {
-  try {
-    const verifiedPhones = JSON.parse(localStorage.getItem('heatshield_verified_phones') || '{}');
-    verifiedPhones[canonical] = {
-      verifiedAt,
-      countryCode,
-      number: localNumber,
-      token
-    };
-    localStorage.setItem('heatshield_verified_phones', JSON.stringify(verifiedPhones));
-  } catch {
-    // ignore storage failure
   }
 }

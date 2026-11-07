@@ -3,6 +3,8 @@ import { UserProfile, UserRole } from '../types';
 import { INITIAL_USERS } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+import { requestPhoneOtp, verifyPhoneOtp, PhoneAuthRequestResult, PhoneAuthVerifyResult } from '../lib/phoneAuthService';
+
 interface AuthContextType {
   user: UserProfile | null;
   role: UserRole;
@@ -13,6 +15,8 @@ interface AuthContextType {
   needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signInWithPhone: (phone: string, countryCode?: string) => Promise<PhoneAuthRequestResult>;
+  verifyPhone: (phone: string, token: string, countryCode?: string) => Promise<PhoneAuthVerifyResult>;
   signup: (
     email: string, 
     password: string, 
@@ -89,17 +93,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (profile) {
-        setUser(profile as UserProfile);
+        if (!profile.is_phone_verified && authUser.phone) {
+          const updated = {
+            ...profile,
+            phone: authUser.phone,
+            is_phone_verified: true,
+            phone_verified_at: new Date().toISOString()
+          };
+          setUser(updated as UserProfile);
+          try {
+            await supabase.from('profiles').update({
+              phone: authUser.phone,
+              is_phone_verified: true,
+              phone_verified_at: new Date().toISOString()
+            }).eq('id', authUser.id);
+          } catch (e) {
+            console.warn('Profile phone sync notice:', e);
+          }
+        } else {
+          setUser(profile as UserProfile);
+        }
       } else {
         // Create new profile with default role 'resident'
         const newProfile: UserProfile = {
           id: authUser.id,
-          email: authUser.email || '',
+          email: authUser.email || (authUser.phone ? `${authUser.phone.replace(/\D/g, '')}@phone.heatshield.internal` : ''),
           full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident',
           role: 'resident',
-          phone: authUser.user_metadata?.phone || '',
+          phone: authUser.phone || authUser.user_metadata?.phone || '',
           country_code: authUser.user_metadata?.country_code || '+91',
-          is_phone_verified: Boolean(authUser.user_metadata?.is_phone_verified),
+          is_phone_verified: Boolean(authUser.phone || authUser.user_metadata?.is_phone_verified),
+          phone_verified_at: authUser.phone ? new Date().toISOString() : undefined,
           is_email_verified: Boolean(authUser.email_confirmed_at),
           email_verified_at: authUser.email_confirmed_at,
           hourly_notification_consent: true,
@@ -301,6 +325,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  const signInWithPhone = async (phone: string, countryCode: string = '+91'): Promise<PhoneAuthRequestResult> => {
+    return requestPhoneOtp(countryCode, phone);
+  };
+
+  const verifyPhone = async (phone: string, token: string, countryCode: string = '+91'): Promise<PhoneAuthVerifyResult> => {
+    const res = await verifyPhoneOtp(countryCode, phone, token);
+    if (res.success && res.user) {
+      await handleSessionUser(res.user);
+    }
+    return res;
+  };
+
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
@@ -326,6 +362,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         needsPhoneVerification,
         login,
         loginWithGoogle,
+        signInWithPhone,
+        verifyPhone,
         signup,
         resetPassword,
         markPhoneVerified,
