@@ -16,6 +16,7 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import { RiskBadge } from '../components/common/RiskBadge';
 import { EmergencyModal } from '../components/common/EmergencyModal';
+import { AppDownloadSection } from '../components/common/AppDownloadSection';
 import { useLocationTracker } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/common/Card';
@@ -269,6 +270,9 @@ export const LandingPage: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* Android Mobile App Showcase Banner */}
+      <AppDownloadSection />
 
       {/* Disclaimer */}
       <div className="p-4 rounded-2xl bg-white border border-[#E5EDF5] text-xs text-[#64748B] leading-relaxed text-center max-w-3xl mx-auto">

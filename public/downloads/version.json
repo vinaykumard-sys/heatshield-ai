@@ -1,0 +1,17 @@
+{
+  "appName": "HeatShield AI",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "releaseDate": "2026-11-08",
+  "package": "com.heatshield.ai",
+  "apkSize": "28.4 MB",
+  "downloadUrl": "/downloads/HeatShield-AI.apk",
+  "minAndroidVersion": "8.0 (API 26)+",
+  "changelog": [
+    "Initial release of HeatShield AI Native Android Application",
+    "Real-time Urban Heat Index & Wet Bulb temperature monitoring",
+    "OSRM-powered Heat-Safe Route navigation with turn-by-turn directions",
+    "Instant SOS emergency dispatch and verified cooling centre finder",
+    "Contextual AI Thermal Assistant for hydration planning"
+  ]
+}

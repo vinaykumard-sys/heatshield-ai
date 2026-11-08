@@ -9,7 +9,9 @@ import {
   X, 
   Loader2, 
   PhoneCall, 
-  Bell 
+  Bell,
+  Smartphone,
+  Download 
 } from 'lucide-react';
 import { useLocationTracker } from '../../context/LocationContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -20,11 +22,13 @@ import { ProfileDropdown } from '../common/ProfileDropdown';
 export interface AppHeaderProps {
   onOpenMobileSidebar: () => void;
   onOpenEmergency?: () => void;
+  onOpenDownload?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenMobileSidebar,
   onOpenEmergency,
+  onOpenDownload,
 }) => {
   const { 
     currentLocation, 
@@ -240,8 +244,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         ) : null}
       </form>
 
-      {/* Right Action Cluster: SOS, Notification Bell, and Profile Dropdown */}
+      {/* Right Action Cluster: Download App, SOS, Notification Bell, and Profile Dropdown */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Prominent Download App Button */}
+        <button
+          type="button"
+          onClick={onOpenDownload}
+          className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-150 btn-press cursor-pointer border border-blue-500/20"
+          title="Download HeatShield AI Android App"
+          aria-label="Download HeatShield AI Android App"
+        >
+          <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-100 shrink-0" />
+          <span className="hidden sm:inline">Download App</span>
+          <span className="sm:hidden text-[11px]">APK</span>
+          <span className="hidden md:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
+            v1.0
+          </span>
+        </button>
+
         {/* SOS Emergency Hotline Button (Pill Button) */}
         <button
           onClick={onOpenEmergency}

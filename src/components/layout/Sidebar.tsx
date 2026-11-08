@@ -27,7 +27,9 @@ import {
   PhoneCall, 
   ChevronRight,
   MessageCircle,
-  Radio
+  Radio,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../common/BrandLogo';
@@ -36,6 +38,7 @@ export interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onOpenEmergency?: () => void;
+  onOpenDownload?: () => void;
 }
 
 interface NavItem {
@@ -57,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
   onOpenEmergency,
+  onOpenDownload,
 }) => {
   const { user, role, isAdmin, isVolunteer } = useAuth();
   const location = useLocation();
@@ -266,6 +270,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </nav>
+
+        {/* Prominent Mobile Drawer & Desktop Rail App Download Banner */}
+        <div className="px-3 pt-2 pb-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              onCloseMobile();
+              if (onOpenDownload) onOpenDownload();
+            }}
+            className="w-full text-left group relative overflow-hidden p-3 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all cursor-pointer border border-blue-400/25 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            title="Download HeatShield AI Android App (APK)"
+            aria-label="Download HeatShield AI Android App"
+          >
+            {/* Top specular highlight */}
+            <div className="absolute inset-x-2 top-0 h-px bg-white/30 rounded-full" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/25 shadow-2xs">
+                <Smartphone className="w-4 h-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold truncate flex items-center gap-1.5">
+                  <span>Download App</span>
+                  <span className="text-[9px] font-extrabold uppercase bg-emerald-400 text-emerald-950 px-1 py-0.2 rounded-full">
+                    APK
+                  </span>
+                </div>
+                <div className="text-[10px] text-blue-100 truncate">
+                  Android v1.0 • 28.4 MB
+                </div>
+              </div>
+              <Download className="w-3.5 h-3.5 text-blue-200 group-hover:translate-y-0.5 group-hover:text-white transition-all shrink-0" />
+            </div>
+          </button>
+        </div>
 
         {/* Rail Footer: Elevated Layered Profile Chip & Settings Dock */}
         <div className="p-3 border-t border-[#E8EFF9] space-y-2 shrink-0 bg-white/80 backdrop-blur-md">

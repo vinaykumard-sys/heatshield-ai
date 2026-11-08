@@ -12,6 +12,7 @@ import {
 import { Sidebar } from './Sidebar';
 import { AppHeader } from './AppHeader';
 import { EmergencyModal } from '../common/EmergencyModal';
+import { AppDownloadModal } from '../common/AppDownloadModal';
 import { NotificationDrawer } from '../notifications/NotificationDrawer';
 import { FloatingAssistantWidget } from '../assistant/FloatingAssistantWidget';
 
@@ -22,6 +23,7 @@ export interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const mobilePillId = useId();
@@ -91,6 +93,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+          onOpenDownload={() => setIsDownloadModalOpen(true)}
         />
 
         {/* 2. RIGHT MASTER CONTENT AREA */}
@@ -100,6 +103,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <AppHeader
             onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
             onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+            onOpenDownload={() => setIsDownloadModalOpen(true)}
           />
 
           {/* PAGE MAIN CONTENT SCROLL CONTAINER WITH SILKY TRANSITIONS */}
@@ -187,6 +191,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <EmergencyModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
+      />
+      <AppDownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
       />
 
       {/* Persistent AI Assistant Widget */}

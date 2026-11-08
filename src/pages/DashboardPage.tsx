@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { EmergencyModal } from '../components/common/EmergencyModal';
+import { AppDownloadSection } from '../components/common/AppDownloadSection';
 import { NewRequestModal } from '../components/requests/NewRequestModal';
 import { SolarArcGauge } from '../components/common/SolarArcGauge';
 import { HeatRiskCard } from '../components/common/HeatRiskCard';
@@ -319,6 +320,9 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Modern Android App Download Showcase */}
+      <AppDownloadSection />
 
       {/* Emergency Modal */}
       <EmergencyModal
