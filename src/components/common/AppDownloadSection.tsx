@@ -33,8 +33,8 @@ export const AppDownloadSection: React.FC<AppDownloadSectionProps> = ({
   };
 
   const apkUrl = '/downloads/HeatShield-AI.apk';
-  const apkFileName = 'HeatShield-AI-v1.0.0.apk';
-  const apkSize = '28.4 MB';
+  const apkFileName = 'HeatShield-AI-v1.0.2.apk';
+  const apkSize = '1.3 MB';
 
   return (
     <>
@@ -60,7 +60,7 @@ export const AppDownloadSection: React.FC<AppDownloadSectionProps> = ({
                 <span>Android Release</span>
               </span>
               <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-200 text-xs font-semibold border border-blue-400/30">
-                v1.0.0 • {apkSize}
+                v1.0.2 • {apkSize}
               </span>
               <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 text-white/90 text-xs font-medium border border-white/20">
                 <Sparkles className="w-3 h-3 text-amber-300" />

@@ -31,9 +31,9 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
   const [qrSvg, setQrSvg] = useState<string>('');
 
   const apkUrl = '/downloads/HeatShield-AI.apk';
-  const apkFileName = 'HeatShield-AI-v1.0.0.apk';
-  const apkVersion = 'v1.0.0';
-  const apkSize = '28.4 MB';
+  const apkFileName = 'HeatShield-AI-v1.0.2.apk';
+  const apkVersion = 'v1.0.2';
+  const apkSize = '1.3 MB';
   const releaseDate = 'November 2026';
 
   // Generate full scannable URL and QR code
@@ -176,7 +176,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
                 <svg className="w-3.5 h-3.5 text-emerald-600 fill-current" viewBox="0 0 24 24">
                   <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0001s.4482-.9997.9993-.9997c.5516 0 .9997.4482.9997.9997 0 .5515-.4481 1.0001-.9997 1.0001m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0001s.4482-.9997.9993-.9997c.5516 0 .9997.4482.9997.9997 0 .5515-.4481 1.0001-.9997 1.0001m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.411 13.856 8.125 12 8.125c-1.856 0-3.5902.286-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.152 5676l1.9972 3.4592C2.6889 11.1867.3432 14.6589 0 18.7917h24c-.3432-4.1328-2.6889-7.605-6.1185-9.4703" />
                 </svg>
-                <span>Android 8.0+</span>
+                <span>Android 7.0+ (API 24+)</span>
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
                 <FileCheck className="w-3.5 h-3.5 text-blue-600" />
