@@ -6,234 +6,278 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Linking,
   Alert,
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { COOLING_CENTRES } from '../data/mockData';
-import { CoolingCentre } from '../types';
+import { INITIAL_ASSISTANCE_REQUESTS } from '../data/mockData';
+import { AssistanceRequest, Locality } from '../types';
 
-export default function AssistanceScreen() {
-  const [distressName, setDistressName] = useState('');
-  const [distressPhone, setDistressPhone] = useState('');
-  const [distressType, setDistressType] = useState('Heat Exhaustion / Dizziness');
+interface Props {
+  selectedLocality?: Locality;
+  onBack?: () => void;
+}
+
+export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
+  const [requests, setRequests] = useState<AssistanceRequest[]>(INITIAL_ASSISTANCE_REQUESTS);
+  const [category, setCategory] = useState('Heat Exhaustion / Dizziness');
+  const [urgency, setUrgency] = useState<'CRITICAL_IMMEDIATE' | 'HIGH_PRIORITY' | 'ROUTINE_AID'>('HIGH_PRIORITY');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const distressTypes = [
+  const categories = [
     'Heat Exhaustion / Dizziness',
     'Severe Dehydration',
-    'Elderly / Bedridden without Cooling',
     'Community Water Tanker Request',
+    'Elderly / Bedridden without Cooling',
+    'ORS & Medical First Aid Supplies',
   ];
 
-  const handleDialSOS = (number = '1070') => {
-    Linking.openURL(`tel:${number}`).catch(() => {
-      Alert.alert('Emergency Helpline', `Please dial ${number} on your phone dialer.`);
-    });
-  };
-
-  const handleSubmitDistress = () => {
-    if (!distressPhone.trim()) {
-      Alert.alert('Missing Contact', 'Please provide a valid phone number so the dispatch team can contact you.');
+  const handleSubmit = () => {
+    if (!phone.trim()) {
+      Alert.alert('Missing Phone Number', 'Please provide a contact phone number for the dispatch team.');
       return;
     }
-    setSubmitted(true);
+
+    setSubmitting(true);
+
     setTimeout(() => {
+      const newRequest: AssistanceRequest = {
+        id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+        category,
+        requesterName: name.trim() || 'Anonymous Resident',
+        requesterPhone: phone.trim(),
+        localityName: selectedLocality?.name || 'Yelahanka Satellite Town',
+        urgency,
+        notes: notes.trim() || 'Immediate assistance requested via HeatShield Mobile App.',
+        status: 'DISPATCHED',
+        timestamp: 'Just now',
+        etaMinutes: urgency === 'CRITICAL_IMMEDIATE' ? 8 : 18,
+        assignedResponder:
+          urgency === 'CRITICAL_IMMEDIATE'
+            ? '108 Rapid Mobile Medical Bike (Paramedic: Suresh)'
+            : 'BBMP Heat Action Relief Team #02',
+      };
+
+      setRequests((prev) => [newRequest, ...prev]);
+      setSubmitting(false);
+      setName('');
+      setPhone('');
+      setNotes('');
+
       Alert.alert(
-        'Distress Request Logged',
-        'Your alert has been prioritized and dispatched to BBMP Disaster Management & nearest Primary Health Centre.'
+        'Assistance Ticket Dispatched',
+        `Ticket ${newRequest.id} has been submitted with ${urgency.replace('_', ' ')} priority. The responder has been dispatched.`
       );
-    }, 400);
+    }, 600);
+  };
+
+  const getUrgencyColor = (u: string) => {
+    switch (u) {
+      case 'CRITICAL_IMMEDIATE':
+        return '#EF4444';
+      case 'HIGH_PRIORITY':
+        return '#F97316';
+      default:
+        return '#F59E0B';
+    }
+  };
+
+  const getStatusColor = (s: string) => {
+    switch (s) {
+      case 'DELIVERED':
+        return '#10B981';
+      case 'EN_ROUTE':
+        return '#06B6D4';
+      case 'DISPATCHED':
+        return '#F59E0B';
+      default:
+        return '#94A3B8';
+    }
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>SOS & HEAT RELIEF</Text>
-        <Text style={styles.headerSub}>Rapid Emergency Dispatch & Public Cooling Shelters</Text>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color="#F8FAFC" />
+          </TouchableOpacity>
+        )}
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>FIELD RELIEF & AID REQUEST</Text>
+          <Text style={styles.headerSub}>Emergency Water Tanker & Medical Respite Dispatch</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Urgent Emergency Call Section */}
-        <View style={styles.sosCard}>
-          <View style={styles.sosTop}>
-            <View style={styles.sosIconCircle}>
-              <MaterialCommunityIcons name="alert-decagram" size={36} color="#FFF" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={styles.sosCardTitle}>State Heatwave Emergency</Text>
-              <Text style={styles.sosCardSub}>24x7 Government Disaster Helpline</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.sosBigButton}
-            onPress={() => handleDialSOS('1070')}
-            activeOpacity={0.88}
-          >
-            <Ionicons name="call" size={24} color="#FFF" />
-            <Text style={styles.sosBigButtonText}>CALL TOLL FREE 1070</Text>
-          </TouchableOpacity>
-
-          {/* Secondary Quick Dial buttons: 108 Ambulance, 112 Emergency */}
-          <View style={styles.secondaryHelplines}>
-            <TouchableOpacity
-              style={styles.secHelplineBtn}
-              onPress={() => handleDialSOS('108')}
-            >
-              <MaterialCommunityIcons name="ambulance" size={18} color="#EF4444" />
-              <Text style={styles.secHelplineText}>Ambulance 108</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.secHelplineBtn}
-              onPress={() => handleDialSOS('112')}
-            >
-              <Ionicons name="shield-checkmark" size={18} color="#06B6D4" />
-              <Text style={styles.secHelplineText}>Police / Disaster 112</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Nearby Cooling Centres */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View>
-              <Text style={styles.sectionTitle}>NEARBY VERIFIED COOLING RESIDENCES</Text>
-              <Text style={styles.sectionSubText}>Free AC, cold drinking water, ORS beds</Text>
-            </View>
-            <View style={styles.openPill}>
-              <Text style={styles.openPillText}>Live Verified</Text>
-            </View>
-          </View>
-
-          {COOLING_CENTRES.map((centre: CoolingCentre) => (
-            <View key={centre.id} style={styles.centreItem}>
-              <View style={styles.centreTopRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.centreName}>{centre.name}</Text>
-                  <Text style={styles.centreAddress}>{centre.address}</Text>
-                </View>
-                <View style={styles.distBadge}>
-                  <Text style={styles.distBadgeText}>{centre.distanceKm} km</Text>
-                </View>
-              </View>
-
-              <View style={styles.amenitiesWrap}>
-                {centre.amenities.map((amenity, i) => (
-                  <View key={i} style={styles.amenityTag}>
-                    <Text style={styles.amenityText}>• {amenity}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.centreBottomRow}>
-                <Text style={styles.operatingHours}>
-                  <Feather name="clock" size={12} color="#94A3B8" /> {centre.operatingHours}
-                </Text>
-
+        {/* Assistance Request Form */}
+        <View style={styles.formCard}>
+          <Text style={styles.formSectionTitle}>1. SELECT RELIEF CATEGORY</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+            {categories.map((cat, idx) => {
+              const isSelected = category === cat;
+              return (
                 <TouchableOpacity
-                  style={styles.centreCallBtn}
-                  onPress={() => handleDialSOS(centre.contactPhone.replace(/\D/g, ''))}
+                  key={idx}
+                  style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
+                  onPress={() => setCategory(cat)}
+                  activeOpacity={0.75}
                 >
-                  <Ionicons name="call" size={14} color="#10B981" />
-                  <Text style={styles.centreCallText}>Call Shelter</Text>
+                  <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextActive]}>
+                    {cat}
+                  </Text>
                 </TouchableOpacity>
-              </View>
+              );
+            })}
+          </ScrollView>
+
+          {/* Urgency Selector */}
+          <Text style={[styles.formSectionTitle, { marginTop: 16 }]}>2. URGENCY LEVEL</Text>
+          <View style={styles.urgencyRow}>
+            {(['CRITICAL_IMMEDIATE', 'HIGH_PRIORITY', 'ROUTINE_AID'] as const).map((lvl) => {
+              const isSel = urgency === lvl;
+              const uColor = getUrgencyColor(lvl);
+              const label =
+                lvl === 'CRITICAL_IMMEDIATE'
+                  ? 'Critical SOS'
+                  : lvl === 'HIGH_PRIORITY'
+                  ? 'High Priority'
+                  : 'Standard Aid';
+
+              return (
+                <TouchableOpacity
+                  key={lvl}
+                  style={[
+                    styles.urgencyBtn,
+                    isSel && { borderColor: uColor, backgroundColor: `${uColor}20` },
+                  ]}
+                  onPress={() => setUrgency(lvl)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.urgencyDot, { backgroundColor: uColor }]} />
+                  <Text style={[styles.urgencyBtnText, isSel && { color: uColor, fontWeight: '800' }]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Input Details */}
+          <Text style={[styles.formSectionTitle, { marginTop: 16 }]}>3. CONTACT & LOCATION</Text>
+
+          <View style={styles.inputWrap}>
+            <Text style={styles.inputLabel}>Current Locality</Text>
+            <View style={styles.localityBox}>
+              <Ionicons name="location-sharp" size={16} color="#06B6D4" />
+              <Text style={styles.localityBoxText}>
+                {selectedLocality?.name || 'Yelahanka Satellite Town'}, {selectedLocality?.city || 'Bengaluru'}
+              </Text>
             </View>
-          ))}
+          </View>
+
+          <View style={styles.inputWrap}>
+            <Text style={styles.inputLabel}>Contact Phone Number *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="+91 98765 43210"
+              placeholderTextColor="#64748B"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+          </View>
+
+          <View style={styles.inputWrap}>
+            <Text style={styles.inputLabel}>Contact Name (Optional)</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Ramesh Kumar"
+              placeholderTextColor="#64748B"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={styles.inputWrap}>
+            <Text style={styles.inputLabel}>Specific Location / Landmark Notes</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              placeholder="e.g. Near Community Hall Gate 2, 15 people in need of drinking water"
+              placeholderTextColor="#64748B"
+              multiline
+              numberOfLines={3}
+              value={notes}
+              onChangeText={setNotes}
+            />
+          </View>
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={handleSubmit}
+            disabled={submitting}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="send-check" size={20} color="#FFFFFF" />
+            <Text style={styles.submitBtnText}>
+              {submitting ? 'Dispatching Request...' : 'Dispatch Heat Relief Request'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Report Distress Form */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>REPORT CITIZEN HEAT DISTRESS</Text>
-          <Text style={styles.sectionSubText}>
-            Direct escalation to municipal welfare and rapid medical responders
-          </Text>
+        {/* Active Requests Tracker */}
+        <View style={styles.trackerSection}>
+          <View style={styles.trackerHeader}>
+            <MaterialCommunityIcons name="clipboard-text-clock" size={18} color="#06B6D4" />
+            <Text style={styles.trackerTitle}>ACTIVE REQUESTS STATUS TRACKER</Text>
+          </View>
 
-          {submitted ? (
-            <View style={styles.successBox}>
-              <Ionicons name="checkmark-circle" size={42} color="#10B981" />
-              <Text style={styles.successTitle}>Emergency Report Received</Text>
-              <Text style={styles.successText}>
-                BBMP ward health officer and rapid paramedic dispatch have received your coordinates.
-              </Text>
-              <TouchableOpacity
-                style={styles.resetBtn}
-                onPress={() => {
-                  setSubmitted(false);
-                  setDistressPhone('');
-                  setNotes('');
-                }}
-              >
-                <Text style={styles.resetBtnText}>Submit Another Report</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.formContainer}>
-              <Text style={styles.fieldLabel}>Reporter / Patient Name</Text>
-              <TextInput
-                style={styles.formInput}
-                value={distressName}
-                onChangeText={setDistressName}
-                placeholder="e.g. Ramesh Kumar"
-                placeholderTextColor="#64748B"
-              />
+          {requests.map((req) => {
+            const uCol = getUrgencyColor(req.urgency);
+            const sCol = getStatusColor(req.status);
 
-              <Text style={styles.fieldLabel}>Contact Phone Number *</Text>
-              <TextInput
-                style={styles.formInput}
-                value={distressPhone}
-                onChangeText={setDistressPhone}
-                placeholder="+91 98450 00000"
-                keyboardType="phone-pad"
-                placeholderTextColor="#64748B"
-              />
+            return (
+              <View key={req.id} style={styles.requestCard}>
+                <View style={styles.requestCardTop}>
+                  <View>
+                    <Text style={styles.requestId}>{req.id}</Text>
+                    <Text style={styles.requestCategory}>{req.category}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: `${sCol}20` }]}>
+                    <Text style={[styles.statusBadgeText, { color: sCol }]}>{req.status}</Text>
+                  </View>
+                </View>
 
-              <Text style={styles.fieldLabel}>Type of Distress / Vulnerability</Text>
-              <View style={styles.distressOptions}>
-                {distressTypes.map((type) => {
-                  const isSelected = distressType === type;
-                  return (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.distressChip, isSelected && styles.distressChipSelected]}
-                      onPress={() => setDistressType(type)}
-                    >
-                      <Text
-                        style={[styles.distressChipText, isSelected && styles.distressChipTextActive]}
-                      >
-                        {type}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <Text style={styles.requestNotes}>{req.notes}</Text>
+
+                <View style={styles.requestCardFooter}>
+                  <View style={styles.etaRow}>
+                    <Feather name="clock" size={12} color="#94A3B8" />
+                    <Text style={styles.etaText}>
+                      ETA: {req.etaMinutes} mins • {req.timestamp}
+                    </Text>
+                  </View>
+                  <View style={[styles.urgencyTag, { backgroundColor: `${uCol}20` }]}>
+                    <Text style={[styles.urgencyTagText, { color: uCol }]}>
+                      {req.urgency.replace('_', ' ')}
+                    </Text>
+                  </View>
+                </View>
+
+                {req.assignedResponder && (
+                  <View style={styles.responderBox}>
+                    <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+                    <Text style={styles.responderText}>{req.assignedResponder}</Text>
+                  </View>
+                )}
               </View>
-
-              <Text style={styles.fieldLabel}>Location Details / Landmark / Symptoms</Text>
-              <TextInput
-                style={[styles.formInput, styles.textArea]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Describe condition, exact street corner, elderly patient status..."
-                placeholderTextColor="#64748B"
-                multiline
-                numberOfLines={3}
-              />
-
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handleSubmitDistress}
-                activeOpacity={0.85}
-              >
-                <MaterialCommunityIcons name="broadcast" size={20} color="#FFF" />
-                <Text style={styles.submitBtnText}>DISPATCH RAPID ASSISTANCE</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          })}
         </View>
 
         <View style={{ height: 40 }} />
@@ -248,303 +292,250 @@ const styles = StyleSheet.create({
     backgroundColor: '#060D1E',
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
-    backgroundColor: '#0B1329',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  backBtn: {
+    marginRight: 12,
+  },
+  headerTitleWrap: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '800',
     color: '#F8FAFC',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   headerSub: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
   },
   scrollContent: {
     flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  formCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1E293B',
     padding: 16,
+    marginBottom: 20,
   },
-  sosCard: {
-    backgroundColor: '#1E1015',
-    borderWidth: 1.5,
-    borderColor: '#EF4444',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-  },
-  sosTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sosIconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosCardTitle: {
-    fontSize: 17,
+  formSectionTitle: {
+    fontSize: 11,
     fontWeight: '800',
-    color: '#FEE2E2',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
-  sosCardSub: {
-    fontSize: 12,
-    color: '#FCA5A5',
-    marginTop: 2,
+  categoryScroll: {
+    marginHorizontal: -4,
   },
-  sosBigButton: {
-    backgroundColor: '#EF4444',
+  categoryChip: {
+    backgroundColor: '#1E293B60',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginHorizontal: 4,
+  },
+  categoryChipActive: {
+    backgroundColor: '#06B6D420',
+    borderColor: '#06B6D4',
+  },
+  categoryChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  categoryChipTextActive: {
+    color: '#06B6D4',
+    fontWeight: '700',
+  },
+  urgencyRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 10,
+    gap: 8,
   },
-  sosBigButtonText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: 1,
-  },
-  secondaryHelplines: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-  },
-  secHelplineBtn: {
+  urgencyBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2D151D',
+    backgroundColor: '#1E293B40',
     borderWidth: 1,
-    borderColor: '#451A24',
-    paddingVertical: 10,
+    borderColor: '#334155',
     borderRadius: 10,
+    paddingVertical: 8,
     gap: 6,
   },
-  secHelplineText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F8FAFC',
+  urgencyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  sectionCard: {
-    backgroundColor: '#0B1329',
-    borderRadius: 20,
-    padding: 18,
+  urgencyBtnText: {
+    fontSize: 11,
+    color: '#CBD5E1',
+    fontWeight: '600',
+  },
+  inputWrap: {
+    marginTop: 12,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#CBD5E1',
+    marginBottom: 6,
+  },
+  localityBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B50',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  localityBoxText: {
+    fontSize: 12,
+    color: '#F8FAFC',
+    fontWeight: '600',
+  },
+  textInput: {
+    backgroundColor: '#1E293B50',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#334155',
+    color: '#FFFFFF',
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  textArea: {
+    minHeight: 64,
+    textAlignVertical: 'top',
+  },
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 18,
+    gap: 8,
+  },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  trackerSection: {
     marginBottom: 16,
   },
-  sectionHeaderRow: {
+  trackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  trackerTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+  },
+  requestCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 14,
+    marginBottom: 10,
+  },
+  requestCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 14,
+    marginBottom: 6,
   },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 1.2,
-  },
-  sectionSubText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  openPill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  openPillText: {
+  requestId: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#10B981',
-  },
-  centreItem: {
-    backgroundColor: '#060D1E',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 12,
-  },
-  centreTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  centreName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  centreAddress: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  distBadge: {
-    backgroundColor: '#132147',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginLeft: 8,
-  },
-  distBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
     color: '#06B6D4',
   },
-  amenitiesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginVertical: 10,
+  requestCategory: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginTop: 2,
   },
-  amenityTag: {
-    backgroundColor: '#0F1D3D',
+  statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  amenityText: {
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  requestNotes: {
     fontSize: 11,
     color: '#94A3B8',
+    lineHeight: 16,
+    marginVertical: 6,
   },
-  centreBottomRow: {
+  requestCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
-  operatingHours: {
+  etaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  etaText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
   },
-  centreCallBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+  urgencyTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  centreCallText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  formContainer: {
-    marginTop: 12,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  formInput: {
-    backgroundColor: '#060D1E',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    borderRadius: 12,
-    padding: 12,
-    color: '#F8FAFC',
-    fontSize: 14,
-  },
-  textArea: {
-    height: 70,
-    textAlignVertical: 'top',
-  },
-  distressOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  distressChip: {
-    backgroundColor: '#060D1E',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  distressChipSelected: {
-    borderColor: '#EF4444',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-  },
-  distressChipText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  distressChipTextActive: {
-    color: '#EF4444',
-    fontWeight: '700',
-  },
-  submitBtn: {
-    backgroundColor: '#EF4444',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 16,
-    gap: 8,
-  },
-  submitBtnText: {
-    fontSize: 13,
+  urgencyTagText: {
+    fontSize: 9,
     fontWeight: '800',
-    color: '#FFF',
-    letterSpacing: 1,
   },
-  successBox: {
-    padding: 24,
+  responderBox: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#060D1E',
-    borderRadius: 16,
-    marginTop: 12,
-  },
-  successTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 10,
-  },
-  successText: {
-    fontSize: 13,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-  },
-  resetBtn: {
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1E293B40',
     borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 8,
+    gap: 6,
   },
-  resetBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F8FAFC',
+  responderText: {
+    fontSize: 10,
+    color: '#10B981',
+    fontWeight: '600',
   },
 });

@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@heatshield/types': path.resolve(__dirname, './packages/types/index.ts'),
+      '@heatshield/core': path.resolve(__dirname, './packages/core/index.ts'),
+      '@heatshield/api': path.resolve(__dirname, './packages/api/index.ts'),
     },
   },
   server: {

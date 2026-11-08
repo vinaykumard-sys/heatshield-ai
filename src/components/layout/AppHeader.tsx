@@ -108,20 +108,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const currentTemperature = currentReading ? Math.round(currentReading.temperature_c) : 32;
 
   return (
-    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-4 z-[1020]">
+    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-4 z-[1020] max-w-full overflow-hidden">
       
       {/* Left: Mobile Toggle & Ward Pin Switcher with GPS Status */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
         <button 
           onClick={onOpenMobileSidebar}
-          className="p-2 -ml-1 rounded-2xl text-slate-500 hover:text-slate-800 hover:bg-[#EEF3FB] lg:hidden transition-colors cursor-pointer"
+          className="p-1.5 sm:p-2 -ml-1 rounded-2xl text-slate-500 hover:text-slate-800 hover:bg-[#EEF3FB] lg:hidden transition-colors cursor-pointer shrink-0"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Location Pin Indicator with Ward Switcher Dropdown */}
-        <div className="relative" ref={wardDropdownRef}>
+        <div className="relative min-w-0" ref={wardDropdownRef}>
           <button
             id="ward-selector-button"
             type="button"
@@ -132,17 +132,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             aria-expanded={wardDropdownOpen}
             aria-haspopup="true"
             aria-label={`Current location: ${currentLocalityName}, ${currentCity}. ${currentTemperature} degrees Celsius. Click to switch location.`}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#EEF3FB] hover:bg-[#E3EDFA] border border-[#E9F0FA] text-slate-800 transition-all cursor-pointer shadow-xs btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#EEF3FB] hover:bg-[#E3EDFA] border border-[#E9F0FA] text-slate-800 transition-all cursor-pointer shadow-xs btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 max-w-[150px] xs:max-w-[210px] sm:max-w-none"
             title="Click to switch Delhi NCR Ward or Colony"
           >
-            <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" />
             
-            <div className="text-left flex items-center gap-1.5 min-w-0">
-              <span className="font-bold text-xs text-slate-800 tracking-tight truncate max-w-[110px] sm:max-w-[150px] md:max-w-[180px]">
+            <div className="text-left flex items-center gap-1 sm:gap-1.5 min-w-0 truncate">
+              <span className="font-bold text-xs text-slate-800 tracking-tight truncate max-w-[70px] xs:max-w-[110px] sm:max-w-[150px] md:max-w-[180px]">
                 {currentLocalityName}
               </span>
-              <span className="text-slate-400 text-xs font-semibold">·</span>
-              <span className="text-xs text-slate-500 font-medium truncate max-w-[70px] sm:max-w-[100px]">
+              <span className="text-slate-400 text-xs font-semibold hidden xs:inline">·</span>
+              <span className="text-xs text-slate-500 font-medium truncate max-w-[50px] sm:max-w-[100px] hidden xs:inline">
                 {currentCity}
               </span>
               <span className="text-slate-400 text-xs font-semibold">•</span>
@@ -158,7 +158,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
 
             <ChevronDown 
-              className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
+              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
                 wardDropdownOpen ? 'rotate-180 text-blue-600' : ''
               }`} 
             />
@@ -245,44 +245,46 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       </form>
 
       {/* Right Action Cluster: Download App, SOS, Notification Bell, and Profile Dropdown */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Prominent Download App Button */}
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Prominent Download App Button - Hidden on mobile (< sm) because it's in the mobile drawer and dashboard */}
         <button
           type="button"
           onClick={onOpenDownload}
-          className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-150 btn-press cursor-pointer border border-blue-500/20"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-150 btn-press cursor-pointer border border-blue-500/20 shrink-0"
           title="Download HeatShield AI Android App"
           aria-label="Download HeatShield AI Android App"
         >
           <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-100 shrink-0" />
-          <span className="hidden sm:inline">Download App</span>
-          <span className="sm:hidden text-[11px]">APK</span>
-          <span className="hidden md:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
+          <span className="hidden md:inline">Download App</span>
+          <span className="md:hidden text-[11px]">APK</span>
+          <span className="hidden lg:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
             v1.0
           </span>
         </button>
 
-        {/* SOS Emergency Hotline Button (Pill Button) */}
+        {/* SOS Emergency Hotline Button (Pill Button) - Compact responsive design */}
         <button
           onClick={onOpenEmergency}
-          className="sos-btn flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full font-bold text-xs tracking-wide shadow-md btn-press cursor-pointer"
-          title="Immediate Heatstroke Emergency Assistance"
+          className="sos-btn flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold text-xs tracking-wide shadow-md btn-press cursor-pointer shrink-0"
+          title={`Immediate Heatstroke Emergency Assistance (Call ${helplineNum})`}
+          aria-label={`Immediate Heatstroke Emergency Assistance (Call ${helplineNum})`}
         >
-          <PhoneCall className="w-3.5 h-3.5" />
-          <span>SOS {helplineNum}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping ml-0.5" />
+          <PhoneCall className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden xs:inline">SOS {helplineNum}</span>
+          <span className="xs:hidden text-[11px] font-extrabold">SOS</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping ml-0.5 hidden xs:inline-block" />
         </button>
 
         {/* Notification Bell with Unread Badge */}
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className="relative w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-[#EEF3FB] hover:bg-[#E2ECF9] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-all duration-150 border border-[#E9F0FA] shadow-xs btn-press cursor-pointer"
+          className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#EEF3FB] hover:bg-[#E2ECF9] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-all duration-150 border border-[#E9F0FA] shadow-xs btn-press cursor-pointer shrink-0"
           title="Notifications"
           aria-label="Open notifications"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs border-2 border-white animate-scale-in">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] sm:min-w-[18px] h-[16px] sm:h-[18px] px-1 rounded-full bg-blue-600 text-white text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center shadow-xs border-2 border-white animate-scale-in">
               {unreadCount}
             </span>
           )}

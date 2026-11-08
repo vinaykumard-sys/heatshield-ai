@@ -156,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* 3D-Aware Slim & Sleek Navigation Rail */}
       <aside 
-        className={`fixed lg:static top-0 bottom-0 left-0 z-[1050] lg:z-auto w-[264px] shrink-0 bg-white/95 backdrop-blur-2xl border-r border-[#E8EFF9] flex flex-col transition-transform duration-250 ease-out lg:rounded-l-[32px] shadow-[1px_0_24px_rgba(15,35,70,0.05)] lg:shadow-none select-none ${
+        className={`fixed lg:static top-0 bottom-0 left-0 z-[1050] lg:z-auto w-[264px] max-w-[85vw] shrink-0 bg-white/95 backdrop-blur-2xl border-r border-[#E8EFF9] flex flex-col transition-transform duration-250 ease-out lg:rounded-l-[32px] shadow-[1px_0_24px_rgba(15,35,70,0.05)] lg:shadow-none select-none overscroll-contain ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         aria-label="Sidebar navigation"

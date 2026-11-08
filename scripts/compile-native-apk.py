@@ -56,26 +56,30 @@ def main():
 
     # 1. Compile Resources with aapt2
     print("\n--- Step 1: Compiling Resources with AAPT2 ---")
-    compiled_res = os.path.join(BUILD_DIR, "compiled_res.zip")
+    compiled_res_dir = os.path.join(BUILD_DIR, "compiled_res")
+    if os.path.exists(compiled_res_dir):
+        shutil.rmtree(compiled_res_dir)
+    os.makedirs(compiled_res_dir, exist_ok=True)
     res_dir = os.path.join(ROOT_DIR, "android-src", "res")
-    run_cmd([AAPT2, "compile", "--dir", res_dir, "-o", compiled_res])
+    run_cmd([AAPT2, "compile", "--dir", res_dir, "-o", compiled_res_dir])
 
     # 2. Link Resources and Manifest with aapt2
     print("\n--- Step 2: Linking Resources with AAPT2 ---")
     manifest = os.path.join(ROOT_DIR, "android-src", "AndroidManifest.xml")
     base_apk = os.path.join(BUILD_DIR, "base.apk")
+    flat_files = [os.path.join(compiled_res_dir, f) for f in os.listdir(compiled_res_dir) if f.endswith(".flat")]
     run_cmd([
         AAPT2, "link",
         "-I", PLATFORM_JAR,
         "--manifest", manifest,
-        "--min-sdk-version", "24",
+        "--min-sdk-version", "21",
         "--target-sdk-version", "34",
-        "--version-code", "3",
-        "--version-name", "1.0.2",
+        "--version-code", "4",
+        "--version-name", "1.1.0",
         "-o", base_apk,
         "--java", gen_dir,
-        compiled_res,
-        "--auto-add-overlay"
+        "--auto-add-overlay",
+        *flat_files
     ])
 
     # 3. Compile Java with javac
@@ -124,19 +128,24 @@ def main():
     # Copy classes.dex
     shutil.copyfile(os.path.join(dex_dir, "classes.dex"), os.path.join(staging_dir, "classes.dex"))
 
-    # Copy web assets to assets/www
+    # Copy web assets to assets/www in staging and android-src/assets/www
     www_dir = os.path.join(staging_dir, "assets", "www")
+    src_www_dir = os.path.join(ROOT_DIR, "android-src", "assets", "www")
     os.makedirs(www_dir, exist_ok=True)
+    os.makedirs(src_www_dir, exist_ok=True)
     dist_dir = os.path.join(ROOT_DIR, "dist")
     for item in os.listdir(dist_dir):
         if item == "downloads":
             continue
         s = os.path.join(dist_dir, item)
         d = os.path.join(www_dir, item)
+        sd = os.path.join(src_www_dir, item)
         if os.path.isdir(s):
             shutil.copytree(s, d, dirs_exist_ok=True)
+            shutil.copytree(s, sd, dirs_exist_ok=True)
         else:
             shutil.copy2(s, d)
+            shutil.copy2(s, sd)
 
     # Fix relative paths in assets/www/index.html if needed
     www_index = os.path.join(www_dir, "index.html")
@@ -194,6 +203,7 @@ def main():
         "--ks-key-alias", KEY_ALIAS,
         "--ks-pass", f"pass:{KEY_PASS}",
         "--key-pass", f"pass:{KEY_PASS}",
+        "--min-sdk-version", "21",
         "--v1-signing-enabled", "true",
         "--v2-signing-enabled", "true",
         "--v3-signing-enabled", "true",
@@ -219,10 +229,10 @@ def main():
         apk_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     version_info = {
-        "version": "1.0.2",
-        "versionCode": 3,
+        "version": "1.1.0",
+        "versionCode": 4,
         "releaseDate": time.strftime("%Y-%m-%d"),
-        "releaseNotes": "Production native Android release with hardware acceleration, high-precision hyperlocal heat risk navigation, offline shelters, and v1+v2+v3 APK signatures.",
+        "releaseNotes": "Production native Android release v1.1.0 (versionCode 4) with fully responsive layout, touch targets, native back button handler, offline shelter caching, and v1+v2+v3 APK signatures.",
         "minAndroidVersion": "7.0 (API 24)+",
         "targetAndroidVersion": "14.0 (API 34)",
         "supportedAbis": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],

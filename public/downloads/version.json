@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
-  "versionCode": 3,
+  "version": "1.1.0",
+  "versionCode": 4,
   "releaseDate": "2026-11-08",
-  "releaseNotes": "Production native Android release with hardware acceleration, high-precision hyperlocal heat risk navigation, offline shelters, and v1+v2+v3 APK signatures.",
+  "releaseNotes": "Production native Android release v1.1.0 (versionCode 4) with fully responsive layout, touch targets, native back button handler, offline shelter caching, and v1+v2+v3 APK signatures.",
   "minAndroidVersion": "7.0 (API 24)+",
   "targetAndroidVersion": "14.0 (API 34)",
   "supportedAbis": [
@@ -12,9 +12,9 @@
     "x86"
   ],
   "universal": true,
-  "fileSize": "1.29 MB",
-  "sizeBytes": 1350360,
-  "sha256": "fd5dae2fef17c92d530ee532aca21870d11f296b24ca9b5beea419d65711f8e1",
+  "fileSize": "1.30 MB",
+  "sizeBytes": 1358552,
+  "sha256": "7696bd81a4b49e7626ccf38a74091bdb8f120e48458cef21631e229f323999e8",
   "downloadUrl": "/downloads/HeatShield-AI.apk",
   "verifiedSchemes": [
     "v1",

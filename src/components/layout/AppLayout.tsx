@@ -110,7 +110,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <main 
             id="main-content"
             tabIndex={-1}
-            className="flex-1 overflow-y-auto bg-[#F4F7FE] p-4 sm:p-6 lg:p-7 pb-24 lg:pb-8 overscroll-contain focus:outline-none"
+            className="flex-1 overflow-y-auto bg-[#F4F7FE] p-3 sm:p-5 lg:p-7 pb-24 lg:pb-8 overscroll-contain focus:outline-none"
           >
             <div className="max-w-[1440px] w-full mx-auto">
               <AnimatePresence mode="wait">

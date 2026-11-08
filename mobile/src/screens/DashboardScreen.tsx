@@ -10,98 +10,101 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { LOCALITIES, HOURLY_FORECASTS } from '../data/mockData';
+import { LOCALITIES, HOURLY_FORECASTS, WATER_POINTS } from '../data/mockData';
 import { Locality } from '../types';
+import { evaluateHeatSafety } from '../services/actionEngine';
 
 interface Props {
+  selectedLocality: Locality;
+  onSelectLocality: (locality: Locality) => void;
+  onNavigateToWeather: () => void;
   onNavigateToRoute: () => void;
   onNavigateToSOS: () => void;
+  onNavigateToAssistance: () => void;
+  onNavigateToAssistant: () => void;
 }
 
-export default function DashboardScreen({ onNavigateToRoute, onNavigateToSOS }: Props) {
-  const [selectedLocality, setSelectedLocality] = useState<Locality>(LOCALITIES[0]);
+export default function DashboardScreen({
+  selectedLocality,
+  onSelectLocality,
+  onNavigateToWeather,
+  onNavigateToRoute,
+  onNavigateToSOS,
+  onNavigateToAssistance,
+  onNavigateToAssistant,
+}: Props) {
   const [selectorVisible, setSelectorVisible] = useState(false);
+  const [waterModalVisible, setWaterModalVisible] = useState(false);
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
       case 'EXTREME':
-        return '#EF4444'; // Red
+        return '#EF4444';
       case 'HIGH':
-        return '#F97316'; // Orange
+        return '#F97316';
       case 'MODERATE':
-        return '#F59E0B'; // Amber
+        return '#F59E0B';
       default:
-        return '#10B981'; // Emerald
+        return '#10B981';
     }
   };
 
   const riskColor = getRiskColor(selectedLocality.riskLevel);
+  const safety = evaluateHeatSafety(
+    selectedLocality.currentTemp,
+    selectedLocality.humidity,
+    selectedLocality.uvIndex
+  );
 
   return (
     <View style={styles.container}>
-      {/* Header with Locality Picker */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.appTitle}>HEATSHIELD AI</Text>
-          <TouchableOpacity
-            style={styles.localitySelector}
-            onPress={() => setSelectorVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="location-sharp" size={16} color="#06B6D4" />
-            <Text style={styles.localityName} numberOfLines={1}>
-              {selectedLocality.name}
-            </Text>
-            <Feather name="chevron-down" size={16} color="#94A3B8" />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.sosQuickBadge}
-          onPress={onNavigateToSOS}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="alert-octagon" size={16} color="#FFF" />
-          <Text style={styles.sosQuickText}>SOS 1070</Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Active Heatwave Warning Banner */}
-        <View style={[styles.alertBanner, { borderColor: riskColor }]}>
+        {/* Active Heat Hazard Banner */}
+        <View style={[styles.alertBanner, { borderColor: riskColor, backgroundColor: `${riskColor}12` }]}>
           <View style={styles.alertHeaderRow}>
             <View style={[styles.pulseDot, { backgroundColor: riskColor }]} />
             <Text style={[styles.alertBadgeText, { color: riskColor }]}>
-              {selectedLocality.riskLevel} HEAT HAZARD ACTIVE
+              {selectedLocality.riskLevel} HEAT DEFENSE ACTIVE
             </Text>
+            <View style={styles.spacer} />
+            <Text style={styles.alertCity}>{selectedLocality.city}</Text>
           </View>
           <Text style={styles.alertDesc}>
             {selectedLocality.riskLevel === 'EXTREME'
-              ? 'Critical heat risk. Peak sun hours between 12:00 PM and 04:00 PM. Avoid direct outdoor activity.'
-              : 'Elevated ambient temperature & wet-bulb index. Keep hydrated with ORS and stay along shaded corridors.'}
+              ? 'IMD Red Alert: Peak thermal radiation active between 12:00 PM and 04:30 PM. Restrict non-essential outdoor travel.'
+              : 'IMD Orange Warning: High heat strain on outdoor workers and vulnerable groups. Regular electrolyte hydration advised.'}
           </Text>
         </View>
 
-        {/* Heat Index Gauge Hero */}
+        {/* Heat Index Hero Card */}
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>FEELS LIKE HEAT INDEX</Text>
+          <View style={styles.heroTopRow}>
+            <Text style={styles.heroLabel}>FEELS LIKE HEAT INDEX</Text>
+            <TouchableOpacity
+              style={[styles.riskTag, { backgroundColor: `${riskColor}25`, borderColor: riskColor }]}
+              onPress={() => setSelectorVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.riskTagText, { color: riskColor }]}>
+                {selectedLocality.riskLevel}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.tempRow}>
             <Text style={[styles.heroTemp, { color: riskColor }]}>
               {selectedLocality.heatIndex.toFixed(1)}°
             </Text>
             <View style={styles.tempSubCol}>
               <Text style={styles.celsius}>C</Text>
-              <View style={[styles.riskTag, { backgroundColor: `${riskColor}25`, borderColor: riskColor }]}>
-                <Text style={[styles.riskTagText, { color: riskColor }]}>
-                  {selectedLocality.riskLevel}
-                </Text>
-              </View>
+              <Text style={styles.ambientText}>
+                Ambient: {selectedLocality.currentTemp.toFixed(1)}°C
+              </Text>
+              <Text style={styles.islandText}>
+                UHI Factor: +{selectedLocality.urbanHeatIslandFactor}x
+              </Text>
             </View>
           </View>
-
-          <Text style={styles.ambientInfo}>
-            Ambient Temp: {selectedLocality.currentTemp.toFixed(1)}°C • Urban Island: +{selectedLocality.urbanHeatIslandFactor}x
-          </Text>
 
           {/* Gauge Meter Bar */}
           <View style={styles.gaugeTrack}>
@@ -109,7 +112,7 @@ export default function DashboardScreen({ onNavigateToRoute, onNavigateToSOS }: 
               style={[
                 styles.gaugeFill,
                 {
-                  width: `${Math.min(100, Math.max(10, ((selectedLocality.heatIndex - 25) / 30) * 100))}%`,
+                  width: `${Math.min(100, Math.max(12, ((selectedLocality.heatIndex - 25) / 30) * 100))}%`,
                   backgroundColor: riskColor,
                 },
               ]}
@@ -118,78 +121,156 @@ export default function DashboardScreen({ onNavigateToRoute, onNavigateToSOS }: 
           <View style={styles.gaugeLabels}>
             <Text style={styles.gaugeSubText}>25°C Mild</Text>
             <Text style={styles.gaugeSubText}>38°C High</Text>
-            <Text style={styles.gaugeSubText}>55°C Critical</Text>
+            <Text style={styles.gaugeSubText}>55°C Extreme</Text>
           </View>
         </View>
 
-        {/* Environmental Vitals: Wet Bulb, UV Index, Humidity */}
-        <View style={styles.vitalsRow}>
-          {/* Wet Bulb */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalIconWrap}>
-              <MaterialCommunityIcons name="water-thermometer" size={20} color="#06B6D4" />
-            </View>
-            <Text style={styles.vitalLabel}>Wet Bulb</Text>
-            <Text style={styles.vitalValue}>{selectedLocality.wetBulb}°C</Text>
-            <Text style={styles.vitalHint}>
-              {selectedLocality.wetBulb >= 29 ? 'Danger zone' : 'Manageable'}
-            </Text>
-          </View>
-
-          {/* UV Index */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalIconWrap}>
-              <Feather name="sun" size={20} color="#F59E0B" />
-            </View>
-            <Text style={styles.vitalLabel}>UV Index</Text>
-            <Text style={styles.vitalValue}>{selectedLocality.uvIndex}</Text>
-            <Text style={styles.vitalHint}>
-              {selectedLocality.uvIndex >= 10 ? 'Extreme UV' : 'Very High'}
-            </Text>
-          </View>
-
-          {/* Humidity */}
-          <View style={styles.vitalCard}>
-            <View style={styles.vitalIconWrap}>
-              <Ionicons name="water-outline" size={20} color="#3B82F6" />
-            </View>
-            <Text style={styles.vitalLabel}>Humidity</Text>
-            <Text style={styles.vitalValue}>{selectedLocality.humidity}%</Text>
-            <Text style={styles.vitalHint}>Slow sweat rate</Text>
-          </View>
-        </View>
-
-        {/* Quick Navigation CTA to Safe Route */}
+        {/* Today's Weather Snapshot Card with Tap-to-View-Full-Weather */}
         <TouchableOpacity
-          style={styles.safeRouteBanner}
-          onPress={onNavigateToRoute}
+          style={styles.weatherSnapshotCard}
+          onPress={onNavigateToWeather}
           activeOpacity={0.85}
         >
-          <View style={styles.routeBannerIcon}>
-            <Ionicons name="navigate-circle" size={32} color="#10B981" />
+          <View style={styles.snapshotHeader}>
+            <View style={styles.snapshotTitleWrap}>
+              <Feather name="cloud-sun" size={18} color="#06B6D4" />
+              <Text style={styles.snapshotTitle}>TODAY'S WEATHER SNAPSHOT</Text>
+            </View>
+            <View style={styles.viewFullRow}>
+              <Text style={styles.viewFullText}>Full Forecast</Text>
+              <Feather name="arrow-right" size={14} color="#06B6D4" />
+            </View>
           </View>
-          <View style={styles.routeBannerText}>
-            <Text style={styles.routeBannerTitle}>Find Canopy-Shaded Routes</Text>
-            <Text style={styles.routeBannerSub}>
-              Save up to 4.5°C body heat with live tree cover navigation
-            </Text>
+
+          <View style={styles.vitalsRow}>
+            <View style={styles.vitalCard}>
+              <MaterialCommunityIcons name="water-thermometer" size={20} color="#06B6D4" />
+              <Text style={styles.vitalLabel}>Wet Bulb</Text>
+              <Text style={styles.vitalValue}>{selectedLocality.wetBulb}°C</Text>
+              <Text style={styles.vitalHint}>
+                {selectedLocality.wetBulb >= 29 ? 'Hazardous' : 'Elevated'}
+              </Text>
+            </View>
+
+            <View style={styles.vitalCard}>
+              <Feather name="sun" size={20} color="#F59E0B" />
+              <Text style={styles.vitalLabel}>UV Index</Text>
+              <Text style={styles.vitalValue}>{selectedLocality.uvIndex}</Text>
+              <Text style={styles.vitalHint}>
+                {selectedLocality.uvIndex >= 10 ? 'Extreme' : 'Very High'}
+              </Text>
+            </View>
+
+            <View style={styles.vitalCard}>
+              <Ionicons name="water-outline" size={20} color="#38BDF8" />
+              <Text style={styles.vitalLabel}>Humidity</Text>
+              <Text style={styles.vitalValue}>{selectedLocality.humidity}%</Text>
+              <Text style={styles.vitalHint}>High Moisture</Text>
+            </View>
           </View>
-          <Feather name="arrow-right" size={20} color="#10B981" />
         </TouchableOpacity>
 
-        {/* Hourly Heat Risk Timeline */}
+        {/* Quick Actions Grid: [Safe Route] [Cooling Shelter] [Water Point] [Request Aid] */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionLabel}>DEFENSE QUICK ACTIONS</Text>
+          <View style={styles.quickGrid}>
+            {/* Safe Route */}
+            <TouchableOpacity
+              style={styles.actionGridItem}
+              onPress={onNavigateToRoute}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: '#10B98120' }]}>
+                <MaterialCommunityIcons name="map-marker-path" size={24} color="#10B981" />
+              </View>
+              <Text style={styles.actionGridTitle}>Safe Route</Text>
+              <Text style={styles.actionGridSub}>Canopy Shade</Text>
+            </TouchableOpacity>
+
+            {/* Cooling Shelter */}
+            <TouchableOpacity
+              style={styles.actionGridItem}
+              onPress={onNavigateToSOS}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: '#06B6D420' }]}>
+                <Ionicons name="snow" size={22} color="#06B6D4" />
+              </View>
+              <Text style={styles.actionGridTitle}>Cool Shelter</Text>
+              <Text style={styles.actionGridSub}>Air-Cooled Hubs</Text>
+            </TouchableOpacity>
+
+            {/* Water Point */}
+            <TouchableOpacity
+              style={styles.actionGridItem}
+              onPress={() => setWaterModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: '#3B82F620' }]}>
+                <Ionicons name="water" size={22} color="#3B82F6" />
+              </View>
+              <Text style={styles.actionGridTitle}>Water Point</Text>
+              <Text style={styles.actionGridSub}>Purified Kiosks</Text>
+            </TouchableOpacity>
+
+            {/* Request Aid */}
+            <TouchableOpacity
+              style={styles.actionGridItem}
+              onPress={onNavigateToAssistance}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: '#EF444420' }]}>
+                <MaterialCommunityIcons name="hand-heart" size={24} color="#EF4444" />
+              </View>
+              <Text style={styles.actionGridTitle}>Request Aid</Text>
+              <Text style={styles.actionGridSub}>Tanker / Medic</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Live Active Heat Alerts Cards */}
+        <View style={styles.alertsCard}>
+          <View style={styles.alertCardHeader}>
+            <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#F59E0B" />
+            <Text style={styles.alertCardTitle}>LIVE HEAT ADVISORIES</Text>
+          </View>
+
+          <View style={styles.advisoryItem}>
+            <View style={styles.advisoryBullet} />
+            <View style={styles.advisoryBody}>
+              <Text style={styles.advisoryHeading}>Outdoor Labor Cessation Window</Text>
+              <Text style={styles.advisoryText}>
+                Labour Welfare Advisory: Heavy outdoor construction halted between 11:30 AM and 03:30 PM.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.advisoryItem}>
+            <View style={[styles.advisoryBullet, { backgroundColor: '#06B6D4' }]} />
+            <View style={styles.advisoryBody}>
+              <Text style={styles.advisoryHeading}>School & Elderly Respite Priority</Text>
+              <Text style={styles.advisoryText}>
+                BBMP / Civic cooling halls operating with free ORS packets and pediatric electrolyte water.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Hourly Heat Risk Curve Strip */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>TODAY'S HEAT RISK CURVE</Text>
-            <Text style={styles.sectionSub}>Peak 13:00 - 15:00</Text>
+            <TouchableOpacity onPress={onNavigateToWeather} activeOpacity={0.7}>
+              <Text style={styles.sectionSubLink}>See 24h &gt;</Text>
+            </TouchableOpacity>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hourlyList}>
-            {HOURLY_FORECASTS.map((hour, idx) => {
+            {HOURLY_FORECASTS.slice(0, 8).map((hour, idx) => {
               const hColor = getRiskColor(hour.riskLevel);
               return (
                 <View key={idx} style={styles.hourlyItem}>
-                  <Text style={styles.hourlyTime}>{hour.time}</Text>
+                  <Text style={styles.hourlyTime}>{hour.time.split(' ')[0]}</Text>
                   <View style={[styles.hourlyBarWrap, { backgroundColor: `${hColor}22` }]}>
                     <View
                       style={[
@@ -211,28 +292,23 @@ export default function DashboardScreen({ onNavigateToRoute, onNavigateToSOS }: 
           </ScrollView>
         </View>
 
-        {/* Safety Protocol Checklist */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>IMMEDIATE HEAT DEFENSE</Text>
-          <View style={styles.protocolItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-            <Text style={styles.protocolText}>
-              Carry 500ml water mixed with ORS / electrolyte solution.
+        {/* AI Assistant Quick Consultation Banner */}
+        <TouchableOpacity
+          style={styles.aiBanner}
+          onPress={onNavigateToAssistant}
+          activeOpacity={0.85}
+        >
+          <View style={styles.aiBannerIcon}>
+            <MaterialCommunityIcons name="robot" size={26} color="#38BDF8" />
+          </View>
+          <View style={styles.aiBannerText}>
+            <Text style={styles.aiBannerTitle}>Heat Health AI Assistant</Text>
+            <Text style={styles.aiBannerSub}>
+              Ask: "Signs of heatstroke vs exhaustion" or "ORS dosage"
             </Text>
           </View>
-          <View style={styles.protocolItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-            <Text style={styles.protocolText}>
-              Avoid direct open-road exposure during peak afternoon.
-            </Text>
-          </View>
-          <View style={styles.protocolItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-            <Text style={styles.protocolText}>
-              Rest 10 minutes at a verified public cooling shelter if dizzy.
-            </Text>
-          </View>
-        </View>
+          <Feather name="chevron-right" size={20} color="#38BDF8" />
+        </TouchableOpacity>
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -247,39 +323,79 @@ export default function DashboardScreen({ onNavigateToRoute, onNavigateToSOS }: 
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Locality</Text>
+              <Text style={styles.modalTitle}>Select Active Locality</Text>
               <TouchableOpacity onPress={() => setSelectorVisible(false)}>
-                <Feather name="x" size={24} color="#94A3B8" />
+                <Ionicons name="close-circle" size={24} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={LOCALITIES}
               keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isSelected = item.id === selectedLocality.id;
+                const rCol = getRiskColor(item.riskLevel);
+                return (
+                  <TouchableOpacity
+                    style={[styles.localityItem, isSelected && styles.localityItemSelected]}
+                    onPress={() => {
+                      onSelectLocality(item);
+                      setSelectorVisible(false);
+                    }}
+                  >
+                    <View style={styles.localityItemLeft}>
+                      <Text style={styles.localityItemName}>{item.name}</Text>
+                      <Text style={styles.localityItemCity}>
+                        {item.city}, {item.state} • Feels {item.heatIndex.toFixed(1)}°C
+                      </Text>
+                    </View>
+                    <View style={[styles.localityItemBadge, { backgroundColor: `${rCol}20` }]}>
+                      <Text style={[styles.localityItemRisk, { color: rCol }]}>{item.riskLevel}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Water Points Modal */}
+      <Modal
+        visible={waterModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setWaterModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderTitleRow}>
+                <Ionicons name="water" size={22} color="#38BDF8" />
+                <Text style={styles.modalTitle}>Purified Water Kiosks</Text>
+              </View>
+              <TouchableOpacity onPress={() => setWaterModalVisible(false)}>
+                <Ionicons name="close-circle" size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={WATER_POINTS}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.localityItem,
-                    selectedLocality.id === item.id && styles.localityItemSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedLocality(item);
-                    setSelectorVisible(false);
-                  }}
-                >
-                  <View>
-                    <Text style={styles.locItemName}>{item.name}</Text>
-                    <Text style={styles.locItemCity}>
-                      {item.city}, {item.state}
-                    </Text>
+                <View style={styles.waterPointItem}>
+                  <View style={styles.waterPointTop}>
+                    <Text style={styles.waterPointName}>{item.name}</Text>
+                    <View style={styles.operationalTag}>
+                      <Text style={styles.operationalText}>Operational</Text>
+                    </View>
                   </View>
-                  <View style={styles.locItemRight}>
-                    <Text style={styles.locItemTemp}>{item.heatIndex.toFixed(1)}°C</Text>
-                    <Text style={[styles.locItemRisk, { color: getRiskColor(item.riskLevel) }]}>
-                      {item.riskLevel}
-                    </Text>
+                  <Text style={styles.waterPointAddress}>{item.address}</Text>
+                  <View style={styles.waterPointMeta}>
+                    <Text style={styles.waterType}>{item.waterType}</Text>
+                    <Text style={styles.waterDistance}>{item.distanceKm} km away</Text>
                   </View>
-                </TouchableOpacity>
+                </View>
               )}
             />
           </View>
@@ -294,225 +410,282 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#060D1E',
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    backgroundColor: '#0B1329',
-  },
-  appTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#06B6D4',
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  localitySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  localityName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F8FAFC',
-    maxWidth: 200,
-  },
-  sosQuickBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EF4444',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 6,
-  },
-  sosQuickText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
   scrollContent: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  spacer: {
+    flex: 1,
   },
   alertBanner: {
-    backgroundColor: '#1E1524',
-    borderWidth: 1.5,
     borderRadius: 14,
+    borderWidth: 1,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   alertHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 6,
   },
   pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    marginRight: 8,
   },
   alertBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  alertDesc: {
-    fontSize: 13,
-    color: '#E2E8F0',
-    lineHeight: 18,
-  },
-  heroCard: {
-    backgroundColor: '#0B1329',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  heroLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  tempRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  heroTemp: {
-    fontSize: 64,
-    fontWeight: '900',
-    lineHeight: 70,
-  },
-  tempSubCol: {
-    marginLeft: 6,
-    paddingTop: 8,
-  },
-  celsius: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  riskTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginTop: 6,
-  },
-  riskTagText: {
-    fontSize: 10,
     fontWeight: '800',
+    letterSpacing: 0.6,
   },
-  ambientInfo: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginTop: 10,
-    marginBottom: 16,
-  },
-  gaugeTrack: {
-    width: '100%',
-    height: 10,
-    backgroundColor: '#1E293B',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  gaugeFill: {
-    height: '100%',
-    borderRadius: 5,
-  },
-  gaugeLabels: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  gaugeSubText: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  vitalsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  vitalCard: {
-    flex: 1,
-    backgroundColor: '#0B1329',
-    borderRadius: 16,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  vitalIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#132147',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  vitalLabel: {
+  alertCity: {
     fontSize: 11,
     color: '#94A3B8',
     fontWeight: '600',
   },
+  alertDesc: {
+    fontSize: 12,
+    color: '#E2E8F0',
+    lineHeight: 17,
+  },
+  heroCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 18,
+    marginBottom: 14,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+  },
+  riskTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  riskTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  tempRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 10,
+  },
+  heroTemp: {
+    fontSize: 54,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  tempSubCol: {
+    marginLeft: 8,
+    justifyContent: 'center',
+  },
+  celsius: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  ambientText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  islandText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  gaugeTrack: {
+    height: 6,
+    backgroundColor: '#1E293B',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  gaugeFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  gaugeLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  gaugeSubText: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  weatherSnapshotCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 16,
+    marginBottom: 16,
+  },
+  snapshotHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  snapshotTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  snapshotTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+  },
+  viewFullRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewFullText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#06B6D4',
+  },
+  vitalsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  vitalCard: {
+    flex: 1,
+    backgroundColor: '#1E293B50',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+  },
+  vitalLabel: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
   vitalValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: '#F8FAFC',
     marginVertical: 2,
   },
   vitalHint: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#64748B',
   },
-  safeRouteBanner: {
-    backgroundColor: '#092C2B',
-    borderWidth: 1,
-    borderColor: '#10B981',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+  quickActionsSection: {
     marginBottom: 16,
   },
-  routeBannerIcon: {
-    marginRight: 12,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
-  routeBannerText: {
+  quickGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionGridItem: {
     flex: 1,
-  },
-  routeBannerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#ECFDF5',
-  },
-  routeBannerSub: {
-    fontSize: 12,
-    color: '#A7F3D0',
-    marginTop: 2,
-  },
-  sectionCard: {
-    backgroundColor: '#0B1329',
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#1E293B',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  actionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionGridTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    textAlign: 'center',
+  },
+  actionGridSub: {
+    fontSize: 9,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  alertsCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 16,
+    marginBottom: 16,
+  },
+  alertCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  alertCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.8,
+  },
+  advisoryItem: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  advisoryBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
+    marginTop: 6,
+    marginRight: 10,
+  },
+  advisoryBody: {
+    flex: 1,
+  },
+  advisoryHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F1F5F9',
+  },
+  advisoryText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  sectionCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 16,
     marginBottom: 16,
   },
   sectionHeader: {
@@ -522,62 +695,81 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: '#94A3B8',
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
   },
-  sectionSub: {
-    fontSize: 12,
-    color: '#EF4444',
-    fontWeight: '600',
+  sectionSubLink: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#06B6D4',
   },
   hourlyList: {
-    flexDirection: 'row',
+    marginHorizontal: -8,
   },
   hourlyItem: {
+    width: 58,
     alignItems: 'center',
-    marginRight: 16,
-    width: 52,
+    marginHorizontal: 4,
   },
   hourlyTime: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#94A3B8',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   hourlyBarWrap: {
-    width: 24,
-    height: 70,
-    borderRadius: 12,
+    width: 14,
+    height: 56,
+    borderRadius: 7,
     justifyContent: 'flex-end',
     overflow: 'hidden',
-    padding: 2,
+    marginBottom: 6,
   },
   hourlyBar: {
     width: '100%',
-    borderRadius: 10,
+    borderRadius: 7,
   },
   hourlyTemp: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#F8FAFC',
-    marginTop: 6,
   },
   hourlyRisk: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
     marginTop: 2,
   },
-  protocolItem: {
+  aiBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#38BDF840',
+    padding: 14,
   },
-  protocolText: {
-    fontSize: 13,
-    color: '#CBD5E1',
+  aiBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#38BDF820',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  aiBannerText: {
     flex: 1,
+  },
+  aiBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  aiBannerSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
   },
   modalOverlay: {
     flex: 1,
@@ -585,11 +777,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0B1329',
+    backgroundColor: '#0F172A',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     maxHeight: '75%',
+    borderWidth: 1,
+    borderColor: '#1E293B',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -597,45 +791,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  modalHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: '#F8FAFC',
   },
   localityItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
   localityItemSelected: {
-    backgroundColor: '#132147',
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    backgroundColor: '#1E293B40',
   },
-  locItemName: {
+  localityItemLeft: {
+    flex: 1,
+  },
+  localityItemName: {
     fontSize: 14,
     fontWeight: '700',
     color: '#F8FAFC',
   },
-  locItemCity: {
-    fontSize: 12,
+  localityItemCity: {
+    fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
   },
-  locItemRight: {
-    alignItems: 'flex-end',
+  localityItemBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  locItemTemp: {
-    fontSize: 14,
+  localityItemRisk: {
+    fontSize: 10,
     fontWeight: '800',
-    color: '#F8FAFC',
   },
-  locItemRisk: {
-    fontSize: 11,
+  waterPointItem: {
+    backgroundColor: '#1E293B50',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  waterPointTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  waterPointName: {
+    fontSize: 13,
     fontWeight: '700',
-    marginTop: 2,
+    color: '#F8FAFC',
+    flex: 1,
+  },
+  operationalTag: {
+    backgroundColor: '#10B98120',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  operationalText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  waterPointAddress: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  waterPointMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  waterType: {
+    fontSize: 11,
+    color: '#38BDF8',
+    fontWeight: '600',
+  },
+  waterDistance: {
+    fontSize: 11,
+    color: '#64748B',
   },
 });

@@ -15,6 +15,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.webkit.DownloadListener;
 import android.webkit.GeolocationPermissions;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -118,6 +119,21 @@ public class MainActivity extends Activity {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
+        // Custom User-Agent suffix for HeatShield AI Native App
+        String defaultUA = settings.getUserAgentString();
+        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.1.0 (Android; versionCode 4)");
+
+        // Set DownloadListener to handle downloads via system intent
+        mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url));
+                startActivity(i);
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, "Opening download...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         mWebView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
@@ -149,6 +165,19 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url == null) return false;
 
+                // Handle APK or /downloads/ URL downloads via system intent
+                if (url.endsWith(".apk") || url.contains("/downloads/")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Opening download...", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                }
+
                 if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://")) {
                     return false;
                 }
@@ -161,6 +190,14 @@ public class MainActivity extends Activity {
                 } catch (Exception e) {
                     return false;
                 }
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && request != null && request.getUrl() != null) {
+                    return shouldOverrideUrlLoading(view, request.getUrl().toString());
+                }
+                return super.shouldOverrideUrlLoading(view, request);
             }
 
             @Override
@@ -190,6 +227,12 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                view.evaluateJavascript(
+                    "window.__HEATSHIELD_NATIVE_APP__ = true; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.1.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 4;",
+                    null
+                );
                 dismissSplash();
             }
 

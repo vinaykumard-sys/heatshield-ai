@@ -11,7 +11,16 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@heatshield/core": ["../packages/core/index.ts", "src/services/index", "src/services/safeRoutingService"],
+      "@heatshield/core/*": ["../packages/core/*", "src/services/*"],
+      "@heatshield/types": ["../packages/types/index.ts"],
+      "@heatshield/types/*": ["../packages/types/*"],
+      "@heatshield/api": ["../packages/api/index.ts"],
+      "@heatshield/api/*": ["../packages/api/*"]
+    }
   },
-  "include": ["src/**/*", "index.js"]
+  "include": ["src/**/*", "index.js", "../packages/**/*"]
 }

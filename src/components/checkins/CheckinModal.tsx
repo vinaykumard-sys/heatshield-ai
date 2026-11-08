@@ -47,16 +47,16 @@ export const CheckinModal: React.FC<CheckinModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col m-3 sm:m-0">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200 shrink-0">
               <HeartPulse className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Record Welfare Check-in</h3>
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">Record Welfare Check-in</h3>
               <p className="text-xs text-slate-500">
                 Resident: <span className="text-slate-800 font-semibold">{checkin.resident_name}</span>
               </p>
@@ -68,7 +68,7 @@ export const CheckinModal: React.FC<CheckinModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs sm:text-sm">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 text-xs sm:text-sm overflow-y-auto overscroll-contain max-h-[calc(90vh-80px)]">
           {/* Resident Contact Info Quick Access */}
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
             <div>

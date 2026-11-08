@@ -1,0 +1,13 @@
+{
+  "name": "@heatshield/core",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared business logic, algorithmic engines, and services for HeatShield AI",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "module": "./index.ts",
+  "dependencies": {
+    "@heatshield/types": "^1.0.0",
+    "@heatshield/api": "^1.0.0"
+  }
+}

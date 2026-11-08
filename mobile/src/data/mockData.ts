@@ -1,4 +1,13 @@
-import { Locality, CoolingCentre, HourlyForecast, EmergencyContact } from '../types';
+import {
+  Locality,
+  CoolingCentre,
+  WaterPoint,
+  HourlyForecast,
+  DailyForecast,
+  EmergencyContact,
+  AssistanceRequest,
+  UserProfile,
+} from '../types';
 
 export const LOCALITIES: Locality[] = [
   {
@@ -109,21 +118,113 @@ export const LOCALITIES: Locality[] = [
 ];
 
 export const HOURLY_FORECASTS: HourlyForecast[] = [
-  { time: '11:00', temp: 36.2, heatIndex: 39.8, riskLevel: 'MODERATE' },
-  { time: '12:00', temp: 38.0, heatIndex: 42.5, riskLevel: 'HIGH' },
-  { time: '13:00', temp: 39.4, heatIndex: 44.8, riskLevel: 'EXTREME' },
-  { time: '14:00', temp: 39.8, heatIndex: 45.4, riskLevel: 'EXTREME' },
-  { time: '15:00', temp: 38.9, heatIndex: 44.1, riskLevel: 'EXTREME' },
-  { time: '16:00', temp: 37.5, heatIndex: 42.0, riskLevel: 'HIGH' },
-  { time: '17:00', temp: 35.8, heatIndex: 39.2, riskLevel: 'MODERATE' },
-  { time: '18:00', temp: 33.6, heatIndex: 36.4, riskLevel: 'LOW' },
+  { time: '08:00 AM', temp: 31.0, heatIndex: 33.5, riskLevel: 'LOW', humidity: 65, uvIndex: 3.2, condition: 'Clear Sun', rainProb: 0 },
+  { time: '09:00 AM', temp: 33.2, heatIndex: 36.0, riskLevel: 'MODERATE', humidity: 60, uvIndex: 5.1, condition: 'Sunny', rainProb: 0 },
+  { time: '10:00 AM', temp: 35.1, heatIndex: 38.4, riskLevel: 'MODERATE', humidity: 55, uvIndex: 7.4, condition: 'High Glare', rainProb: 0 },
+  { time: '11:00 AM', temp: 36.8, heatIndex: 40.5, riskLevel: 'HIGH', humidity: 52, uvIndex: 9.2, condition: 'Severe Heat', rainProb: 0 },
+  { time: '12:00 PM', temp: 38.4, heatIndex: 43.1, riskLevel: 'HIGH', humidity: 48, uvIndex: 10.5, condition: 'Peak Sun', rainProb: 0 },
+  { time: '01:00 PM', temp: 39.5, heatIndex: 45.0, riskLevel: 'EXTREME', humidity: 46, uvIndex: 11.0, condition: 'Hazardous', rainProb: 0 },
+  { time: '02:00 PM', temp: 39.8, heatIndex: 45.6, riskLevel: 'EXTREME', humidity: 45, uvIndex: 10.8, condition: 'Hazardous', rainProb: 0 },
+  { time: '03:00 PM', temp: 39.0, heatIndex: 44.2, riskLevel: 'EXTREME', humidity: 47, uvIndex: 9.5, condition: 'Peak Heat', rainProb: 5 },
+  { time: '04:00 PM', temp: 37.6, heatIndex: 42.1, riskLevel: 'HIGH', humidity: 51, uvIndex: 7.0, condition: 'Hot Wind', rainProb: 5 },
+  { time: '05:00 PM', temp: 35.8, heatIndex: 39.4, riskLevel: 'MODERATE', humidity: 54, uvIndex: 4.2, condition: 'Muted Sunlight', rainProb: 10 },
+  { time: '06:00 PM', temp: 33.9, heatIndex: 36.8, riskLevel: 'MODERATE', humidity: 58, uvIndex: 1.8, condition: 'Dusk Cooling', rainProb: 15 },
+  { time: '07:00 PM', temp: 32.1, heatIndex: 34.5, riskLevel: 'LOW', humidity: 62, uvIndex: 0.1, condition: 'Warm Evening', rainProb: 10 },
+  { time: '08:00 PM', temp: 30.5, heatIndex: 32.8, riskLevel: 'LOW', humidity: 66, uvIndex: 0.0, condition: 'Night Breeze', rainProb: 5 },
+];
+
+export const SEVEN_DAY_FORECASTS: DailyForecast[] = [
+  {
+    id: 'd1',
+    dayName: 'Today',
+    dateStr: 'Nov 8',
+    tempMax: 39.8,
+    tempMin: 24.2,
+    heatIndexMax: 45.6,
+    riskLevel: 'EXTREME',
+    condition: 'Extreme Heatwave',
+    heatwaveRiskPct: 95,
+    uvIndex: 11.0,
+  },
+  {
+    id: 'd2',
+    dayName: 'Sun',
+    dateStr: 'Nov 9',
+    tempMax: 40.2,
+    tempMin: 25.0,
+    heatIndexMax: 46.2,
+    riskLevel: 'EXTREME',
+    condition: 'Intense Dry Heat',
+    heatwaveRiskPct: 98,
+    uvIndex: 11.2,
+  },
+  {
+    id: 'd3',
+    dayName: 'Mon',
+    dateStr: 'Nov 10',
+    tempMax: 38.5,
+    tempMin: 24.4,
+    heatIndexMax: 43.8,
+    riskLevel: 'HIGH',
+    condition: 'Partly Sunny & Hot',
+    heatwaveRiskPct: 80,
+    uvIndex: 9.8,
+  },
+  {
+    id: 'd4',
+    dayName: 'Tue',
+    dateStr: 'Nov 11',
+    tempMax: 37.0,
+    tempMin: 23.8,
+    heatIndexMax: 41.5,
+    riskLevel: 'HIGH',
+    condition: 'Scattered Clouds',
+    heatwaveRiskPct: 65,
+    uvIndex: 9.1,
+  },
+  {
+    id: 'd5',
+    dayName: 'Wed',
+    dateStr: 'Nov 12',
+    tempMax: 35.4,
+    tempMin: 23.0,
+    heatIndexMax: 39.0,
+    riskLevel: 'MODERATE',
+    condition: 'Afternoon Respite',
+    heatwaveRiskPct: 40,
+    uvIndex: 8.2,
+  },
+  {
+    id: 'd6',
+    dayName: 'Thu',
+    dateStr: 'Nov 13',
+    tempMax: 34.2,
+    tempMin: 22.5,
+    heatIndexMax: 37.2,
+    riskLevel: 'MODERATE',
+    condition: 'Isolated Showers',
+    heatwaveRiskPct: 25,
+    uvIndex: 7.5,
+  },
+  {
+    id: 'd7',
+    dayName: 'Fri',
+    dateStr: 'Nov 14',
+    tempMax: 33.0,
+    tempMin: 22.0,
+    heatIndexMax: 35.5,
+    riskLevel: 'LOW',
+    condition: 'Cool Breeze & Clear',
+    heatwaveRiskPct: 15,
+    uvIndex: 6.8,
+  },
 ];
 
 export const COOLING_CENTRES: CoolingCentre[] = [
   {
     id: 'cool-blr-1',
-    name: 'Yelahanka Govt Community Heat Respite Hall',
-    address: 'Near Old Town Bus Stand, BBMP Ward Office, Yelahanka',
+    name: 'Yelahanka Govt Heat Respite Hall',
+    address: 'Near Old Town Bus Stand, BBMP Ward 4, Yelahanka',
     locality: 'Yelahanka Satellite Town',
     city: 'Bengaluru',
     latitude: 13.1025,
@@ -137,7 +238,7 @@ export const COOLING_CENTRES: CoolingCentre[] = [
   {
     id: 'cool-blr-2',
     name: 'Chokkanahalli Urban Primary Health & Cooling Shelter',
-    address: 'Thanisandra Main Road, Opposite Govt School',
+    address: 'Thanisandra Main Road, Opposite Govt Higher Primary School',
     locality: 'Chokkanahalli & Thanisandra Hub',
     city: 'Bengaluru',
     latitude: 13.0872,
@@ -178,6 +279,42 @@ export const COOLING_CENTRES: CoolingCentre[] = [
   },
 ];
 
+export const WATER_POINTS: WaterPoint[] = [
+  {
+    id: 'w-1',
+    name: 'BBMP Purified Drinking Water ATM #12',
+    address: '4th Cross, Yelahanka Major Sandhe Ground',
+    locality: 'Yelahanka Satellite Town',
+    latitude: 13.1012,
+    longitude: 77.5968,
+    isOperational: true,
+    waterType: 'Chilled RO Purified',
+    distanceKm: 0.3,
+  },
+  {
+    id: 'w-2',
+    name: 'Jal Board Civic Water Dispenser',
+    address: 'Thanisandra Railway Halt Approach Road',
+    locality: 'Chokkanahalli & Thanisandra Hub',
+    latitude: 13.0860,
+    longitude: 77.6258,
+    isOperational: true,
+    waterType: 'Potable Water Kiosk',
+    distanceKm: 0.8,
+  },
+  {
+    id: 'w-3',
+    name: 'Rotary Club Free Cold Water Fountain',
+    address: 'Hebbal Lake Park Gate 2, Outer Ring Road',
+    locality: 'Hebbal Flyover & Junction',
+    latitude: 13.0370,
+    longitude: 77.5975,
+    isOperational: true,
+    waterType: 'Chilled RO Purified',
+    distanceKm: 1.5,
+  },
+];
+
 export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
   {
     id: 'c1',
@@ -201,3 +338,43 @@ export const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
     isNotifiedOnAlert: false,
   },
 ];
+
+export const INITIAL_ASSISTANCE_REQUESTS: AssistanceRequest[] = [
+  {
+    id: 'REQ-7492',
+    category: 'Community Water Tanker Request',
+    requesterName: 'Kaveri Layout Residents Welfare',
+    requesterPhone: '+91 98451 98765',
+    localityName: 'Yelahanka Satellite Town',
+    urgency: 'HIGH_PRIORITY',
+    notes: 'Borewell run dry, 65 families including 22 elders requiring drinking water.',
+    status: 'EN_ROUTE',
+    timestamp: '11:45 AM',
+    etaMinutes: 18,
+    assignedResponder: 'BBMP Water Tanker Unit #04 (Driver: Raju M)',
+  },
+  {
+    id: 'REQ-7488',
+    category: 'Heat Exhaustion / Dizziness',
+    requesterName: 'Sunil Verma',
+    requesterPhone: '+91 97412 34567',
+    localityName: 'Thanisandra Hub',
+    urgency: 'CRITICAL_IMMEDIATE',
+    notes: 'Construction supervisor dizzy with muscle cramps near Gate 3.',
+    status: 'DISPATCHED',
+    timestamp: '12:15 PM',
+    etaMinutes: 8,
+    assignedResponder: '108 Rapid Mobile Medical Bike (Paramedic: Suresh)',
+  },
+];
+
+export const MOCK_USER_PROFILE: UserProfile = {
+  id: 'usr-blr-01',
+  name: 'Vinay Kumar',
+  phone: '+91 98450 12345',
+  email: 'vinay.heatshield@bangalore.gov.in',
+  city: 'Bengaluru',
+  role: 'Resident',
+  hasElderlyAtHome: true,
+  outdoorWorker: false,
+};

@@ -101,7 +101,7 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#f4f7fc] min-h-screen -m-2 sm:-m-4 p-3 sm:p-5 lg:p-6 space-y-7 pb-28 max-w-[1600px] mx-auto animate-page-enter">
+    <div className="bg-[#f4f7fc] min-h-screen p-0 sm:p-2 lg:p-3 space-y-7 pb-28 max-w-[1600px] mx-auto animate-page-enter w-full overflow-x-hidden">
       {/* 0. GPS & TELEMETRY LIVE STATUS BAR */}
       <LocationTrackerBar />
 

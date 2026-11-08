@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LocationProvider } from './context/LocationContext';
+
+// Mandatory Version Update System
+import { checkAppVersion, VersionCheckResult } from './lib/versionService';
+import { MandatoryUpdateModal } from './components/common/MandatoryUpdateModal';
 
 // Layouts & Guards
 import { PublicLayout } from './components/layout/PublicLayout';
@@ -52,6 +56,7 @@ import { DeveloperDiagnosticsPage } from './pages/DeveloperDiagnosticsPage';
 import { WhatsAppGatewayPage } from './pages/WhatsAppGatewayPage';
 
 import { useAuth } from './context/AuthContext';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 
 // Dynamic Settings Route: Admin panel for administrators, Account & Preferences for residents/volunteers
 const SettingsRoute: React.FC = () => {
@@ -59,14 +64,52 @@ const SettingsRoute: React.FC = () => {
   return isAdmin ? <AdminPanelPage /> : <MyAccountPage />;
 };
 
-// Root path navigation: directly route residents to the modern climate-safety dashboard
+// Root route: Check authentication before routing
 const RootRoute: React.FC = () => {
-  return <Navigate to="/dashboard" replace />;
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
 export function App() {
+  const [updateInfo, setUpdateInfo] = useState<VersionCheckResult | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const runVersionCheck = async () => {
+      try {
+        const result = await checkAppVersion();
+        if (mounted && result.isOutdated) {
+          setUpdateInfo(result);
+        }
+      } catch (err) {
+        console.warn('[HeatShield] Version check failed:', err);
+      }
+    };
+
+    // Immediate check on app startup
+    runVersionCheck();
+
+    // Periodic check every 10 minutes and on window focus / resume
+    const intervalId = setInterval(runVersionCheck, 10 * 60 * 1000);
+    const onFocus = () => runVersionCheck();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
   return (
     <BrowserRouter>
+      {/* Global Mandatory Blocking Modal for Outdated Client Versions */}
+      <MandatoryUpdateModal
+        isOpen={Boolean(updateInfo?.isOutdated)}
+        updateInfo={updateInfo}
+      />
       <LanguageProvider>
         <AuthProvider>
           <NotificationProvider>

@@ -56,9 +56,9 @@ export const AuthPage: React.FC = () => {
   // If already authenticated and not currently playing the transition, redirect immediately
   useEffect(() => {
     if (isAuthenticated && !isTransitioning) {
-      navigate('/dashboard', { replace: true });
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, isTransitioning, navigate]);
+  }, [isAuthenticated, isTransitioning, navigate, from]);
 
   /**
    * Triggers the 1.5-second cinematic zoom transition toward the Earth

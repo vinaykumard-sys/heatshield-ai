@@ -902,7 +902,7 @@ export const SafeRoutesPage: React.FC = () => {
       </Card>
 
       {/* Main Map Viewport with OVERLAID Floating Route Info Panel */}
-      <div className="relative w-full h-[620px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-950">
+      <div className="relative w-full h-[52vh] min-h-[380px] sm:h-[580px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-950">
         {/* 2D Leaflet Canvas Container */}
         <div className={`w-full h-full z-0 ${viewMode === '2d' ? 'block' : 'hidden'}`}>
           <div ref={mapContainerRef} className="w-full h-full z-0" />
@@ -1404,7 +1404,7 @@ export const SafeRoutesPage: React.FC = () => {
 
             {/* Expanded Content on Mobile */}
             {isMobileSheetExpanded && activeRoute && (
-              <div className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-3 max-h-[70vh] overflow-y-auto">
+              <div className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-3 max-h-[60vh] overflow-y-auto overscroll-contain">
                 {/* Route Switcher Pills */}
                 <div className="grid grid-cols-3 gap-1.5">
                   {routes.map(r => {

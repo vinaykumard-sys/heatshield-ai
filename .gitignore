@@ -44,5 +44,6 @@ supabase/.temp/
 # Android Build Toolchain & Intermediate Objects
 tools/
 build/
+android-src/assets/
 *.keystore
 *.idsig

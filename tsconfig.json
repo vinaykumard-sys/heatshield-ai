@@ -17,9 +17,15 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@heatshield/types": ["./packages/types/index.ts"],
+      "@heatshield/types/*": ["./packages/types/*"],
+      "@heatshield/core": ["./packages/core/index.ts"],
+      "@heatshield/core/*": ["./packages/core/*"],
+      "@heatshield/api": ["./packages/api/index.ts"],
+      "@heatshield/api/*": ["./packages/api/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "packages"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

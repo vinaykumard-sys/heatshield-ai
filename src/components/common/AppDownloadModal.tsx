@@ -31,8 +31,8 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
   const [qrSvg, setQrSvg] = useState<string>('');
 
   const apkUrl = '/downloads/HeatShield-AI.apk';
-  const apkFileName = 'HeatShield-AI-v1.0.2.apk';
-  const apkVersion = 'v1.0.2';
+  const apkFileName = 'HeatShield-AI-v1.1.0.apk';
+  const apkVersion = 'v1.1.0';
   const apkSize = '1.3 MB';
   const releaseDate = 'November 2026';
 
@@ -112,17 +112,17 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
         aria-hidden="true" 
       />
 
-      <div className="bg-white border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 relative">
+      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-2xl md:max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 relative m-3 sm:m-0">
         
         {/* Header with vibrant blue brand gradient */}
-        <div className="relative px-6 py-5 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white flex items-center justify-between shrink-0 shadow-sm overflow-hidden">
+        <div className="relative px-5 py-4 sm:px-6 sm:py-5 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white flex items-center justify-between shrink-0 shadow-sm overflow-hidden">
           {/* Subtle decorative glow circles */}
           <div className="absolute -right-8 -top-8 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute left-1/3 -bottom-10 w-44 h-44 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/25 shadow-inner">
-              <Smartphone className="w-6 h-6 text-white" />
+          <div className="relative z-10 flex items-center gap-3 sm:gap-3.5">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/25 shadow-inner">
+              <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
                   Official Build
                 </span>
               </div>
-              <h2 id="app-download-modal-title" className="text-xl sm:text-2xl font-black tracking-tight text-white mt-0.5">
+              <h2 id="app-download-modal-title" className="text-lg sm:text-2xl font-black tracking-tight text-white mt-0.5">
                 Get HeatShield AI on Android
               </h2>
             </div>
@@ -151,7 +151,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
         </div>
 
         {/* Scrollable Content Container */}
-        <div className="p-5 sm:p-7 space-y-6 overflow-y-auto bg-slate-50/50">
+        <div className="p-4 sm:p-7 space-y-5 sm:space-y-6 overflow-y-auto overscroll-contain bg-slate-50/50">
           
           {/* App Specs Badge Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">

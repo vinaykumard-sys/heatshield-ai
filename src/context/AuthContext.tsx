@@ -7,6 +7,7 @@ interface AuthContextType {
   user: UserProfile | null;
   role: UserRole;
   isAuthenticated: boolean;
+  isLoading: boolean;
   isAdmin: boolean;
   isVolunteer: boolean;
   isResident: boolean;
@@ -31,50 +32,95 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Unauthenticated by default unless restored from localStorage
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('heatshield_auth_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
+  // Unauthenticated by default; sessions are verified on mount
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Sync valid user to localStorage only after initial session check completes
   useEffect(() => {
+    if (isLoading) return;
+
     if (user) {
       localStorage.setItem('heatshield_auth_user', JSON.stringify(user));
     } else {
       localStorage.removeItem('heatshield_auth_user');
     }
-  }, [user]);
+  }, [user, isLoading]);
 
   // Supabase OAuth and Session Subscription
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    let mounted = true;
 
-    const client = supabase;
+    async function initSession() {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (!mounted) return;
 
-    // Restore existing session on mount
-    client.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await handleSessionUser(session.user);
+          if (error || !session?.user) {
+            setUser(null);
+            localStorage.removeItem('heatshield_auth_user');
+          } else {
+            await handleSessionUser(session.user);
+          }
+        } catch (e) {
+          console.warn('Session verification notice:', e);
+          if (mounted) {
+            setUser(null);
+            localStorage.removeItem('heatshield_auth_user');
+          }
+        } finally {
+          if (mounted) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        // Local / Resilient Mode: Only restore if a valid real session was stored
+        try {
+          const saved = localStorage.getItem('heatshield_auth_user');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id && parsed.email) {
+              setUser(parsed);
+            } else {
+              setUser(null);
+              localStorage.removeItem('heatshield_auth_user');
+            }
+          } else {
+            setUser(null);
+          }
+        } catch (e) {
+          setUser(null);
+          localStorage.removeItem('heatshield_auth_user');
+        } finally {
+          if (mounted) {
+            setIsLoading(false);
+          }
+        }
       }
-    });
+    }
 
-    const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await handleSessionUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
+    initSession();
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          await handleSessionUser(session.user);
+        } else if (event === 'SIGNED_OUT' || !session) {
+          setUser(null);
+          localStorage.removeItem('heatshield_auth_user');
+        }
+      });
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    }
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
     };
   }, []);
 
@@ -141,8 +187,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
-    if (isSupabaseConfigured && supabase && password) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (isSupabaseConfigured && supabase) {
+      if (!password) {
+        return { success: false, error: 'Password is required to sign in.' };
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
       if (error) {
         let friendlyMsg = error.message;
         if (error.message.toLowerCase().includes('invalid login credentials')) {
@@ -155,32 +206,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // Production check: Reject unknown accounts if no local password matches
-    const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
-    const matchedProfile = savedProfiles[email.toLowerCase()];
+    // Local / Resilient Mode (Supabase not configured):
+    // Authenticate against locally registered accounts without falling back to mock resident
+    try {
+      const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
+      const matchedRecord = savedProfiles[trimmedEmail];
 
-    if (matchedProfile) {
-      setUser(matchedProfile);
+      if (!matchedRecord) {
+        return { 
+          success: false, 
+          error: 'No account found with this email. Please register first or verify your email.' 
+        };
+      }
+
+      if (matchedRecord.password && password && matchedRecord.password !== password) {
+        return {
+          success: false,
+          error: 'Incorrect password. Please try again.'
+        };
+      }
+
+      const { password: _, ...userProfile } = matchedRecord;
+      setUser(userProfile as UserProfile);
       return { success: true };
+    } catch (e) {
+      return { success: false, error: 'Login failed. Please check credentials and try again.' };
     }
-
-    // Default registered resident session
-    const residentUser: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email,
-      full_name: email.split('@')[0].replace(/[._]/g, ' '),
-      role: 'resident',
-      phone: '',
-      country_code: '+91',
-      is_phone_verified: false,
-      is_email_verified: true,
-      hourly_notification_consent: true,
-      preferred_language: 'en',
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    setUser(residentUser);
-    return { success: true };
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
@@ -217,16 +268,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (
     email: string, 
     password: string, 
-    fullName: string,
-    phone: string,
-    countryCode: string = '+91',
+    fullName: string, 
+    phone: string, 
+    countryCode: string = '+91', 
     consentHourly: boolean = true
   ): Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }> => {
     const defaultRole: UserRole = 'resident';
+    const trimmedEmail = email.trim().toLowerCase();
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: {
           data: {
@@ -243,6 +295,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const requiresEmailConfirmation = !data.session;
+      if (data.session?.user) {
+        await handleSessionUser(data.session.user);
+      }
       return { 
         success: true, 
         requiresEmailConfirmation 
@@ -251,7 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      email,
+      email: trimmedEmail,
       full_name: fullName,
       phone,
       country_code: countryCode,
@@ -265,10 +320,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       created_at: new Date().toISOString()
     };
 
-    // Save profile
+    // Save profile and credentials
     try {
       const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
-      savedProfiles[email.toLowerCase()] = newUser;
+      savedProfiles[trimmedEmail] = {
+        ...newUser,
+        password
+      };
       localStorage.setItem('heatshield_registered_profiles', JSON.stringify(savedProfiles));
     } catch {
       // ignore
@@ -322,10 +380,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (e) {
+      console.warn('Supabase signOut notice:', e);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('heatshield_auth_user');
     }
-    setUser(null);
   };
 
   const role: UserRole = user?.role || 'resident';
@@ -340,6 +404,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         role,
         isAuthenticated: !!user,
+        isLoading,
         isAdmin,
         isVolunteer,
         isResident,

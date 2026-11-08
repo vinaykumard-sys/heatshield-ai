@@ -254,25 +254,25 @@ export const AssistanceRequestModal: React.FC<AssistanceRequestModalProps> = ({
 
       {/* Floating 3D Modal Box with Depth and Soft Glow */}
       <div 
-        className="relative z-10 w-full max-w-2xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35),0_0_0_1px_rgba(255,255,255,0.8)] overflow-hidden transition-all duration-300 animate-scale-in"
+        className="relative z-10 w-full max-w-lg sm:max-w-xl md:max-w-2xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35),0_0_0_1px_rgba(255,255,255,0.8)] overflow-hidden transition-all duration-300 animate-scale-in max-h-[90vh] flex flex-col m-3 sm:m-0"
         style={{
           boxShadow: '0 30px 70px -15px rgba(15, 23, 42, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)'
         }}
       >
         {/* Header Bar */}
-        <div className="relative px-6 py-5 bg-gradient-to-r from-slate-50/90 via-white to-blue-50/50 border-b border-slate-200/80 flex items-center justify-between">
+        <div className="relative px-5 py-4 sm:px-6 sm:py-5 bg-gradient-to-r from-slate-50/90 via-white to-blue-50/50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1E60F2] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(30,96,242,0.35)]">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#1E60F2] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(30,96,242,0.35)] shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Assistance Dispatch</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-blue-100 text-[#1E60F2] border border-blue-200">
                   Live 24/7
                 </span>
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
                 Rapid thermal safety, hydration & emergency relief dispatch
               </p>
             </div>
@@ -289,7 +289,7 @@ export const AssistanceRequestModal: React.FC<AssistanceRequestModalProps> = ({
         </div>
 
         {/* Content Area */}
-        <div className="p-6 max-h-[calc(88vh-130px)] overflow-y-auto">
+        <div className="p-4 sm:p-6 max-h-[calc(90vh-100px)] overflow-y-auto overscroll-contain">
           {/* Post-Submission Animated 3D-styled Status Progression Timeline */}
           {submittedRequestId ? (
             <div className="space-y-6 py-2 animate-fade-in">

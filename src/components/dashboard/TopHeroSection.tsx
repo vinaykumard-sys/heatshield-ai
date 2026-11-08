@@ -314,7 +314,7 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
             }
           }}
           aria-label="Click to open comprehensive hourly forecast dialog"
-          className="group lg:col-span-7 bg-white rounded-3xl border border-slate-100 hover:border-blue-300 p-6 sm:p-8 shadow-sm hover:shadow-md shadow-blue-500/5 flex flex-col justify-between space-y-6 relative overflow-hidden bg-gradient-to-br from-white via-white to-blue-50/20 transition-all duration-200 cursor-pointer"
+          className="group lg:col-span-7 bg-white rounded-3xl border border-slate-100 hover:border-blue-300 p-4 sm:p-6 lg:p-8 shadow-sm hover:shadow-md shadow-blue-500/5 flex flex-col justify-between space-y-6 relative overflow-hidden bg-gradient-to-br from-white via-white to-blue-50/20 transition-all duration-200 cursor-pointer"
         >
           
           {/* Subtle decorative ambient backdrop */}
@@ -365,10 +365,10 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
           )}
 
           {/* Large Temperature, Feels-like Pill & Circular Risk Gauge */}
-          <div className="flex items-center justify-between gap-4 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-3">
               <div className="flex items-baseline gap-2">
-                <div className="text-7xl sm:text-8xl font-black text-slate-900 tracking-tighter font-sans leading-none">
+                <div className="text-5xl xs:text-6xl sm:text-7xl md:text-8xl font-black text-slate-900 tracking-tighter font-sans leading-none">
                   <CountUp value={Math.round(currentTemp)} durationMs={600} />°C
                 </div>
                 <div className="hidden sm:flex flex-col text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -380,14 +380,14 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
               {/* Feels-like pill & Heat risk badge */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Feels Like Pill */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
                   <Thermometer className="w-3.5 h-3.5 text-blue-600" />
                   <span>Feels like <strong className="text-slate-900">{Math.round(feelsLike)}°C</strong></span>
                   <span className="text-[10px] text-blue-500 font-bold">({deltaTemp >= 0 ? `+${deltaTemp}` : deltaTemp}° offset)</span>
                 </span>
 
                 {/* Heat Risk Badge */}
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black border ${riskBadge.color} shadow-2xs`}>
+                <span className={`inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs font-black border ${riskBadge.color} shadow-2xs`}>
                   <span className="relative flex h-2 w-2 mr-2">
                     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${riskBadge.pulse}`} />
                     <span className={`relative inline-flex rounded-full h-2 w-2 ${riskBadge.pulse}`} />
@@ -398,7 +398,7 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
             </div>
 
             {/* Circular Gauge */}
-            <div className="shrink-0">
+            <div className="self-center sm:self-auto shrink-0">
               <HeatRiskGauge
                 score={riskScore}
                 category={riskLevel === 'extreme' ? 'critical' : riskLevel}
@@ -425,7 +425,7 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
         </div>
 
         {/* 4-DAY MINI FORECAST STRIP (5 Cols) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm shadow-blue-500/5 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-sm shadow-blue-500/5 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-xl bg-blue-50 text-[#1E60F2] flex items-center justify-center">
@@ -438,7 +438,7 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">HIGH / LOW</span>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {miniForecast.map((item, idx) => {
               const isToday = idx === 0;
               return (
@@ -872,8 +872,8 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
         </button>
 
         {showAdvancedDetails && (
-          <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-4 text-xs text-slate-600 animate-fade-in">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50/50 space-y-4 text-xs text-slate-600 animate-fade-in">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-3.5">
               <div className="p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
                 <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Wet-Bulb Temp</span>
                 <span className="text-base font-extrabold text-slate-900">{actionResult.advancedMetrics.wetBulbApproxC}°C</span>

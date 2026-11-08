@@ -185,23 +185,23 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-xl md:max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] m-3 sm:m-0">
         {/* Soft, Urgent Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-red-500 to-rose-600 text-white flex items-center justify-between shrink-0 shadow-xs">
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-red-500 to-rose-600 text-white flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
-              <PhoneCall className="w-6 h-6 text-white stroke-[2.5]" />
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+              <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6 text-white stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                <h2 className="text-base sm:text-xl font-black tracking-tight text-white">
                   Heat Emergency SOS
                 </h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/25 text-white border border-white/40">
                   24/7 Verified
                 </span>
               </div>
-              <p className="text-xs text-red-100 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-red-100 mt-0.5">
                 Immediate medical dispatch and verified disaster control rooms across India
               </p>
             </div>
@@ -217,7 +217,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-5 sm:p-6 space-y-6 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto overscroll-contain">
           {/* PRIMARY EMERGENCY QUICK ACTIONS: 108 & 112 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* National Ambulance 108 */}

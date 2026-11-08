@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,166 +8,407 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Linking,
+  Alert,
+  Animated,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { ChatMessage } from '../types';
+import { ChatMessage, CoolingCentre, Locality } from '../types';
+import { LOCALITIES, COOLING_CENTRES } from '../data/mockData';
+import {
+  processAssistantQuery,
+  SUGGESTED_PROMPTS,
+  AssistantResponse,
+} from '../services/assistantEngine';
 
-export default function AssistantScreen() {
+interface Props {
+  selectedLocality?: Locality;
+  onBack?: () => void;
+}
+
+export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBack }: Props) {
+  const currentLocality = selectedLocality || LOCALITIES[0];
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: 'm1',
+      id: 'welcome-1',
       sender: 'assistant',
-      text: 'Hello, I am HeatShield AI Health Assistant. Today\'s heat index in the city is high. How can I help protect you and your family right now?',
-      timestamp: '12:00 PM',
+      text: `Hello! I am HeatShield AI, your mobile thermal health assistant.\n\nToday's heat index in ${currentLocality.name} is ${currentLocality.heatIndex}°C (${currentLocality.riskLevel} Risk). How can I protect your health and hydration right now?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quickReplies: [
-        'Signs of heat stroke vs exhaustion',
-        'ORS & hydration recipe',
-        'Protecting seniors & infants',
-        'Emergency cooling techniques',
+        'What is my heat risk right now?',
+        'Find closest drinking water',
+        'How to treat heat exhaustion?',
+        'Is it safe to run outside today?',
       ],
     },
   ]);
+
   const [inputText, setInputText] = useState('');
   const [typing, setTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollViewRef = useRef<any>(null);
 
-  const getAssistantResponse = (query: string): string => {
-    const q = query.toLowerCase();
+  // Subtle breathing animation for live status dot and mic state
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-    if (q.includes('stroke') || q.includes('exhaustion') || q.includes('symptom')) {
-      return '⚠️ HEAT EXHAUSTION vs HEAT STROKE:\n\n• Heat Exhaustion: Heavy sweating, pale skin, muscle cramps, dizziness, nausea. Action: Move to shade, loosen clothing, sip cool salted water or ORS.\n\n• Heat STROKE (MEDICAL EMERGENCY): Body temp > 40°C, RED/HOT DRY SKIN (sweating stops), confusion, fainting. Action: Call 108 immediately! Apply cold wet towels or ice packs to armpits, groin, and neck while waiting.';
-    }
-
-    if (q.includes('ors') || q.includes('hydration') || q.includes('recipe') || q.includes('water')) {
-      return '💧 EMERGENCY HYDRATION GUIDELINE:\n\n• WHO-standard Oral Rehydration Salt (ORS):\n  - 1 Liter clean boiled/potable water\n  - 6 level teaspoons of sugar\n  - 1/2 level teaspoon of salt\n  - Stir until completely dissolved.\n\n• Drink 250ml every 20-30 minutes during outdoor activities. Avoid caffeinated sodas and pure sugar drinks as they accelerate dehydration.';
-    }
-
-    if (q.includes('senior') || q.includes('elderly') || q.includes('infant') || q.includes('baby')) {
-      return '🛡️ VULNERABLE GROUPS HEAT DEFENSE:\n\n• Seniors (60+): Sweat glands become less responsive. Keep them in rooms with cross-ventilation or active cooling. Check blood pressure frequently if taking diuretics.\n• Infants & Children: Their body heats up 3-5 times faster than adults. NEVER leave a child in a parked vehicle even with windows cracked. Keep them dressed in light cotton.';
-    }
-
-    if (q.includes('cooling') || q.includes('cramp') || q.includes('first aid')) {
-      return '❄️ RAPID FIRST AID FOR HEAT STRESS:\n\n1. Move the individual into direct shade or an air-conditioned room.\n2. Mist or spray skin with cool water while fanning vigorously.\n3. Elevate feet 6-8 inches if feeling faint.\n4. Apply damp towels to the forehead, back of the neck, and wrists.\n5. If vomiting occurs, turn them on their side to protect the airway and dial 1070/108.';
-    }
-
-    return `Under the current heatwave conditions, keep direct sunlight off your neck and head. Ensure you consume at least 3.5 to 4 liters of fluid today. If you need navigation to the nearest government cooling station or emergency assistance, tap the SOS Relief tab.`;
-  };
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.25,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   const handleSend = (textToSend = inputText) => {
-    if (!textToSend.trim()) return;
+    const trimmed = textToSend.trim();
+    if (!trimmed) return;
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       sender: 'user',
-      text: textToSend.trim(),
+      text: trimmed,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setTyping(true);
+    setIsListening(false);
 
+    // Process using domain-specific intelligence engine
     setTimeout(() => {
-      const replyText = getAssistantResponse(textToSend);
+      const response: AssistantResponse = processAssistantQuery(trimmed, currentLocality);
+
       const botMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `bot-${Date.now()}`,
         sender: 'assistant',
-        text: replyText,
+        text: response.text,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        quickReplies: ['ORS & hydration recipe', 'Signs of heat stroke vs exhaustion', 'Emergency cooling techniques'],
+        quickReplies: response.quickReplies,
+        severity: response.severity,
+        relatedShelter: response.relatedShelter,
       };
+
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
-    }, 600);
+    }, 650);
+  };
+
+  const handleVoiceInputToggle = () => {
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    setIsListening(true);
+    // Voice recognition simulation for mobile experience
+    setTimeout(() => {
+      setIsListening(false);
+      setInputText('What is my heat risk right now?');
+    }, 1800);
+  };
+
+  const handleEmergencyCall = (phoneNumber = '108') => {
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Emergency Helpline', `Please dial ${phoneNumber} directly from your phone.`);
+    });
+  };
+
+  const handleNavigateShelter = (shelter: CoolingCentre) => {
+    const query = encodeURIComponent(`${shelter.name}, ${shelter.address}`);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`).catch(() => {
+      Alert.alert('Location', `${shelter.name}\n${shelter.address}`);
+    });
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
     >
-      {/* Header */}
+      {/* 1. Header with Live Status Dot */}
       <View style={styles.header}>
-        <View style={styles.avatarWrap}>
-          <MaterialCommunityIcons name="robot" size={20} color="#06B6D4" />
+        <View style={styles.headerLeft}>
+          {onBack && (
+            <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+              <Feather name="arrow-left" size={20} color="#F8FAFC" />
+            </TouchableOpacity>
+          )}
+          <View style={styles.shieldBadge}>
+            <MaterialCommunityIcons name="shield-sun" size={22} color="#38BDF8" />
+          </View>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>HeatShield AI Assistant</Text>
+            <View style={styles.statusRow}>
+              <Animated.View
+                style={[
+                  styles.liveDot,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                  },
+                ]}
+              />
+              <Text style={styles.statusText}>Live • Urban Heat Intelligence</Text>
+            </View>
+          </View>
         </View>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.headerTitle}>HeatShield Clinical AI</Text>
-          <Text style={styles.headerSub}>Active Urban Heat & Hydration Counsel</Text>
-        </View>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>Ready</Text>
-        </View>
+
+        <TouchableOpacity
+          style={styles.sosHeaderBtn}
+          onPress={() => handleEmergencyCall('108')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="call" size={13} color="#EF4444" />
+          <Text style={styles.sosHeaderText}>108 SOS</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* 2. Conversational Message Bubble List */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.chatScroll}
         contentContainerStyle={styles.chatContent}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
       >
         {messages.map((item) => {
           const isUser = item.sender === 'user';
+          const isUrgent = item.severity === 'urgent';
+
           return (
             <View
               key={item.id}
               style={[
-                styles.messageBubbleWrap,
-                isUser ? styles.userBubbleWrap : styles.botBubbleWrap,
+                styles.messageRow,
+                isUser ? styles.userMessageRow : styles.assistantMessageRow,
               ]}
             >
-              <View
-                style={[
-                  styles.messageBubble,
-                  isUser ? styles.userBubble : styles.botBubble,
-                ]}
-              >
-                <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
-                  {item.text}
-                </Text>
-                <Text style={styles.timestampText}>{item.timestamp}</Text>
-              </View>
-
-              {/* Quick Prompt Pills */}
-              {!isUser && item.quickReplies && (
-                <View style={styles.quickRepliesContainer}>
-                  {item.quickReplies.map((qr, qidx) => (
-                    <TouchableOpacity
-                      key={qidx}
-                      style={styles.quickReplyChip}
-                      onPress={() => handleSend(qr)}
-                    >
-                      <Text style={styles.quickReplyText}>{qr}</Text>
-                    </TouchableOpacity>
-                  ))}
+              {/* Branded shield badge on left for AI Assistant */}
+              {!isUser && (
+                <View style={styles.botShieldAvatar}>
+                  <MaterialCommunityIcons name="shield-check" size={16} color="#06B6D4" />
                 </View>
               )}
+
+              <View
+                style={[
+                  styles.bubbleContainer,
+                  isUser ? styles.userBubbleContainer : styles.botBubbleContainer,
+                ]}
+              >
+                {/* Assistant Label Header */}
+                {!isUser && (
+                  <View style={styles.botHeaderLine}>
+                    <Text style={styles.botName}>HeatShield AI</Text>
+                    {isUrgent && (
+                      <View style={styles.urgentBadge}>
+                        <Ionicons name="alert-circle" size={12} color="#EF4444" />
+                        <Text style={styles.urgentBadgeText}>URGENT</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Message Bubble: User (Blue) vs AI Assistant (Slate/Dark with Shield) */}
+                <View
+                  style={[
+                    styles.messageBubble,
+                    isUser ? styles.userBubble : styles.botBubble,
+                    isUrgent && styles.botBubbleUrgent,
+                  ]}
+                >
+                  <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
+                    {item.text}
+                  </Text>
+
+                  {/* Contextual Action: Cooling Shelter Card */}
+                  {item.relatedShelter && (
+                    <View style={styles.shelterCard}>
+                      <View style={styles.shelterCardHeader}>
+                        <Ionicons name="location" size={16} color="#06B6D4" />
+                        <Text style={styles.shelterCardTitle} numberOfLines={1}>
+                          {item.relatedShelter.name}
+                        </Text>
+                      </View>
+                      <Text style={styles.shelterCardAddress}>
+                        {item.relatedShelter.address}
+                      </Text>
+                      <View style={styles.shelterActionRow}>
+                        <TouchableOpacity
+                          style={styles.shelterNavBtn}
+                          onPress={() => handleNavigateShelter(item.relatedShelter!)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="navigate" size={13} color="#FFF" />
+                          <Text style={styles.shelterNavBtnText}>Open in Maps</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.shelterCallBtn}
+                          onPress={() => handleEmergencyCall(item.relatedShelter!.contactPhone)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="call" size={13} color="#06B6D4" />
+                          <Text style={styles.shelterCallBtnText}>Call Shelter</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Contextual Action: Emergency 108 Call Button */}
+                  {isUrgent && (
+                    <TouchableOpacity
+                      style={styles.emergencyActionBtn}
+                      onPress={() => handleEmergencyCall('108')}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="call" size={15} color="#FFF" />
+                      <Text style={styles.emergencyActionText}>Call Emergency Medical (108)</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <Text
+                    style={[
+                      styles.timestampText,
+                      isUser ? styles.userTimestamp : styles.botTimestamp,
+                    ]}
+                  >
+                    {item.timestamp}
+                  </Text>
+                </View>
+
+                {/* Quick Reply Pills */}
+                {!isUser && item.quickReplies && item.quickReplies.length > 0 && (
+                  <View style={styles.inlineChipsWrap}>
+                    {item.quickReplies.map((reply, rIdx) => (
+                      <TouchableOpacity
+                        key={rIdx}
+                        style={styles.inlineChip}
+                        onPress={() => handleSend(reply)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.inlineChipText}>{reply}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
             </View>
           );
         })}
 
+        {/* Typing Indicator */}
         {typing && (
-          <View style={styles.typingIndicator}>
-            <Text style={styles.typingText}>HeatShield AI is synthesizing medical guidance...</Text>
+          <View style={[styles.messageRow, styles.assistantMessageRow]}>
+            <View style={styles.botShieldAvatar}>
+              <MaterialCommunityIcons name="shield-check" size={16} color="#06B6D4" />
+            </View>
+            <View style={styles.typingBubble}>
+              <Animated.View
+                style={[
+                  styles.typingDot,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                  },
+                ]}
+              />
+              <Text style={styles.typingText}>HeatShield AI is analyzing thermal telemetry...</Text>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Input Bar */}
+      {/* 3. Quick-Action Suggestion Chips (Required 4 Prompts) */}
+      <View style={styles.suggestionChipsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.suggestionChipsScroll}
+        >
+          {SUGGESTED_PROMPTS.map((prompt, index) => {
+            const icons = ['🌡️', '💧', '🩺', '🏃'];
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.suggestionChip}
+                onPress={() => handleSend(prompt)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.suggestionChipIcon}>{icons[index % icons.length]}</Text>
+                <Text style={styles.suggestionChipText}>{prompt}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Voice Listening Banner */}
+      {isListening && (
+        <View style={styles.voiceListeningBanner}>
+          <Animated.View
+            style={[
+              styles.voicePulseCircle,
+              {
+                transform: [{ scale: pulseAnim }],
+              },
+            ]}
+          >
+            <Feather name="mic" size={15} color="#FFF" />
+          </Animated.View>
+          <Text style={styles.voiceListeningText}>
+            Listening for your heat safety question...
+          </Text>
+          <TouchableOpacity onPress={() => setIsListening(false)}>
+            <Ionicons name="close-circle" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 4. Input Bar with Microphone & Send Button */}
       <View style={styles.inputContainer}>
+        {/* Voice Input Microphone */}
+        <TouchableOpacity
+          style={[styles.micButton, isListening && styles.micButtonActive]}
+          onPress={handleVoiceInputToggle}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name={isListening ? 'mic-off' : 'mic'}
+            size={19}
+            color={isListening ? '#FFF' : '#38BDF8'}
+          />
+        </TouchableOpacity>
+
+        {/* Text Input */}
         <TextInput
           style={styles.textInput}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="Ask about hydration, symptoms, first aid..."
+          placeholder="Ask HeatShield AI (symptoms, water, run)..."
           placeholderTextColor="#64748B"
           onSubmitEditing={() => handleSend()}
+          returnKeyType="send"
         />
+
+        {/* Send Button */}
         <TouchableOpacity
-          style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            !inputText.trim() && !isListening && styles.sendButtonDisabled,
+          ]}
           onPress={() => handleSend()}
           disabled={!inputText.trim()}
+          activeOpacity={0.8}
         >
           <Ionicons name="arrow-up" size={20} color="#FFF" />
         </TouchableOpacity>
@@ -181,157 +422,422 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#060D1E',
   },
+
+  // 1. Header Styles
   header: {
     paddingTop: Platform.OS === 'ios' ? 52 : 36,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0B1329',
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
-    backgroundColor: '#0B1329',
   },
-  avatarWrap: {
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 4,
+  },
+  shieldBadge: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#132147',
+    backgroundColor: '#0F2347',
+    borderWidth: 1.5,
+    borderColor: '#38BDF8',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#06B6D4',
+    marginRight: 10,
+  },
+  headerTextWrap: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: '#F8FAFC',
+    letterSpacing: 0.3,
   },
-  headerSub: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  liveIndicator: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 5,
+    marginTop: 2,
+    gap: 6,
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#10B981',
   },
-  liveText: {
+  statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#10B981',
   },
+  sosHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 4,
+  },
+  sosHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+
+  // 2. Chat Scroll & Bubbles
   chatScroll: {
     flex: 1,
   },
   chatContent: {
-    padding: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
-  messageBubbleWrap: {
+  messageRow: {
+    flexDirection: 'row',
     marginBottom: 16,
-    maxWidth: '88%',
+    alignItems: 'flex-start',
   },
-  userBubbleWrap: {
-    alignSelf: 'flex-end',
+  userMessageRow: {
+    justifyContent: 'flex-end',
   },
-  botBubbleWrap: {
-    alignSelf: 'flex-start',
+  assistantMessageRow: {
+    justifyContent: 'flex-start',
   },
+  botShieldAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#0F2347',
+    borderWidth: 1,
+    borderColor: '#06B6D4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginTop: 4,
+  },
+  bubbleContainer: {
+    maxWidth: '85%',
+  },
+  userBubbleContainer: {
+    alignItems: 'flex-end',
+  },
+  botBubbleContainer: {
+    alignItems: 'flex-start',
+  },
+  botHeaderLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  botName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#06B6D4',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  urgentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+  },
+  urgentBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+
+  // Bubbles
   messageBubble: {
     borderRadius: 18,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   userBubble: {
-    backgroundColor: '#0E3B3A',
+    backgroundColor: '#2563EB', // Vibrant Blue user bubble
     borderBottomRightRadius: 4,
-    borderWidth: 1,
-    borderColor: '#10B981',
   },
   botBubble: {
-    backgroundColor: '#0B1329',
+    backgroundColor: '#0F1A30',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: '#1E293B',
   },
+  botBubbleUrgent: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
+    backgroundColor: '#1E1218',
+  },
   messageText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   userText: {
-    color: '#ECFDF5',
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   botText: {
     color: '#E2E8F0',
   },
   timestampText: {
     fontSize: 10,
-    color: '#64748B',
     marginTop: 6,
     alignSelf: 'flex-end',
   },
-  quickRepliesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
+  userTimestamp: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  quickReplyChip: {
-    backgroundColor: '#0F1D3D',
+  botTimestamp: {
+    color: '#64748B',
+  },
+
+  // Shelter Card inside Bot Message
+  shelterCard: {
+    backgroundColor: '#071124',
     borderWidth: 1,
     borderColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
   },
-  quickReplyText: {
+  shelterCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shelterCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#38BDF8',
+    flex: 1,
+  },
+  shelterCardAddress: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 3,
+  },
+  shelterActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  shelterNavBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0284C7',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    gap: 4,
+  },
+  shelterNavBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  shelterCallBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F2347',
+    borderWidth: 1,
+    borderColor: '#06B6D4',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    gap: 4,
+  },
+  shelterCallBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#06B6D4',
+  },
+
+  // Emergency Action Button inside Bot Message
+  emergencyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 10,
+    gap: 8,
+  },
+  emergencyActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+
+  // Inline Quick Reply Chips under messages
+  inlineChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  inlineChip: {
+    backgroundColor: '#0B172E',
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  inlineChipText: {
     fontSize: 11,
     color: '#38BDF8',
     fontWeight: '600',
   },
-  typingIndicator: {
-    paddingVertical: 8,
+
+  // Typing Indicator
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F1A30',
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    borderRadius: 16,
     paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#06B6D4',
   },
   typingText: {
     fontSize: 12,
     color: '#94A3B8',
     fontStyle: 'italic',
   },
+
+  // 3. Quick-Action Suggestion Chips (Required 4 Prompts)
+  suggestionChipsContainer: {
+    backgroundColor: '#091024',
+    borderTopWidth: 1,
+    borderTopColor: '#16223D',
+    paddingVertical: 8,
+  },
+  suggestionChipsScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F1D3D',
+    borderWidth: 1,
+    borderColor: '#1E3A6E',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    gap: 6,
+  },
+  suggestionChipIcon: {
+    fontSize: 13,
+  },
+  suggestionChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#BAE6FD',
+  },
+
+  // Voice Listening Banner
+  voiceListeningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0C2147',
+    borderTopWidth: 1,
+    borderTopColor: '#0284C7',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    justifyContent: 'space-between',
+  },
+  voicePulseCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#0284C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceListeningText: {
+    fontSize: 12,
+    color: '#E0F2FE',
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  // 4. Input Bar
   inputContainer: {
     flexDirection: 'row',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#0B1329',
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
     alignItems: 'center',
     gap: 8,
   },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F1D3D',
+    borderWidth: 1,
+    borderColor: '#1E3A6E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
   textInput: {
     flex: 1,
     backgroundColor: '#060D1E',
     borderWidth: 1,
     borderColor: '#1E293B',
-    borderRadius: 24,
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
     color: '#F8FAFC',
     fontSize: 14,
   },
   sendButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#06B6D4',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
