@@ -435,9 +435,9 @@ test('Safe Routes — Multi-Modal Routing Profiles & Distance Calculations', () 
 });
 
 // ==============================================================================
-// TEST SUITE 8: Production Supabase Phone Auth & E.164 Mobile Validation
+// TEST SUITE 8: Emergency Mobile Contact — E.164 Normalization & Validation
 // ==============================================================================
-test('Secure Phone OTP — Normalization, Validation, Cooldown & Security', async () => {
+test('Emergency Mobile Contact — E.164 Normalization & Validation', async () => {
   // 1. Phone Normalization to E.164
   function normalizeToE164(countryCode, localNumber) {
     const cleanCode = (countryCode || '+91').trim().replace(/[^0-9+]/g, '');
@@ -467,34 +467,6 @@ test('Secure Phone OTP — Normalization, Validation, Cooldown & Security', asyn
   assert.equal(isValidIndianMobileNumber('6360123456'), true, 'Valid Indian mobile starting with 6');
   assert.equal(isValidIndianMobileNumber('1234567890'), false, 'Invalid Indian mobile starting with 1');
   assert.equal(isValidIndianMobileNumber('98765'), false, 'Invalid Indian mobile with insufficient digits');
-
-  // 3. 6-Digit OTP Token Constraint
-  function validateOtpToken(token) {
-    const clean = String(token).trim().replace(/[^0-9]/g, '');
-    return clean.length === 6;
-  }
-
-  assert.equal(validateOtpToken('123456'), true, 'Valid 6-digit token');
-  assert.equal(validateOtpToken('12345'), false, 'Rejects 5-digit token');
-  assert.equal(validateOtpToken('1234567'), false, 'Rejects 7-digit token');
-  assert.equal(validateOtpToken('abcdef'), false, 'Rejects non-numeric token');
-
-  // 4. Rate-Limiting & Cooldown Logic
-  const cooldownTimestamps = new Map();
-  function checkRateLimit(phone) {
-    const last = cooldownTimestamps.get(phone);
-    if (last && Date.now() - last < 60000) {
-      return { allowed: false, remainingSeconds: Math.ceil((60000 - (Date.now() - last)) / 1000) };
-    }
-    cooldownTimestamps.set(phone, Date.now());
-    return { allowed: true, remainingSeconds: 60 };
-  }
-
-  const req1 = checkRateLimit('+919945744948');
-  assert.equal(req1.allowed, true, 'First request allowed');
-  const req2 = checkRateLimit('+919945744948');
-  assert.equal(req2.allowed, false, 'Rapid second request prevented by cooldown');
-  assert.ok(req2.remainingSeconds > 0, 'Returns remaining cooldown seconds');
 });
 
 // ==============================================================================
@@ -529,118 +501,6 @@ test('WhatsApp Notification Gateway — Status Honesty & Alert Formatting', () =
   assert.equal(mapGatewayStatus(false, 'connected'), 'unreachable', 'Offline gateway must report unreachable');
   assert.equal(mapGatewayStatus(true, 'connected'), 'connected');
   assert.equal(mapGatewayStatus(true, 'qr_ready'), 'qr_ready');
-});
-
-// ==============================================================================
-// TEST SUITE 10: Mandatory Phone Verification Banner & State Guardrails
-// ==============================================================================
-test('Mandatory Phone Alert Banner — Visibility & Snooze Logic', () => {
-  function shouldDisplayBanner(user, isSnoozed) {
-    // If phone is verified with valid digits, never show banner
-    const isVerified = Boolean(
-      user?.is_phone_verified &&
-      user?.phone &&
-      user.phone.replace(/[^0-9]/g, '').length >= 8
-    );
-    if (isVerified) return false;
-    return true; // Shows banner (full or compact ribbon if snoozed)
-  }
-
-  const unverifiedUser = { id: 'u1', email: 'resident@heatshield.org', is_phone_verified: false, phone: '' };
-  const verifiedUser = { id: 'u2', email: 'verified@heatshield.org', is_phone_verified: true, phone: '+919876543210' };
-
-  assert.equal(shouldDisplayBanner(unverifiedUser, false), true, 'Unverified user must see phone prompt banner');
-  assert.equal(shouldDisplayBanner(verifiedUser, false), false, 'Verified user must never see phone prompt banner');
-});
-
-// ==============================================================================
-// TEST SUITE 11: Custom WhatsApp OTP Security & Anti-Brute-Force Verification
-// ==============================================================================
-test('WhatsApp OTP Security — Cryptographic Hashing, Anti-Brute-Force & Replay Prevention', () => {
-  const SALT = 'heatshield-test-salt';
-
-  function hashOtpNode(phone, otp, salt) {
-    return nodeCrypto.createHash('sha256').update(`${phone}:${otp}:${salt}`).digest('hex');
-  }
-
-  // 1. Verify Hash Consistency and Plaintext Secrecy
-  const phone = '+919945744948';
-  const otp = '789123';
-  const hashed = hashOtpNode(phone, otp, SALT);
-  assert.equal(typeof hashed, 'string');
-  assert.equal(hashed.length, 64, 'SHA-256 output must be 64-char hex string');
-  assert.notEqual(hashed, otp, 'Hashed OTP must never equal plaintext OTP');
-
-  // 2. Anti-Brute-Force State Machine Simulation
-  class MockOtpVerifier {
-    constructor(phone, otp, maxAttempts = 5, ttlMs = 300000) {
-      this.phone = phone;
-      this.otpHash = hashOtpNode(phone, otp, SALT);
-      this.attempts = 0;
-      this.maxAttempts = maxAttempts;
-      this.verified = false;
-      this.expiresAt = Date.now() + ttlMs;
-    }
-
-    verify(submittedOtp) {
-      if (this.verified) {
-        return { success: false, error: 'OTP already verified and cannot be reused' };
-      }
-      if (Date.now() > this.expiresAt) {
-        return { success: false, error: 'OTP expired' };
-      }
-      if (this.attempts >= this.maxAttempts) {
-        return { success: false, error: 'Maximum attempts exceeded' };
-      }
-
-      const submittedHash = hashOtpNode(this.phone, submittedOtp, SALT);
-      if (submittedHash !== this.otpHash) {
-        this.attempts += 1;
-        const remaining = this.maxAttempts - this.attempts;
-        return {
-          success: false,
-          error: remaining > 0 ? `Invalid code. ${remaining} attempts remaining` : 'Maximum attempts exceeded',
-          remaining
-        };
-      }
-
-      this.verified = true;
-      return { success: true };
-    }
-  }
-
-  // Test failed attempts increment up to max limit
-  const verifier = new MockOtpVerifier(phone, '654321', 5);
-  assert.equal(verifier.verify('111111').success, false);
-  assert.equal(verifier.attempts, 1);
-  assert.equal(verifier.verify('222222').success, false);
-  assert.equal(verifier.attempts, 2);
-  assert.equal(verifier.verify('333333').success, false);
-  assert.equal(verifier.verify('444444').success, false);
-  assert.equal(verifier.verify('555555').success, false);
-  assert.equal(verifier.attempts, 5);
-
-  // 6th attempt rejected due to max attempts reached
-  const lockedOut = verifier.verify('654321');
-  assert.equal(lockedOut.success, false);
-  assert.ok(lockedOut.error.includes('Maximum attempts exceeded'));
-
-  // Test successful verification
-  const successfulVerifier = new MockOtpVerifier(phone, '888999', 5);
-  const okResult = successfulVerifier.verify('888999');
-  assert.equal(okResult.success, true);
-  assert.equal(successfulVerifier.verified, true);
-
-  // Test token replay prevention (cannot be reused once verified)
-  const reuseResult = successfulVerifier.verify('888999');
-  assert.equal(reuseResult.success, false);
-  assert.ok(reuseResult.error.includes('cannot be reused'));
-
-  // Test expired token rejection
-  const expiredVerifier = new MockOtpVerifier(phone, '123456', 5, -1000); // expired 1s ago
-  const expiredResult = expiredVerifier.verify('123456');
-  assert.equal(expiredResult.success, false);
-  assert.ok(expiredResult.error.includes('expired'));
 });
 
 console.log('✅ ALL CRITICAL FLOW INTEGRATION TESTS PASSED!');

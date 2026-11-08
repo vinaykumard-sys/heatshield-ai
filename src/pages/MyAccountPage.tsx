@@ -34,7 +34,6 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocationTracker } from '../context/LocationContext';
 import { mockDb } from '../lib/mockDb';
-import { PhoneVerificationModal } from '../components/auth/PhoneVerificationModal';
 import { WhatsAppOptInCard } from '../components/notifications/WhatsAppOptInCard';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -137,8 +136,7 @@ export const MyAccountPage: React.FC = () => {
   const [quietStart, setQuietStart] = useState('22:00');
   const [quietEnd, setQuietEnd] = useState('06:00');
 
-  // Modals & Feedback
-  const [showPhoneVerifyModal, setShowPhoneVerifyModal] = useState(false);
+  // Feedback
   const [isSaved, setIsSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -237,12 +235,6 @@ export const MyAccountPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-28 px-3 sm:px-6">
-      {/* Phone OTP Verification Modal */}
-      <PhoneVerificationModal
-        isOpen={showPhoneVerifyModal}
-        onClose={() => setShowPhoneVerifyModal(false)}
-      />
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5EDF5]">
         <div>
@@ -353,36 +345,19 @@ export const MyAccountPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-[#F6F9FD] border border-[#E5EDF5] flex items-center justify-between gap-3 shadow-2xs transition-all hover:border-blue-100">
             <div className="space-y-0.5 min-w-0">
               <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-                Emergency Mobile SMS
+                Emergency Mobile Phone
               </span>
               <p className="text-xs font-bold text-[#0F172A] truncate">
                 {user?.phone ? user.phone : 'No phone linked'}
               </p>
-              {user?.is_phone_verified ? (
-                <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>SMS OTP Verified</span>
-                </span>
-              ) : (
-                <span className="text-[11px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Verification Recommended</span>
-                </span>
-              )}
+              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-1">
+                <span>Configured for urgent heatwave alerts</span>
+              </span>
             </div>
 
-            {user?.is_phone_verified ? (
-              <Badge variant="success" size="sm">Verified</Badge>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setShowPhoneVerifyModal(true)}
-                className="shrink-0 text-xs shadow-md shadow-blue-500/20"
-              >
-                Verify Phone
-              </Button>
-            )}
+            <Badge variant={user?.phone ? "success" : "neutral"} size="sm">
+              {user?.phone ? "Active" : "Not Set"}
+            </Badge>
           </div>
         </div>
 

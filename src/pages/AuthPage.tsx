@@ -21,8 +21,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { PhoneVerificationModal } from '../components/auth/PhoneVerificationModal';
-import { PhoneOtpAuthCard } from '../components/auth/PhoneOtpAuthCard';
 import { Button } from '../components/common/Button';
 import { ThermalGlobe3D } from '../components/3d/ThermalGlobe3D';
 
@@ -34,7 +32,6 @@ export const AuthPage: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>(() => {
     return location.pathname === '/register' ? 'signup' : 'login';
   });
-  const [authMethod, setAuthMethod] = useState<'phone_otp' | 'email'>('phone_otp');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +46,6 @@ export const AuthPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showPhoneVerifyModal, setShowPhoneVerifyModal] = useState(false);
 
   // Cinematic 1.5-second login success state
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -137,11 +133,9 @@ export const AuthPage: React.FC = () => {
         if (!res.success) {
           setErrorMsg(res.error || 'Registration failed.');
         } else if (res.requiresEmailConfirmation) {
-          setSuccessMsg(`Account created for ${email}! A confirmation link has been sent to your email. Please verify your email, then verify your mobile number.`);
-          setShowPhoneVerifyModal(true);
+          setSuccessMsg(`Account created for ${email}! A confirmation link has been sent to your email. Please check your inbox.`);
         } else {
-          setSuccessMsg('Resident account created successfully! Please verify your mobile number.');
-          setShowPhoneVerifyModal(true);
+          handleAuthSuccess();
         }
       } else if (mode === 'forgot') {
         const res = await resetPassword(email);
@@ -183,16 +177,6 @@ export const AuthPage: React.FC = () => {
     <div className="relative min-h-screen w-full bg-[#030712] overflow-x-hidden flex flex-col justify-between select-none">
       {/* ── 3D Full-Screen Thermal Climate Environment ─────────────── */}
       <ThermalGlobe3D isTransitioning={isTransitioning} />
-
-      {/* ── Phone OTP Verification Modal (Preserved) ───────────────── */}
-      <PhoneVerificationModal
-        isOpen={showPhoneVerifyModal}
-        required={true}
-        onClose={() => {
-          setShowPhoneVerifyModal(false);
-          handleAuthSuccess();
-        }}
-      />
 
       {/* ── Top Atmospheric Navigation Header ──────────────────────── */}
       <header className="relative z-20 w-full px-4 sm:px-8 py-5 flex items-center justify-between">
@@ -322,153 +306,99 @@ export const AuthPage: React.FC = () => {
             <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-between bg-white dark:bg-slate-900/95">
               <div className="max-w-md w-full mx-auto space-y-5">
                 
-                {/* Auth Method Selector Tabs */}
+                {/* Mode Selector Tabs (Sign In vs Create Account) */}
                 <div className="flex p-1 bg-slate-100 dark:bg-slate-800/70 rounded-2xl gap-1 border border-slate-200/80 dark:border-slate-700/60 shadow-inner">
                   <button
                     type="button"
                     onClick={() => {
-                      setAuthMethod('phone_otp');
+                      setMode('login');
                       setErrorMsg('');
                     }}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
-                      authMethod === 'phone_otp'
+                      mode === 'login'
                         ? 'bg-white dark:bg-slate-900 text-[#1E60F2] shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none dark:border dark:border-blue-500/30'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Phone className="w-4 h-4" />
-                    <span>Mobile Phone OTP</span>
+                    <Lock className="w-4 h-4" />
+                    <span>Sign In</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => {
-                      setAuthMethod('email');
+                      setMode('signup');
                       setErrorMsg('');
                     }}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
-                      authMethod === 'email'
+                      mode === 'signup'
                         ? 'bg-white dark:bg-slate-900 text-[#1E60F2] shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none dark:border dark:border-blue-500/30'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Mail className="w-4 h-4" />
-                    <span>Email & Password</span>
+                    <User className="w-4 h-4" />
+                    <span>Create Account</span>
                   </button>
                 </div>
 
-                {/* ── Method A: Mobile Phone OTP ─────────────────────── */}
-                {authMethod === 'phone_otp' ? (
-                  <div className="space-y-4">
-                    <PhoneOtpAuthCard
-                      redirectTo={from}
-                      onSuccess={handleAuthSuccess}
-                    />
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    {mode === 'login' ? 'Sign in to HeatShield' : mode === 'signup' ? 'Create Resident Account' : 'Reset Password'}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {mode === 'login' 
+                      ? 'Access real-time local heat risk, alerts, and emergency support.'
+                      : mode === 'signup'
+                      ? 'Register to receive localized heatwave advisories and hydration points.'
+                      : 'Enter your registered email address to receive password recovery instructions.'}
+                  </p>
+                </div>
 
-                    <div className="relative flex items-center justify-center pt-2">
-                      <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-                      <span className="bg-white dark:bg-slate-900 px-3 text-[11px] text-slate-500 font-medium uppercase tracking-wider">
-                        or continue with Google
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-                    >
-                      {isGoogleLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-[#1E60F2] border-t-transparent rounded-full animate-spin" />
-                          <span className="text-slate-500 dark:text-slate-400">Authenticating with Google...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                            <path
-                              fill="#4285F4"
-                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                              fill="#34A853"
-                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                              fill="#FBBC05"
-                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                            />
-                            <path
-                              fill="#EA4335"
-                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                            />
-                          </svg>
-                          <span>Sign in with Google</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  /* ── Method B: Email & Password ─────────────────────── */
-                  <>
-                    <div>
-                      <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                        {mode === 'login' ? 'Sign in to HeatShield' : mode === 'signup' ? 'Create Resident Account' : 'Reset Password'}
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {mode === 'login' 
-                          ? 'Access real-time local heat risk, alerts, and emergency support.'
-                          : mode === 'signup'
-                          ? 'Register to receive localized heatwave advisories and hydration points.'
-                          : 'Enter your registered email address to receive password recovery instructions.'}
-                      </p>
-                    </div>
-
-                    {/* Google Sign-In Quick Action */}
-                    <div className="space-y-3">
-                      <button
-                        type="button"
-                        onClick={handleGoogleSignIn}
-                        disabled={isSubmitting || isGoogleLoading}
-                        className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-                      >
-                        {isGoogleLoading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-[#1E60F2] border-t-transparent rounded-full animate-spin" />
-                            <span className="text-slate-500 dark:text-slate-400">Authenticating...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                              <path
-                                fill="#4285F4"
-                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                              />
-                              <path
-                                fill="#34A853"
-                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                              />
-                              <path
-                                fill="#FBBC05"
-                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                              />
-                              <path
-                                fill="#EA4335"
-                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                              />
-                            </svg>
-                            <span>Sign in with Google</span>
-                          </>
-                        )}
-                      </button>
-
-                      <div className="relative flex items-center justify-center">
-                        <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-                        <span className="bg-white dark:bg-slate-900 px-3 text-[11px] text-slate-500 font-medium uppercase tracking-wider">
-                          or continue with email
-                        </span>
+                {/* Google Sign-In Quick Action */}
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isSubmitting || isGoogleLoading}
+                    className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+                  >
+                    {isGoogleLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-[#1E60F2] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-slate-500 dark:text-slate-400">Authenticating...</span>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>Sign in with Google</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="relative flex items-center justify-center">
+                    <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+                    <span className="bg-white dark:bg-slate-900 px-3 text-[11px] text-slate-500 font-medium uppercase tracking-wider">
+                      or continue with email
+                    </span>
+                  </div>
+                </div>
 
                     {/* Status & Error Alerts */}
                     {errorMsg && (
@@ -663,8 +593,6 @@ export const AuthPage: React.FC = () => {
                         </p>
                       )}
                     </div>
-                  </>
-                )}
               </div>
             </div>
 

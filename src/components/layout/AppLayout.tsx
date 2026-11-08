@@ -14,8 +14,6 @@ import { AppHeader } from './AppHeader';
 import { EmergencyModal } from '../common/EmergencyModal';
 import { NotificationDrawer } from '../notifications/NotificationDrawer';
 import { FloatingAssistantWidget } from '../assistant/FloatingAssistantWidget';
-import { CompulsoryPhoneAlertBanner } from '../notifications/CompulsoryPhoneAlertBanner';
-import { PhoneVerificationModal } from '../auth/PhoneVerificationModal';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,7 +22,6 @@ export interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
-  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const mobilePillId = useId();
@@ -103,11 +100,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <AppHeader
             onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
             onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-          />
-
-          {/* COMPULSORY RESIDENT PHONE VERIFICATION BANNER */}
-          <CompulsoryPhoneAlertBanner 
-            onOpenPhoneModal={() => setIsPhoneModalOpen(true)} 
           />
 
           {/* PAGE MAIN CONTENT SCROLL CONTAINER WITH SILKY TRANSITIONS */}
@@ -195,10 +187,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <EmergencyModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
-      />
-      <PhoneVerificationModal
-        isOpen={isPhoneModalOpen}
-        onClose={() => setIsPhoneModalOpen(false)}
       />
 
       {/* Persistent AI Assistant Widget */}

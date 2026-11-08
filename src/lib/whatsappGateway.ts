@@ -1,8 +1,8 @@
 /**
  * HEATSHIELD AI — WhatsApp Gateway Client
  * ----------------------------------------
- * Talks to the Baileys-powered WhatsApp gateway and OTP service.
- * Supports server-side cryptographic OTP, user opt-in, daily briefings,
+ * Talks to the Baileys-powered WhatsApp notification gateway.
+ * Supports emergency alerts, user notification opt-in, daily briefings,
  * and live delivery logs.
  */
 
@@ -28,7 +28,7 @@ export interface WAContact {
 }
 
 export interface WADeliveryLog {
-  type: 'single' | 'broadcast' | 'otp' | 'daily_briefing';
+  type: 'single' | 'broadcast' | 'daily_briefing';
   idempotencyKey?: string;
   to?: string;
   locality?: string;
@@ -50,24 +50,6 @@ export interface GatewayHealthResult {
   status: WAStatus;
   connected: boolean;
   message: string;
-}
-
-export interface OtpRequestResponse {
-  success: boolean;
-  message: string;
-  channel?: 'whatsapp' | 'dev_simulated';
-  gatewayConnected?: boolean;
-  cooldownSeconds?: number;
-  devOtp?: string;
-}
-
-export interface OtpVerifyResponse {
-  success: boolean;
-  message: string;
-  verifiedAt?: string;
-  token?: string;
-  phone?: string;
-  contact?: WAContact;
 }
 
 export interface WhatsAppOptInPayload {
@@ -136,59 +118,6 @@ export async function fetchStatus(): Promise<WAStatus> {
     return data.status as WAStatus;
   } catch {
     return 'unreachable';
-  }
-}
-
-// ─── Real Server-Side OTP Verification ────────────────────────────────────────
-
-/**
- * Calls backend POST /api/otp/request to issue a real cryptographically secure 6-digit OTP
- */
-export async function requestServerOtp(countryCode: string, phone: string): Promise<OtpRequestResponse> {
-  try {
-    const res = await fetch(`${GATEWAY_URL}/api/otp/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ countryCode, phone }),
-    });
-    const data = await res.json();
-    return data;
-  } catch (err: any) {
-    return {
-      success: false,
-      message: 'Could not connect to HeatShield WhatsApp OTP Service. Ensure gateway is running on ' + GATEWAY_URL
-    };
-  }
-}
-
-/**
- * Calls backend POST /api/otp/verify to validate 6-digit code with anti-brute-force controls
- */
-export async function verifyServerOtp(
-  countryCode: string,
-  phone: string,
-  otp: string,
-  options?: { userId?: string; preferences?: any }
-): Promise<OtpVerifyResponse> {
-  try {
-    const res = await fetch(`${GATEWAY_URL}/api/otp/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        countryCode,
-        phone,
-        otp,
-        userId: options?.userId,
-        preferences: options?.preferences
-      }),
-    });
-    const data = await res.json();
-    return data;
-  } catch (err: any) {
-    return {
-      success: false,
-      message: 'Could not connect to HeatShield OTP verification service.'
-    };
   }
 }
 

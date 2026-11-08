@@ -3,8 +3,6 @@ import { UserProfile, UserRole } from '../types';
 import { INITIAL_USERS } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-import { requestPhoneOtp, verifyPhoneOtp, PhoneAuthRequestResult, PhoneAuthVerifyResult } from '../lib/phoneAuthService';
-
 interface AuthContextType {
   user: UserProfile | null;
   role: UserRole;
@@ -15,8 +13,6 @@ interface AuthContextType {
   needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  signInWithPhone: (phone: string, countryCode?: string) => Promise<PhoneAuthRequestResult>;
-  verifyPhone: (phone: string, token: string, countryCode?: string) => Promise<PhoneAuthVerifyResult>;
   signup: (
     email: string, 
     password: string, 
@@ -168,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // Default registered resident session (unverified phone until OTP completed)
+    // Default registered resident session
     const residentUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
@@ -325,18 +321,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const signInWithPhone = async (phone: string, countryCode: string = '+91'): Promise<PhoneAuthRequestResult> => {
-    return requestPhoneOtp(countryCode, phone);
-  };
-
-  const verifyPhone = async (phone: string, token: string, countryCode: string = '+91'): Promise<PhoneAuthVerifyResult> => {
-    const res = await verifyPhoneOtp(countryCode, phone, token);
-    if (res.success && res.user) {
-      await handleSessionUser(res.user);
-    }
-    return res;
-  };
-
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
@@ -348,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = role === 'admin';
   const isVolunteer = role === 'volunteer' || role === 'admin';
   const isResident = role === 'resident';
-  const needsPhoneVerification = Boolean(user && !user.is_phone_verified && !isAdmin);
+  const needsPhoneVerification = false;
 
   return (
     <AuthContext.Provider
@@ -362,8 +346,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         needsPhoneVerification,
         login,
         loginWithGoogle,
-        signInWithPhone,
-        verifyPhone,
         signup,
         resetPassword,
         markPhoneVerified,
