@@ -40,3 +40,9 @@ whatsapp-service/.env
 
 # Supabase temporary files
 supabase/.temp/
+
+# Android Build Toolchain & Intermediate Objects
+tools/
+build/
+*.keystore
+*.idsig

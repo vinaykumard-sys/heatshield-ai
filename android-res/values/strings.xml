@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HeatShield AI</string>
+    <string name="app_description">Smart Urban Heatwave Risk Assessment &amp; Resilience Platform</string>
+</resources>
