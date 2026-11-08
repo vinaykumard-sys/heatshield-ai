@@ -16,6 +16,54 @@ const CURATED_INDIAN_PLACES: GeocodedPlace[] = [
     type: 'locality'
   },
   {
+    id: 'bengaluru-yeshwanthnagar',
+    displayName: 'Yeshwanthnagar, Bengaluru, Karnataka (560022)',
+    shortName: 'Yeshwanthnagar',
+    subArea: 'West Bengaluru (Yeshwanthpur Sub-locality)',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560022',
+    latitude: 13.0280,
+    longitude: 77.5400,
+    type: 'locality'
+  },
+  {
+    id: 'bengaluru-yeshwanthpur',
+    displayName: 'Yeshwanthpur, Bengaluru, Karnataka (560022)',
+    shortName: 'Yeshwanthpur',
+    subArea: 'Yeshwanthpur Junction & APMC Market',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560022',
+    latitude: 13.0285,
+    longitude: 77.5450,
+    type: 'locality'
+  },
+  {
+    id: 'bengaluru-mg-road',
+    displayName: 'MG Road, Bengaluru, Karnataka (560001)',
+    shortName: 'MG Road Bengaluru',
+    subArea: 'Central Business District & Metro Station',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560001',
+    latitude: 12.9756,
+    longitude: 77.6066,
+    type: 'locality'
+  },
+  {
+    id: 'bengaluru-airport-blr',
+    displayName: 'Kempegowda International Airport (BLR), Bengaluru, Karnataka (560300)',
+    shortName: 'Kempegowda International Airport',
+    subArea: 'Devanahalli Airport Terminal Complex',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560300',
+    latitude: 13.1986,
+    longitude: 77.7066,
+    type: 'landmark'
+  },
+  {
     id: 'bengaluru-chokkanahalli',
     displayName: 'Chokkanahalli, Thanisandra Main Rd, Bengaluru (560064)',
     shortName: 'Chokkanahalli',

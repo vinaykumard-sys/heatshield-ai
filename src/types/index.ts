@@ -741,6 +741,28 @@ export interface RouteWaypoint {
   type: 'start' | 'end' | 'shade_canopy' | 'cooling_centre' | 'water_atm';
 }
 
+export interface RouteStep {
+  instruction: string;
+  distance_meters: number;
+  duration_seconds: number;
+  street_name?: string;
+  maneuver_type?: string;
+  maneuver_modifier?: string;
+  coordinates?: [number, number];
+}
+
+export interface RouteCheckpoint {
+  title: string;
+  desc: string;
+  type: 'start' | 'shade' | 'water' | 'shelter' | 'end';
+  coordinates?: [number, number];
+  heat_risk?: 'low' | 'moderate' | 'high' | 'critical';
+  temperature?: number;
+  reason?: string;
+  nearby_respite?: string;
+  distance_from_prev?: string;
+}
+
 export interface HeatSafeRoute {
   id: string;
   route_type: 'shortest' | 'low_heat_exposure' | 'respite_optimized';
@@ -756,12 +778,10 @@ export interface HeatSafeRoute {
   warnings?: string[];
   avoids_high_risk?: boolean;
   cooling_point_nearby?: boolean;
-  checkpoints?: Array<{
-    title: string;
-    desc: string;
-    type: 'start' | 'shade' | 'water' | 'shelter' | 'end';
-    coordinates?: [number, number];
-  }>;
+  formatted_distance?: string;
+  formatted_duration?: string;
+  steps?: RouteStep[];
+  checkpoints?: RouteCheckpoint[];
 }
 
 // --- PART 9: FAMILY SAFETY DASHBOARD ---

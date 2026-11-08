@@ -389,9 +389,10 @@ test('AI Assistant — Contextual Heat Intent & Medical Triage', () => {
 });
 
 // ==============================================================================
-// TEST SUITE 7: Safe Routes — OSRM Geometry & Multi-Modal Travel Modes
+// TEST SUITE 7: Safe Routes — Real OSRM Geometry, Multi-Modal & Sanity Checks
 // ==============================================================================
-test('Safe Routes — Multi-Modal Routing Profiles & Distance Calculations', () => {
+test('Safe Routes — Real OSRM Road Geometry, Multi-Modal Speed & Sanity Checks', () => {
+  // 1. Haversine Straight-Line Distance Calculation
   function getDistanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -406,32 +407,276 @@ test('Safe Routes — Multi-Modal Routing Profiles & Distance Calculations', () 
     return R * c;
   }
 
-  function calculateDurationMinutes(distanceKm, mode = 'walk') {
-    if (mode === 'cycle') return Math.max(3, Math.round(distanceKm * 3.8));
-    if (mode === 'drive') return Math.max(2, Math.round(distanceKm * 2.1));
-    return Math.max(4, Math.round(distanceKm * 13));
+  // 2. Real Distance & Duration Formatters
+  function formatRouteDistance(meters) {
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    }
+    const km = meters / 1000;
+    return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`;
   }
 
-  function getOsrmProfile(travelMode) {
-    if (travelMode === 'cycle') return 'bicycle';
-    if (travelMode === 'drive') return 'driving';
-    return 'foot';
+  function formatRouteDuration(seconds) {
+    const totalMinutes = Math.round(seconds / 60);
+    if (totalMinutes < 1) return '< 1 min';
+    if (totalMinutes < 60) return `${totalMinutes} min`;
+    const hours = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+    return remainingMinutes > 0 ? `${hours} hr ${remainingMinutes} min` : `${hours} hr`;
   }
 
-  // Hebbal to Yelahanka coordinates
-  const dist = getDistanceKm(13.0358, 77.5970, 13.1025, 77.5980);
-  assert.ok(dist >= 7.0 && dist <= 8.5, `Haversine distance expected ~7.4 km, got ${dist.toFixed(2)}`);
+  // 3. Realistic Speed Calculation per Travel Mode
+  function calculateRealisticDurationSeconds(distanceMeters, mode = 'walk', osrmDriveSeconds) {
+    if (mode === 'drive' && osrmDriveSeconds && osrmDriveSeconds > 0) {
+      return Math.round(osrmDriveSeconds);
+    }
+    if (mode === 'cycle') {
+      // City cycling: average 14.5 km/h (~4.02 m/s) with traffic lights
+      return Math.max(180, Math.round(distanceMeters / 4.02));
+    }
+    if (mode === 'drive') {
+      // City driving average ~32 km/h (~8.9 m/s)
+      return Math.max(120, Math.round(distanceMeters / 8.88));
+    }
+    // Walking: pedestrian average 4.8 km/h (~1.33 m/s)
+    return Math.max(240, Math.round(distanceMeters / 1.33));
+  }
 
-  // Multi-modal travel duration validation
-  const walkDuration = calculateDurationMinutes(dist, 'walk');
-  const cycleDuration = calculateDurationMinutes(dist, 'cycle');
-  const driveDuration = calculateDurationMinutes(dist, 'drive');
+  // 4. Turn-by-Turn Instruction Generator
+  function formatTurnInstruction(step, destName) {
+    const type = step.maneuver?.type || 'turn';
+    const modifier = step.maneuver?.modifier || '';
+    const roadName = step.name ? `on ${step.name}` : 'on the road';
+    const ontoRoad = step.name ? `onto ${step.name}` : '';
 
-  assert.ok(walkDuration > cycleDuration, 'Walking must take longer than cycling');
-  assert.ok(cycleDuration > driveDuration, 'Cycling must take longer than driving');
-  assert.equal(getOsrmProfile('walk'), 'foot', 'Walk mode must use OSRM foot profile');
-  assert.equal(getOsrmProfile('cycle'), 'bicycle', 'Cycle mode must use OSRM bicycle profile');
-  assert.equal(getOsrmProfile('drive'), 'driving', 'Drive mode must use OSRM driving profile');
+    if (type === 'depart') {
+      return `Head ${modifier ? modifier : 'forward'} ${roadName}`;
+    }
+    if (type === 'arrive') {
+      return `Arrive at destination (${destName})`;
+    }
+    if (type === 'turn') {
+      return `Turn ${modifier || 'ahead'} ${ontoRoad}`.trim();
+    }
+    if (type === 'end of road') {
+      return `Turn ${modifier || 'ahead'} at the end of the road ${ontoRoad}`.trim();
+    }
+    if (type === 'fork') {
+      return `Keep ${modifier || 'straight'} at the fork ${ontoRoad}`.trim();
+    }
+    if (type === 'roundabout' || type === 'rotary') {
+      return `Enter roundabout and take exit ${ontoRoad}`.trim();
+    }
+    if (type === 'merge') {
+      return `Merge ${modifier} ${ontoRoad}`.trim();
+    }
+    if (type === 'on ramp' || type === 'off ramp') {
+      return `Take ramp ${modifier} ${ontoRoad}`.trim();
+    }
+    if (type === 'continue' || type === 'new name') {
+      return `Continue ${ontoRoad || roadName}`.trim();
+    }
+    return `Proceed ${modifier} ${ontoRoad || roadName}`.trim();
+  }
+
+  // 5. OSRM Road Geometry Parsing (GeoJSON LineString -> Leaflet [lat, lon])
+  function parseOsrmGeometry(rawGeometry) {
+    if (!rawGeometry || rawGeometry.type !== 'LineString' || !Array.isArray(rawGeometry.coordinates)) {
+      throw new Error('Invalid OSRM geometry format: expected GeoJSON LineString');
+    }
+    const rawCoords = rawGeometry.coordinates;
+    if (rawCoords.length < 2) {
+      throw new Error('OSRM geometry must contain at least 2 coordinate points');
+    }
+    // Convert GeoJSON [lon, lat] -> Leaflet/HeatShield [lat, lon]
+    return rawCoords.map(([lon, lat]) => {
+      if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        throw new Error(`Coordinate out of bounds: [${lat}, ${lon}]`);
+      }
+      return [Number(lat.toFixed(6)), Number(lon.toFixed(6))];
+    });
+  }
+
+  // 6. Sanity Validation (Intra-City Threshold & Bounds)
+  function validateRouteSanity(startCoords, endCoords, maxThresholdKm = 150) {
+    const [lat1, lon1] = startCoords;
+    const [lat2, lon2] = endCoords;
+    const isValidCoord = (lat, lon) =>
+      typeof lat === 'number' && typeof lon === 'number' &&
+      !isNaN(lat) && !isNaN(lon) &&
+      lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+
+    if (!isValidCoord(lat1, lon1) || !isValidCoord(lat2, lon2)) {
+      throw new Error('Invalid geographic coordinates provided for route calculation');
+    }
+    const straightLineDistKm = getDistanceKm(lat1, lon1, lat2, lon2);
+    if (straightLineDistKm > maxThresholdKm) {
+      throw new Error(
+        `Selected locations are ${Math.round(straightLineDistKm)} km apart, exceeding local urban navigation limits. Please choose points within the metropolitan area.`
+      );
+    }
+    return { valid: true, distanceKm: straightLineDistKm };
+  }
+
+  // ============================================================================
+  // SUB-TEST A: Real OSRM Road Geometry Parsing (GeoJSON LineString Coordinates)
+  // ============================================================================
+  const mockOsrmGeoJson = {
+    type: 'LineString',
+    coordinates: [
+      [77.597012, 13.035797],
+      [77.597024, 13.035842],
+      [77.596271, 13.036039],
+      [77.540074, 13.028644],
+      [77.539798, 13.028075]
+    ]
+  };
+
+  const parsedLeafletCoords = parseOsrmGeometry(mockOsrmGeoJson);
+  assert.equal(parsedLeafletCoords.length, 5, 'Must parse exactly 5 waypoints');
+  assert.deepEqual(parsedLeafletCoords[0], [13.035797, 77.597012], 'Inverts [lon, lat] to [lat, lon] at start');
+  assert.deepEqual(parsedLeafletCoords[4], [13.028075, 77.539798], 'Inverts [lon, lat] to [lat, lon] at destination');
+
+  // Must reject invalid geometry formats
+  assert.throws(() => parseOsrmGeometry(null), /Invalid OSRM geometry/);
+  assert.throws(() => parseOsrmGeometry({ type: 'Point', coordinates: [77.5, 13.0] }), /Invalid OSRM geometry/);
+  assert.throws(() => parseOsrmGeometry({ type: 'LineString', coordinates: [[77.5, 13.0]] }), /at least 2 coordinate points/);
+  assert.throws(() => parseOsrmGeometry({ type: 'LineString', coordinates: [[200.0, 13.0], [77.5, 13.0]] }), /out of bounds/);
+
+  // ============================================================================
+  // SUB-TEST B: Real Distance Formatting (Meters vs Kilometers)
+  // ============================================================================
+  assert.equal(formatRouteDistance(350), '350 m', 'Sub-kilometer formatted in meters');
+  assert.equal(formatRouteDistance(850.4), '850 m', 'Rounds meters cleanly');
+  assert.equal(formatRouteDistance(999), '999 m', '999 meters stays in meters');
+  assert.equal(formatRouteDistance(1000), '1.0 km', '1000 meters formats as 1.0 km');
+  assert.equal(formatRouteDistance(3400), '3.4 km', 'Under 10 km includes one decimal place');
+  assert.equal(formatRouteDistance(9390.4), '9.4 km', 'Hebbal → Yeshwanthnagar distance formatted to 9.4 km');
+  assert.equal(formatRouteDistance(9560), '9.6 km', 'Hebbal → MG Road distance formatted to 9.6 km');
+  assert.equal(formatRouteDistance(14200), '14 km', 'Over 10 km formats as integer km');
+  assert.equal(formatRouteDistance(29085.8), '29 km', 'Hebbal → Kempegowda Airport distance formatted to 29 km');
+
+  // ============================================================================
+  // SUB-TEST C: Duration Formatting (Seconds to Minutes & Hours)
+  // ============================================================================
+  assert.equal(formatRouteDuration(25), '< 1 min', 'Under 1 minute formatted cleanly');
+  assert.equal(formatRouteDuration(748), '12 min', '748s formatted as 12 min (Hebbal → Yeshwanthnagar drive)');
+  assert.equal(formatRouteDuration(1865), '31 min', '1865s formatted as 31 min (Hebbal → Airport drive)');
+  assert.equal(formatRouteDuration(2700), '45 min', '45 min formatted without hours');
+  assert.equal(formatRouteDuration(3600), '1 hr', 'Exactly 1 hour formatted without remaining 0 min');
+  assert.equal(formatRouteDuration(4500), '1 hr 15 min', '75 min formatted as 1 hr 15 min');
+  assert.equal(formatRouteDuration(7200), '2 hr', 'Exactly 2 hours formatted without 0 min');
+  assert.equal(formatRouteDuration(7500), '2 hr 5 min', '125 min formatted as 2 hr 5 min (walking 10km)');
+
+  // ============================================================================
+  // SUB-TEST D: Realistic Speed Calculation per Travel Mode
+  // ============================================================================
+  const testDistMeters = 9390; // ~9.4 km
+  const walkSec = calculateRealisticDurationSeconds(testDistMeters, 'walk');
+  const cycleSec = calculateRealisticDurationSeconds(testDistMeters, 'cycle');
+  const driveFallbackSec = calculateRealisticDurationSeconds(testDistMeters, 'drive');
+  const driveOsrmSec = calculateRealisticDurationSeconds(testDistMeters, 'drive', 748);
+
+  // Speed checks: Walking ~4.8 km/h (1.33 m/s) -> ~7060s (~118 min)
+  assert.ok(walkSec >= 7000 && walkSec <= 7100, `Walk duration expected ~7060s, got ${walkSec}`);
+  // Cycling ~14.5 km/h (4.02 m/s) -> ~2336s (~39 min)
+  assert.ok(cycleSec >= 2300 && cycleSec <= 2400, `Cycle duration expected ~2336s, got ${cycleSec}`);
+  // Driving OSRM exact value used when available
+  assert.equal(driveOsrmSec, 748, 'Drive duration must preserve OSRM engine timing');
+  // Driving fallback ~32 km/h (8.88 m/s) -> ~1057s (~18 min)
+  assert.ok(driveFallbackSec >= 1000 && driveFallbackSec <= 1100, `Drive fallback expected ~1057s, got ${driveFallbackSec}`);
+
+  // Ordering check: walk > cycle > drive
+  assert.ok(walkSec > cycleSec, 'Walking must take longer than cycling');
+  assert.ok(cycleSec > driveOsrmSec, 'Cycling must take longer than driving');
+
+  // Minimum floor bounds for short trips (e.g. 50 meters)
+  assert.equal(calculateRealisticDurationSeconds(50, 'walk'), 240, 'Walk minimum floor 240s (4 min)');
+  assert.equal(calculateRealisticDurationSeconds(50, 'cycle'), 180, 'Cycle minimum floor 180s (3 min)');
+  assert.equal(calculateRealisticDurationSeconds(50, 'drive'), 120, 'Drive minimum floor 120s (2 min)');
+
+  // ============================================================================
+  // SUB-TEST E: Turn-by-Turn Instruction Generator Formatting
+  // ============================================================================
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'depart', modifier: '' }, name: 'SS Ashram Road' }, 'Yeshwanthnagar'),
+    'Head forward on SS Ashram Road',
+    'Depart instruction with road name'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'depart', modifier: 'north' }, name: '' }, 'Destination'),
+    'Head north on the road',
+    'Depart instruction fallback to generic road'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'turn', modifier: 'right' }, name: 'Bellary Road' }, 'Airport'),
+    'Turn right onto Bellary Road',
+    'Right turn instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'end of road', modifier: 'left' }, name: 'Outer Ring Road' }, 'Airport'),
+    'Turn left at the end of the road onto Outer Ring Road',
+    'End of road T-junction instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'fork', modifier: 'slight right' }, name: 'Kempegowda Int Airport Road' }, 'Airport'),
+    'Keep slight right at the fork onto Kempegowda Int Airport Road',
+    'Highway fork instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'roundabout' }, name: 'Terminal 1 Approach' }, 'Airport'),
+    'Enter roundabout and take exit onto Terminal 1 Approach',
+    'Roundabout maneuver instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'merge', modifier: 'left' }, name: 'NH 44' }, 'MG Road'),
+    'Merge left onto NH 44',
+    'Expressway merge instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'on ramp', modifier: 'slight right' }, name: 'Hebbal Elevated Flyover' }, 'MG Road'),
+    'Take ramp slight right onto Hebbal Elevated Flyover',
+    'Ramp instruction'
+  );
+  assert.equal(
+    formatTurnInstruction({ maneuver: { type: 'arrive' } }, 'Yeshwanthnagar'),
+    'Arrive at destination (Yeshwanthnagar)',
+    'Destination arrival instruction'
+  );
+
+  // ============================================================================
+  // SUB-TEST F: Sanity Validation (Intra-City Threshold & Straight-Line Bounds)
+  // ============================================================================
+  const hebbalCoords = [13.0358, 77.5970];
+  const yeshwanthnagarCoords = [13.0280, 77.5400];
+  const airportCoords = [13.1986, 77.7066];
+  const mgRoadCoords = [12.9756, 77.6066];
+
+  // Route 1: Hebbal → Yeshwanthnagar (~6.23 km straight line)
+  const route1Sanity = validateRouteSanity(hebbalCoords, yeshwanthnagarCoords);
+  assert.ok(route1Sanity.valid, 'Hebbal → Yeshwanthnagar passes intra-city threshold');
+  assert.ok(route1Sanity.distanceKm >= 6.0 && route1Sanity.distanceKm <= 6.5, `Straight-line dist ~6.2 km, got ${route1Sanity.distanceKm.toFixed(2)}`);
+
+  // Route 2: Hebbal → Kempegowda International Airport (~21.46 km straight line)
+  const route2Sanity = validateRouteSanity(hebbalCoords, airportCoords);
+  assert.ok(route2Sanity.valid, 'Hebbal → Airport passes intra-city threshold');
+  assert.ok(route2Sanity.distanceKm >= 21.0 && route2Sanity.distanceKm <= 22.0, `Straight-line dist ~21.5 km, got ${route2Sanity.distanceKm.toFixed(2)}`);
+
+  // Route 3: Hebbal → MG Road Bengaluru (~6.76 km straight line)
+  const route3Sanity = validateRouteSanity(hebbalCoords, mgRoadCoords);
+  assert.ok(route3Sanity.valid, 'Hebbal → MG Road passes intra-city threshold');
+  assert.ok(route3Sanity.distanceKm >= 6.5 && route3Sanity.distanceKm <= 7.0, `Straight-line dist ~6.8 km, got ${route3Sanity.distanceKm.toFixed(2)}`);
+
+  // Sanity check failure: Inter-city trip (Bengaluru to Mumbai, ~840 km straight-line)
+  const mumbaiCoords = [19.0760, 72.8777];
+  assert.throws(
+    () => validateRouteSanity(hebbalCoords, mumbaiCoords),
+    /exceeding local urban navigation limits/
+  );
+
+  // Sanity check failure: Out of bounds / invalid coordinates
+  assert.throws(() => validateRouteSanity([150.0, 77.5970], yeshwanthnagarCoords), /Invalid geographic coordinates/);
+  assert.throws(() => validateRouteSanity(hebbalCoords, [NaN, 77.5400]), /Invalid geographic coordinates/);
 });
 
 // ==============================================================================

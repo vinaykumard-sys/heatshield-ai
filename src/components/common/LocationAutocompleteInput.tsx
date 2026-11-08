@@ -131,8 +131,9 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
       setHighlightedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
-        handleSelectSuggestion(suggestions[highlightedIndex]);
+      const targetIndex = highlightedIndex >= 0 ? highlightedIndex : 0;
+      if (suggestions[targetIndex]) {
+        handleSelectSuggestion(suggestions[targetIndex]);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);

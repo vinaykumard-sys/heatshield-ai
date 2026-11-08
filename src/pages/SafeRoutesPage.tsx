@@ -9,6 +9,13 @@ import {
   Trees, 
   AlertTriangle,
   ArrowRight,
+  ArrowUp,
+  ArrowUpLeft,
+  ArrowUpRight,
+  CornerUpLeft,
+  CornerUpRight,
+  RotateCcw,
+  RotateCw,
   ShieldCheck,
   Footprints,
   Bike,
@@ -25,11 +32,19 @@ import {
   Loader2,
   ArrowLeftRight,
   X,
-  Box
+  Box,
+  RefreshCw,
+  Milestone,
+  ListOrdered
 } from 'lucide-react';
 import { RouteScene3D } from '../components/3d/RouteScene3D';
-import { HeatSafeRoute, GeocodedPlace } from '../types';
-import { fetchHeatSafeRoutes, calculateHeatSafeRoutes } from '../lib/safeRoutingService';
+import { HeatSafeRoute, GeocodedPlace, RouteStep, RouteCheckpoint } from '../types';
+import { 
+  fetchHeatSafeRoutes, 
+  formatRouteDistance, 
+  formatRouteDuration,
+  getDistanceKm 
+} from '../lib/safeRoutingService';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { useLocationTracker } from '../context/LocationContext';
 import { Card } from '../components/common/Card';
@@ -50,37 +65,21 @@ export const SafeRoutesPage: React.FC = () => {
   const [endCoords, setEndCoords] = useState<[number, number]>([13.1025, 77.5980]);
   const [travelMode, setTravelMode] = useState<'walk' | 'cycle' | 'drive'>('walk');
 
-  // Route Data State
-  const [routes, setRoutes] = useState<HeatSafeRoute[]>(() => 
-    calculateHeatSafeRoutes({
-      startPlace: 'Hebbal Flyover',
-      endPlace: 'Yelahanka Old Town',
-      startCoords: [13.0358, 77.5970],
-      endCoords: [13.1025, 77.5980],
-      travelMode: 'walk'
-    })
-  );
-
-  const [selectedRouteId, setSelectedRouteId] = useState<string>('route-canopy-init');
-  const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
+  // Real Road Route Data State (Never static/fake splines)
+  const [routes, setRoutes] = useState<HeatSafeRoute[]>([]);
+  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(true);
   const [routeError, setRouteError] = useState<string | null>(null);
 
   // UI Panel & View State
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState(false);
+  const [showDirections, setShowDirections] = useState(true);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'overview' | 'directions' | 'checkpoints'>('overview');
   const [mapStyle, setMapStyle] = useState<'carto' | 'osm'>('carto');
   const [showStopsLayer, setShowStopsLayer] = useState(true);
-
-  // Invalidate Leaflet map size when switching back to 2D
-  useEffect(() => {
-    if (viewMode === '2d' && mapInstanceRef.current) {
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 120);
-    }
-  }, [viewMode]);
 
   // Live Navigation Simulation State
   const [isNavigating, setIsNavigating] = useState(false);
@@ -96,7 +95,7 @@ export const SafeRoutesPage: React.FC = () => {
   const navIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
 
-  // Presets
+  // Presets for Quick Testing
   const presets = [
     { start: 'Hebbal Flyover', end: 'Yelahanka Old Town', s: [13.0358, 77.5970] as [number, number], e: [13.1025, 77.5980] as [number, number] },
     { start: 'Indiranagar 100ft Rd', end: 'Shivaji Nagar Market', s: [12.9784, 77.6408] as [number, number], e: [12.9860, 77.6035] as [number, number] },
@@ -104,7 +103,7 @@ export const SafeRoutesPage: React.FC = () => {
     { start: 'Connaught Place', end: 'Karol Bagh Market', s: [28.6315, 77.2167] as [number, number], e: [28.6515, 77.1906] as [number, number] }
   ];
 
-  // Helper to re-calculate routes asynchronously via OSRM
+  // Primary calculation function connecting directly to real road routing via OSRM
   const calculateRoutes = useCallback(async (
     sPlace: string,
     ePlace: string,
@@ -129,26 +128,33 @@ export const SafeRoutesPage: React.FC = () => {
         // Default to coolest / canopy route (Option B) if available, else first
         const bestRoute = fetchedRoutes.find(r => r.route_type === 'low_heat_exposure') || fetchedRoutes[0];
         setSelectedRouteId(bestRoute.id);
+        setRouteError(null);
+      } else {
+        throw new Error('No road route returned');
       }
-    } catch (err) {
-      console.error('Error fetching routes:', err);
-      setRouteError('Network error connecting to routing service. Showing estimated heat corridors.');
-      const fallbackRoutes = calculateHeatSafeRoutes({
-        startPlace: sPlace,
-        endPlace: ePlace,
-        startCoords: sCoords,
-        endCoords: eCoords,
-        travelMode: mode
-      });
-      setRoutes(fallbackRoutes);
-      setSelectedRouteId(fallbackRoutes[1]?.id || fallbackRoutes[0]?.id);
+    } catch (err: any) {
+      console.error('Safe routing fetch failed:', err);
+      // Truthful error state: never fallback to fake splines or curves
+      setRouteError('Unable to calculate road route. Please check the selected locations or network connection.');
+      setRoutes([]);
+      setSelectedRouteId('');
     } finally {
       setIsCalculatingRoutes(false);
     }
   }, []);
 
-  // Recalculate when travel mode changes
+  // On Initial Mount: trigger calculateRoutes immediately so real road routes are displayed
   useEffect(() => {
+    calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode);
+  }, []);
+
+  // When Travel Mode changes, recalculate
+  const hasMounted = useRef(false);
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
     calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode);
   }, [travelMode]);
 
@@ -204,18 +210,26 @@ export const SafeRoutesPage: React.FC = () => {
     calculateRoutes(startPlace, name, startCoords, coords, travelMode);
   };
 
-  // Initialize Map
+  // Invalidate Leaflet map size when switching back to 2D
+  useEffect(() => {
+    if (viewMode === '2d' && mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 120);
+    }
+  }, [viewMode]);
+
+  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
       center: [startCoords[0] || 13.0600, startCoords[1] || 77.6000],
       zoom: 13,
-      zoomControl: false, // Repositioned to top-right to avoid overlapping floating panel
+      zoomControl: false,
       attributionControl: false
     });
 
-    // Add zoom control to top-right
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     const initialTileLayer = L.tileLayer(
@@ -232,9 +246,6 @@ export const SafeRoutesPage: React.FC = () => {
     stopsLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
-
-    // Trigger initial calculation
-    calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode);
 
     return () => {
       if (navIntervalRef.current) clearInterval(navIntervalRef.current);
@@ -265,7 +276,7 @@ export const SafeRoutesPage: React.FC = () => {
   }, [mapStyle]);
 
   // Active Selected Route
-  const activeRoute = routes.find(r => r.id === selectedRouteId) || routes[0];
+  const activeRoute = routes.find(r => r.id === selectedRouteId) || routes[0] || null;
 
   // Fit Bounds to Route
   const handleFitRouteBounds = useCallback(() => {
@@ -287,6 +298,12 @@ export const SafeRoutesPage: React.FC = () => {
     }
   }, [activeRoute]);
 
+  // Focus specific coordinate step or checkpoint on map
+  const handleFocusPoint = (coords?: [number, number]) => {
+    if (!coords || !mapInstanceRef.current) return;
+    mapInstanceRef.current.setView(coords, 17, { animate: true });
+  };
+
   // Update Route Polylines and Markers
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -297,7 +314,9 @@ export const SafeRoutesPage: React.FC = () => {
     polyLayer.clearLayers();
     markerLayer.clearLayers();
 
-    // 1. Draw All Route Polylines
+    if (!routes || routes.length === 0) return;
+
+    // 1. Draw All Real Road Route Polylines
     routes.forEach(r => {
       const isSelected = r.id === selectedRouteId;
       const isCanopy = r.route_type === 'low_heat_exposure';
@@ -320,7 +339,7 @@ export const SafeRoutesPage: React.FC = () => {
         }).addTo(polyLayer);
       }
 
-      // Draw Main Route Line
+      // Draw Main Road Line
       const poly = L.polyline(r.coordinates, {
         color: isSelected ? color : '#94A3B8',
         weight: isSelected ? 6 : 3.5,
@@ -337,13 +356,13 @@ export const SafeRoutesPage: React.FC = () => {
       poly.bindTooltip(
         `<div style="font-size: 11px; font-weight: 600; padding: 2px 4px;">
           ${r.label}<br/>
-          <span style="color: ${color}; font-weight: 700;">${r.distance_km} km • ${r.duration_minutes} min</span>
+          <span style="color: ${color}; font-weight: 700;">${r.formatted_distance || `${r.distance_km} km`} • ${r.formatted_duration || `${r.duration_minutes} min`}</span>
         </div>`,
         { sticky: true }
       );
     });
 
-    // 2. Draw Start (Origin) Marker
+    // 2. Draw Start Marker
     const startIconHtml = `
       <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
         <div style="width: 32px; height: 32px; border-radius: 9999px; background: #10B981; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; color: white;">
@@ -374,7 +393,7 @@ export const SafeRoutesPage: React.FC = () => {
       </div>
     `);
 
-    // 3. Draw End (Destination) Marker
+    // 3. Draw End Marker
     const endIconHtml = `
       <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
         <div style="width: 32px; height: 32px; border-radius: 9999px; background: #EF4444; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45); display: flex; align-items: center; justify-content: center; color: white;">
@@ -406,19 +425,18 @@ export const SafeRoutesPage: React.FC = () => {
     `);
 
     // 4. Draw Intermediate Checkpoint Pins for Selected Route
-    if (activeRoute.checkpoints && activeRoute.checkpoints.length > 0) {
-      activeRoute.checkpoints.forEach((cp, idx) => {
+    if (activeRoute?.checkpoints && activeRoute.checkpoints.length > 0) {
+      activeRoute.checkpoints.forEach((cp) => {
         if (!cp.coordinates || cp.type === 'start' || cp.type === 'end') return;
 
         const isShade = cp.type === 'shade';
         const isWater = cp.type === 'water';
-        const isShelter = cp.type === 'shelter';
 
         const bg = isShade ? '#10B981' : isWater ? '#0284C7' : '#6366F1';
         const symbol = isShade ? '🌿' : isWater ? '💧' : '🏛️';
 
         const cpHtml = `
-          <div style="background: white; border: 2px solid ${bg}; color: ${bg}; width: 24px; height: 24px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer;">
+          <div style="background: white; border: 2.5px solid ${bg}; color: ${bg}; width: 26px; height: 26px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); cursor: pointer;">
             ${symbol}
           </div>
         `;
@@ -426,21 +444,23 @@ export const SafeRoutesPage: React.FC = () => {
         const cpIcon = L.divIcon({
           html: cpHtml,
           className: 'heatshield-cp-icon',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
         });
 
         const cpMarker = L.marker(cp.coordinates, { icon: cpIcon }).addTo(markerLayer);
         cpMarker.bindPopup(`
-          <div style="font-family: inherit; font-size: 11px; padding: 2px;">
+          <div style="font-family: inherit; font-size: 11px; padding: 3px; max-width: 200px;">
             <div style="font-weight: 800; color: ${bg}; text-transform: uppercase; font-size: 9px;">${cp.title}</div>
-            <div style="color: #0F172A; font-weight: 600; margin-top: 2px;">${cp.desc}</div>
+            <div style="color: #0F172A; font-weight: 700; margin-top: 2px;">${cp.desc}</div>
+            ${cp.temperature ? `<div style="color: #EF4444; font-weight: 600; font-size: 10px; margin-top: 2px;">Temp: ${cp.temperature}°C</div>` : ''}
+            ${cp.reason ? `<div style="color: #64748B; font-size: 10px; margin-top: 2px;">${cp.reason}</div>` : ''}
           </div>
         `);
       });
     }
 
-    // Automatically Fit Bounds to show entire selected route
+    // Automatically Fit Bounds to show entire selected real route
     if (activeRoute && activeRoute.coordinates && activeRoute.coordinates.length > 0) {
       try {
         const bounds = L.polyline(activeRoute.coordinates).getBounds();
@@ -453,7 +473,7 @@ export const SafeRoutesPage: React.FC = () => {
     }
   }, [routes, selectedRouteId, startCoords, endCoords, startPlace, endPlace]);
 
-  // Display Nearby Verified Water & Cooling Stops on Map
+  // Display Nearby Verified Water & Cooling Stops on Leaflet Map
   useEffect(() => {
     const map = mapInstanceRef.current;
     const stopsLayer = stopsLayerRef.current;
@@ -462,11 +482,9 @@ export const SafeRoutesPage: React.FC = () => {
     stopsLayer.clearLayers();
     if (!showStopsLayer) return;
 
-    // Filter points reasonably close to route center
     const midLat = (startCoords[0] + endCoords[0]) / 2;
     const midLon = (startCoords[1] + endCoords[1]) / 2;
 
-    // Verified Cooling Centres
     INITIAL_COOLING_CENTRES.forEach(c => {
       const d = Math.hypot(c.latitude - midLat, c.longitude - midLon) * 111;
       if (d <= 15) {
@@ -493,7 +511,6 @@ export const SafeRoutesPage: React.FC = () => {
       }
     });
 
-    // Public Water Points
     INITIAL_WATER_POINTS.forEach(w => {
       const d = Math.hypot(w.latitude - midLat, w.longitude - midLon) * 111;
       if (d <= 15) {
@@ -529,7 +546,6 @@ export const SafeRoutesPage: React.FC = () => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Create Navigation Pulsing Pin
     const navPinHtml = `
       <div style="position: relative; display: flex; align-items: center; justify-content: center;">
         <div style="position: absolute; width: 36px; height: 36px; border-radius: 9999px; background: rgba(30, 96, 242, 0.25); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
@@ -594,7 +610,7 @@ export const SafeRoutesPage: React.FC = () => {
     handleFitRouteBounds();
   };
 
-  // Heat Exposure categorization
+  // Heat Exposure categorization badge helper
   const getExposureBadge = (score: number) => {
     if (score <= 45) {
       return {
@@ -619,7 +635,116 @@ export const SafeRoutesPage: React.FC = () => {
     };
   };
 
-  const activeExposure = getExposureBadge(activeRoute.heat_exposure_score);
+  // Maneuver icon helper
+  const renderManeuverIcon = (type?: string, modifier?: string) => {
+    if (type === 'depart') {
+      return <Navigation className="w-4 h-4 text-emerald-600" />;
+    }
+    if (type === 'arrive') {
+      return <MapPin className="w-4 h-4 text-rose-600" />;
+    }
+    if (modifier === 'uturn') {
+      return <RotateCcw className="w-4 h-4 text-amber-600" />;
+    }
+    if (modifier?.includes('right')) {
+      if (modifier.includes('slight')) {
+        return <ArrowUpRight className="w-4 h-4 text-blue-600" />;
+      }
+      return <CornerUpRight className="w-4 h-4 text-blue-600" />;
+    }
+    if (modifier?.includes('left')) {
+      if (modifier.includes('slight')) {
+        return <ArrowUpLeft className="w-4 h-4 text-blue-600" />;
+      }
+      return <CornerUpLeft className="w-4 h-4 text-blue-600" />;
+    }
+    if (type === 'roundabout' || type === 'rotary') {
+      return <RotateCw className="w-4 h-4 text-purple-600" />;
+    }
+    return <ArrowUp className="w-4 h-4 text-slate-700" />;
+  };
+
+  // Heat risk badge helper for checkpoints
+  const renderHeatRiskBadge = (risk?: string) => {
+    const r = risk?.toLowerCase();
+    if (r === 'low') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Low Risk
+        </span>
+      );
+    }
+    if (r === 'moderate') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          Moderate
+        </span>
+      );
+    }
+    if (r === 'high') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+          High Risk
+        </span>
+      );
+    }
+    if (r === 'critical') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-800 border border-red-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+          Critical
+        </span>
+      );
+    }
+    return null;
+  };
+
+  // Temperature indicator helper
+  const renderTemperatureBadge = (temp?: number) => {
+    if (temp === undefined) return null;
+    const isHigh = temp >= 40;
+    const isModerate = temp >= 33 && temp < 40;
+    return (
+      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+        isHigh
+          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+          : isModerate
+          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+      }`}>
+        <Sun className="w-2.5 h-2.5" />
+        <span>{temp}°C</span>
+      </span>
+    );
+  };
+
+  // Checkpoint type badge
+  const renderCheckpointTypeIcon = (type: string) => {
+    switch (type) {
+      case 'start':
+        return <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black shrink-0">S</div>;
+      case 'end':
+        return <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shrink-0">E</div>;
+      case 'shade':
+        return <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0">🌿</div>;
+      case 'water':
+        return <div className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs shrink-0">💧</div>;
+      case 'shelter':
+        return <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0">🏛️</div>;
+      default:
+        return <div className="w-5 h-5 rounded-full bg-slate-500 text-white flex items-center justify-center text-xs shrink-0">•</div>;
+    }
+  };
+
+  const activeExposure = activeRoute ? getExposureBadge(activeRoute.heat_exposure_score) : null;
+
+  // Find routes for bottom summary cards
+  const coolestRoute = routes.find(r => r.route_type === 'low_heat_exposure');
+  const respiteRoute = routes.find(r => r.route_type === 'respite_optimized');
+  const fastestRoute = routes.find(r => r.route_type === 'shortest');
 
   return (
     <div className="space-y-5 pb-16 max-w-7xl mx-auto px-3 sm:px-4">
@@ -632,10 +757,10 @@ export const SafeRoutesPage: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Heat-Safe Routes
             </h1>
-            <Badge variant="brand" size="sm">Tree Canopy & Hydration</Badge>
+            <Badge variant="brand" size="sm">Real Road Geometry & Thermal Corridors</Badge>
           </div>
           <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Navigate through tree-shaded avenues with real-time public water kiosks and cooling shelters.
+            Real turn-by-turn road navigation routed through tree canopies, verified cooling shelters, and public hydration kiosks.
           </p>
         </div>
 
@@ -707,7 +832,7 @@ export const SafeRoutesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Origin / Destination Search Bar with Real Autocomplete */}
+      {/* Origin / Destination Search Bar with Autocomplete & Presets */}
       <Card padding="md" className="border-[#E2E8F0] bg-white shadow-xs">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
           {/* Origin Autocomplete */}
@@ -743,7 +868,7 @@ export const SafeRoutesPage: React.FC = () => {
             onSelect={handleSelectDestination}
           />
 
-          {/* Quick Presets Horizontal Strip */}
+          {/* Quick Presets Strip */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#F1F5F9]">
             <span className="text-[11px] font-bold text-[#64748B] mr-0.5 shrink-0">Presets:</span>
             {presets.map(p => (
@@ -758,17 +883,27 @@ export const SafeRoutesPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Truthful Error Banner in Search Card */}
         {routeError && (
-          <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded-xl flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{routeError}</span>
+          <div className="mt-2.5 text-xs text-rose-800 bg-rose-50 border border-rose-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{routeError}</span>
+            </div>
+            <button
+              onClick={() => calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode)}
+              className="flex items-center gap-1 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Retry</span>
+            </button>
           </div>
         )}
       </Card>
 
       {/* Main Map Viewport with OVERLAID Floating Route Info Panel */}
       <div className="relative w-full h-[620px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-950">
-        {/* 2D Leaflet Canvas Container (Kept in DOM so state is preserved) */}
+        {/* 2D Leaflet Canvas Container */}
         <div className={`w-full h-full z-0 ${viewMode === '2d' ? 'block' : 'hidden'}`}>
           <div ref={mapContainerRef} className="w-full h-full z-0" />
         </div>
@@ -790,10 +925,9 @@ export const SafeRoutesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Top-Right Map Controls Overlay (Shown for 2D Leaflet Mode) */}
+        {/* Top-Right Map Controls Overlay (2D Leaflet Mode) */}
         {viewMode === '2d' && (
           <div className="absolute top-3.5 right-14 z-[900] flex items-center gap-1.5">
-            {/* Fit Route Bounds Button */}
             <button
               onClick={handleFitRouteBounds}
               className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
@@ -803,7 +937,6 @@ export const SafeRoutesPage: React.FC = () => {
               <span className="hidden sm:inline">Fit Route</span>
             </button>
 
-            {/* Toggle Cooling/Water Stops */}
             <button
               onClick={() => setShowStopsLayer(!showStopsLayer)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-md border backdrop-blur-sm transition-all ${
@@ -817,7 +950,6 @@ export const SafeRoutesPage: React.FC = () => {
               <span className="hidden sm:inline">Cooling Stops</span>
             </button>
 
-            {/* Map Layer Switcher */}
             <button
               onClick={() => setMapStyle(mapStyle === 'carto' ? 'osm' : 'carto')}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
@@ -829,7 +961,7 @@ export const SafeRoutesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Live Navigation Active Banner (Top Center) */}
+        {/* Live Navigation Simulation Active Banner (Top Center) */}
         {isNavigating && (
           <div className="absolute top-3.5 left-1/2 -translate-x-1/2 z-[950] bg-[#0F172A]/90 text-white backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -858,17 +990,43 @@ export const SafeRoutesPage: React.FC = () => {
           </div>
         )}
 
+        {/* Truthful Error Overlay (When routing fails, never show fake curves) */}
+        {routeError && !isCalculatingRoutes && routes.length === 0 && (
+          <div className="absolute inset-0 z-[950] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+            <div className="max-w-md w-full bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#0F172A]">Road Routing Unavailable</h3>
+                <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed">
+                  Unable to calculate road route. Please check the selected locations or network connection.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <button
+                  onClick={() => calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1E60F2] hover:bg-[#1850CE] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry Road Route</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ------------------------------------------------------------- */}
         {/* DESKTOP FLOATING ROUTE INFORMATION CARD (Over Top-Left of Map) */}
         {/* ------------------------------------------------------------- */}
-        <div className="hidden lg:block absolute top-4 left-4 z-[900] w-[370px] max-h-[calc(100%-32px)] overflow-y-auto">
+        <div className="hidden lg:block absolute top-4 left-4 z-[900] w-[390px] max-h-[calc(100%-32px)] overflow-y-auto">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-[#E2E8F0] shadow-xl p-4 space-y-3.5 transition-all">
             {/* Header: SAFE ROUTE badge and collapse toggle */}
             <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-2.5">
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-extrabold uppercase tracking-wide">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Safe Route</span>
+                  <span>Heat-Safe Route</span>
                 </span>
                 {isCalculatingRoutes && (
                   <span className="text-[10px] text-[#64748B] flex items-center gap-1">
@@ -890,18 +1048,34 @@ export const SafeRoutesPage: React.FC = () => {
             {/* Origin -> Destination Title */}
             <div>
               <div className="flex items-center gap-1.5 text-xs text-[#0F172A] font-bold">
-                <span className="truncate max-w-[145px]" title={startPlace}>{startPlace}</span>
+                <span className="truncate max-w-[155px]" title={startPlace}>{startPlace}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#1E60F2] shrink-0" />
-                <span className="truncate max-w-[145px]" title={endPlace}>{endPlace}</span>
+                <span className="truncate max-w-[155px]" title={endPlace}>{endPlace}</span>
               </div>
               <div className="text-[11px] text-[#64748B] mt-0.5 capitalize flex items-center gap-1">
                 {travelMode === 'walk' ? <Footprints className="w-3 h-3" /> : travelMode === 'cycle' ? <Bike className="w-3 h-3" /> : <Car className="w-3 h-3" />}
-                <span>{travelMode} mode • {routes.length} options computed</span>
+                <span>{travelMode} mode • {routes.length > 0 ? `${routes.length} real road options` : 'Calculating...'}</span>
               </div>
             </div>
 
+            {/* Error or Empty State inside Card */}
+            {routeError && routes.length === 0 && !isCalculatingRoutes && (
+              <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-center space-y-2">
+                <p className="text-xs text-rose-800 leading-relaxed font-medium">
+                  Unable to calculate road route. Please check the selected locations or network connection.
+                </p>
+                <button
+                  onClick={() => calculateRoutes(startPlace, endPlace, startCoords, endCoords, travelMode)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1E60F2] hover:bg-[#1850CE] text-white rounded-lg text-xs font-bold transition-all"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            )}
+
             {/* Collapsible Content */}
-            {!isPanelCollapsed && (
+            {!isPanelCollapsed && activeRoute && (
               <>
                 {/* Route Alternatives Selection Pills */}
                 <div className="space-y-1.5">
@@ -937,7 +1111,7 @@ export const SafeRoutesPage: React.FC = () => {
                             </span>
                           </div>
                           <div className="text-[10px] text-[#64748B] font-semibold mt-0.5">
-                            {r.duration_minutes} min
+                            {r.formatted_duration || `${r.duration_minutes} min`}
                           </div>
                         </button>
                       );
@@ -945,36 +1119,40 @@ export const SafeRoutesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Key Statistics Grid */}
+                {/* Route Summary Card: real formatted distance, duration, shade %, heat score */}
                 <div className="grid grid-cols-3 gap-2 bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0] text-center">
                   <div>
                     <span className="text-[10px] text-[#64748B] block">Distance</span>
-                    <span className="text-xs font-bold text-[#0F172A]">{activeRoute.distance_km} km</span>
+                    <span className="text-xs font-bold text-[#0F172A]">
+                      {activeRoute.formatted_distance || `${activeRoute.distance_km} km`}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-[#64748B] block">Travel Time</span>
-                    <span className="text-xs font-bold text-[#0F172A]">{activeRoute.duration_minutes} min</span>
+                    <span className="text-xs font-bold text-[#0F172A]">
+                      {activeRoute.formatted_duration || `${activeRoute.duration_minutes} min`}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-[#64748B] block">Tree Shade</span>
-                    <span className="text-xs font-bold text-emerald-700">{activeRoute.shade_coverage_pct}%</span>
+                    <span className="text-xs font-bold text-emerald-700">
+                      {activeRoute.shade_coverage_pct}%
+                    </span>
                   </div>
                 </div>
 
-                {/* Heat Exposure & Checklist */}
+                {/* Heat Exposure Score & Safety Checklist */}
                 <div className="space-y-2 text-xs">
-                  {/* Heat Exposure Score Pill */}
                   <div className="flex items-center justify-between p-2 rounded-xl border bg-white border-[#E2E8F0]">
                     <span className="text-[#64748B] text-[11px] font-medium">Heat Exposure</span>
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-2 h-2 rounded-full ${activeExposure.dotClass}`} />
+                      <div className={`w-2 h-2 rounded-full ${activeExposure?.dotClass || 'bg-slate-400'}`} />
                       <span className="font-bold text-[11px] text-[#0F172A]">
                         {activeRoute.heat_exposure_score <= 45 ? 'Low' : activeRoute.heat_exposure_score <= 65 ? 'Moderate' : 'High'} ({activeRoute.heat_exposure_score}/100)
                       </span>
                     </div>
                   </div>
 
-                  {/* Avoids High-Risk Area Checklist Item */}
                   <div className="flex items-center justify-between text-[11px] px-1">
                     <span className="text-[#64748B]">Avoids high-risk area:</span>
                     {activeRoute.avoids_high_risk !== false ? (
@@ -990,12 +1168,11 @@ export const SafeRoutesPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Cooling Point Nearby Checklist Item */}
                   <div className="flex items-center justify-between text-[11px] px-1">
                     <span className="text-[#64748B]">Cooling point nearby:</span>
                     <span className="text-sky-700 font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Yes ({activeRoute.cooling_centres_count + activeRoute.water_points_count} along route)</span>
+                      <span>Yes ({activeRoute.cooling_centres_count + activeRoute.water_points_count} along corridor)</span>
                     </span>
                   </div>
                 </div>
@@ -1005,7 +1182,7 @@ export const SafeRoutesPage: React.FC = () => {
                   {activeRoute.summary}
                 </p>
 
-                {/* Start Navigation Action Button */}
+                {/* Navigation Simulation Button */}
                 <div>
                   {!isNavigating ? (
                     <button
@@ -1028,35 +1205,130 @@ export const SafeRoutesPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Toggle Checkpoints Details */}
-                <div className="pt-1 border-t border-[#F1F5F9]">
+                {/* ------------------------------------------------------- */}
+                {/* Real Turn-by-Turn Directions Panel (Expandable)         */}
+                {/* ------------------------------------------------------- */}
+                <div className="pt-2 border-t border-[#F1F5F9]">
+                  <button
+                    onClick={() => setShowDirections(!showDirections)}
+                    className="w-full text-[11px] text-[#1E60F2] hover:text-[#1850CE] font-bold flex items-center justify-between py-1"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ListOrdered className="w-3.5 h-3.5 text-[#1E60F2]" />
+                      <span>Turn-by-Turn Directions ({activeRoute.steps?.length || 0} steps)</span>
+                    </div>
+                    {showDirections ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {showDirections && activeRoute.steps && (
+                    <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                      {activeRoute.steps.length === 0 ? (
+                        <div className="text-[11px] text-[#64748B] italic p-2 text-center">
+                          Direct road corridor with no turn maneuvers required.
+                        </div>
+                      ) : (
+                        activeRoute.steps.map((step, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleFocusPoint(step.coordinates)}
+                            className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-100 hover:border-blue-200 transition-colors cursor-pointer group"
+                            title="Click to focus step on map"
+                          >
+                            <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-xs group-hover:border-blue-300">
+                              {renderManeuverIcon(step.maneuver_type, step.maneuver_modifier)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-[#0F172A] text-[11px] leading-snug">
+                                {step.instruction}
+                              </div>
+                              {step.street_name && (
+                                <div className="text-[10px] text-[#64748B] truncate mt-0.5">
+                                  {step.street_name}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500 font-medium">
+                                <span className="font-semibold text-slate-700">{formatRouteDistance(step.distance_meters)}</span>
+                                <span>•</span>
+                                <span>{formatRouteDuration(step.duration_seconds)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ------------------------------------------------------- */}
+                {/* Real Heat Checkpoints Panel (Expandable)                */}
+                {/* ------------------------------------------------------- */}
+                <div className="pt-2 border-t border-[#F1F5F9]">
                   <button
                     onClick={() => setShowCheckpoints(!showCheckpoints)}
                     className="w-full text-[11px] text-[#1E60F2] hover:text-[#1850CE] font-bold flex items-center justify-between py-1"
                   >
-                    <span>Heat Checkpoints ({activeRoute.checkpoints?.length || 0})</span>
+                    <div className="flex items-center gap-1.5">
+                      <Milestone className="w-3.5 h-3.5 text-[#1E60F2]" />
+                      <span>Heat Checkpoints & Shelters ({activeRoute.checkpoints?.length || 0})</span>
+                    </div>
                     {showCheckpoints ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </button>
 
                   {showCheckpoints && activeRoute.checkpoints && (
-                    <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-1">
-                      {activeRoute.checkpoints.map((cp, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-[10px] bg-white p-2 rounded-lg border border-[#E2E8F0]">
-                          <span className={`w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0 text-white ${
-                            cp.type === 'start' ? 'bg-emerald-600' :
-                            cp.type === 'end' ? 'bg-rose-600' :
-                            cp.type === 'shade' ? 'bg-emerald-500' :
-                            cp.type === 'water' ? 'bg-sky-500' :
-                            'bg-blue-600'
-                          }`}>
-                            {idx + 1}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-bold text-[#0F172A] block truncate">{cp.title}</span>
-                            <span className="text-[#64748B] block truncate">{cp.desc}</span>
-                          </div>
+                    <div className="mt-2 space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {activeRoute.checkpoints.length === 0 ? (
+                        <div className="text-[11px] text-[#64748B] italic p-2 text-center">
+                          No checkpoints recorded along this corridor.
                         </div>
-                      ))}
+                      ) : (
+                        activeRoute.checkpoints.map((cp, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleFocusPoint(cp.coordinates)}
+                            className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-100 transition-colors cursor-pointer space-y-1.5"
+                            title="Click to view checkpoint location"
+                          >
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {renderCheckpointTypeIcon(cp.type)}
+                                <div className="font-bold text-[#0F172A] text-[11px] truncate">
+                                  {cp.title}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {renderHeatRiskBadge(cp.heat_risk)}
+                                {renderTemperatureBadge(cp.temperature)}
+                              </div>
+                            </div>
+
+                            <p className="text-[10px] text-[#64748B] leading-relaxed">
+                              {cp.desc}
+                            </p>
+
+                            {cp.reason && (
+                              <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded-lg border border-slate-200/60 flex items-start gap-1">
+                                <Info className="w-3 h-3 text-[#1E60F2] shrink-0 mt-0.5" />
+                                <span className="leading-tight">{cp.reason}</span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                              {cp.nearby_respite ? (
+                                <span className="text-sky-700 font-semibold truncate max-w-[210px]" title={cp.nearby_respite}>
+                                  Nearby: {cp.nearby_respite}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">Direct road link</span>
+                              )}
+                              {cp.distance_from_prev && (
+                                <span className="font-mono text-slate-400 font-semibold shrink-0">
+                                  +{cp.distance_from_prev}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
@@ -1087,20 +1359,28 @@ export const SafeRoutesPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 text-[11px] text-[#64748B]">
-                  <span className="font-bold text-[#0F172A]">{activeRoute.distance_km} km</span>
-                  <span>•</span>
-                  <span className="font-bold text-[#0F172A]">{activeRoute.duration_minutes} min</span>
-                  {isMobileSheetExpanded ? <ChevronDown className="w-4 h-4 ml-1" /> : <ChevronUp className="w-4 h-4 ml-1" />}
-                </div>
+                {activeRoute ? (
+                  <div className="flex items-center gap-1 text-[11px] text-[#64748B]">
+                    <span className="font-bold text-[#0F172A]">
+                      {activeRoute.formatted_distance || `${activeRoute.distance_km} km`}
+                    </span>
+                    <span>•</span>
+                    <span className="font-bold text-[#0F172A]">
+                      {activeRoute.formatted_duration || `${activeRoute.duration_minutes} min`}
+                    </span>
+                    {isMobileSheetExpanded ? <ChevronDown className="w-4 h-4 ml-1" /> : <ChevronUp className="w-4 h-4 ml-1" />}
+                  </div>
+                ) : (
+                  <span className="text-xs text-[#64748B]">Calculating...</span>
+                )}
               </div>
             </div>
 
-            {/* Quick action button always visible on mobile */}
-            {!isMobileSheetExpanded && (
+            {/* Quick action strip always visible on mobile */}
+            {!isMobileSheetExpanded && activeRoute && (
               <div className="mt-2.5 flex items-center gap-2">
                 <div className="flex-1 text-[10px] text-[#64748B]">
-                  <span className="text-emerald-700 font-bold">✓ Avoids high-risk area</span> • {activeRoute.shade_coverage_pct}% tree shade
+                  <span className="text-emerald-700 font-bold">✓ Safe road path</span> • {activeRoute.shade_coverage_pct}% tree shade
                 </div>
                 {!isNavigating ? (
                   <button
@@ -1123,8 +1403,8 @@ export const SafeRoutesPage: React.FC = () => {
             )}
 
             {/* Expanded Content on Mobile */}
-            {isMobileSheetExpanded && (
-              <div className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-3">
+            {isMobileSheetExpanded && activeRoute && (
+              <div className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-3 max-h-[70vh] overflow-y-auto">
                 {/* Route Switcher Pills */}
                 <div className="grid grid-cols-3 gap-1.5">
                   {routes.map(r => {
@@ -1143,25 +1423,156 @@ export const SafeRoutesPage: React.FC = () => {
                         }`}
                       >
                         <div>{isCanopy ? 'Coolest' : isRespite ? 'Respite' : 'Fastest'}</div>
-                        <div className="text-[10px] font-medium text-[#64748B]">{r.duration_minutes} min</div>
+                        <div className="text-[10px] font-medium text-[#64748B]">
+                          {r.formatted_duration || `${r.duration_minutes} min`}
+                        </div>
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Details Checklist */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0]">
-                  <div>
-                    <span className="text-[#64748B] block text-[10px]">Avoids High-Risk Area</span>
-                    <span className="font-bold text-emerald-700">✓ Protected Path</span>
-                  </div>
-                  <div>
-                    <span className="text-[#64748B] block text-[10px]">Cooling Points Nearby</span>
-                    <span className="font-bold text-sky-700">✓ {activeRoute.water_points_count + activeRoute.cooling_centres_count} Available</span>
-                  </div>
+                {/* Mobile Tabs Switcher */}
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    onClick={() => setMobileTab('overview')}
+                    className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      mobileTab === 'overview' ? 'bg-white text-[#1E60F2] shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setMobileTab('directions')}
+                    className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      mobileTab === 'directions' ? 'bg-white text-[#1E60F2] shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Turns ({activeRoute.steps?.length || 0})
+                  </button>
+                  <button
+                    onClick={() => setMobileTab('checkpoints')}
+                    className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      mobileTab === 'checkpoints' ? 'bg-white text-[#1E60F2] shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Checkpoints ({activeRoute.checkpoints?.length || 0})
+                  </button>
                 </div>
 
-                {/* Mobile Start Navigation Button */}
+                {/* Tab 1: Overview */}
+                {mobileTab === 'overview' && (
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-3 gap-2 text-center bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0]">
+                      <div>
+                        <span className="text-[#64748B] block text-[10px]">Distance</span>
+                        <span className="font-bold text-xs text-[#0F172A]">
+                          {activeRoute.formatted_distance || `${activeRoute.distance_km} km`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#64748B] block text-[10px]">Travel Time</span>
+                        <span className="font-bold text-xs text-[#0F172A]">
+                          {activeRoute.formatted_duration || `${activeRoute.duration_minutes} min`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#64748B] block text-[10px]">Tree Shade</span>
+                        <span className="font-bold text-xs text-emerald-700">
+                          {activeRoute.shade_coverage_pct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#F8FAFC] p-2.5 rounded-xl border border-[#E2E8F0]">
+                      <div>
+                        <span className="text-[#64748B] block text-[10px]">Heat Exposure</span>
+                        <span className="font-bold text-[#0F172A]">
+                          {activeRoute.heat_exposure_score}/100
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#64748B] block text-[10px]">Cooling Points</span>
+                        <span className="font-bold text-sky-700">
+                          {activeRoute.water_points_count + activeRoute.cooling_centres_count} Along Path
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-[#64748B] leading-relaxed bg-slate-50 p-2 rounded-xl">
+                      {activeRoute.summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Tab 2: Turn-by-Turn Directions */}
+                {mobileTab === 'directions' && (
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {activeRoute.steps && activeRoute.steps.length > 0 ? (
+                      activeRoute.steps.map((step, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleFocusPoint(step.coordinates)}
+                          className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                            {renderManeuverIcon(step.maneuver_type, step.maneuver_modifier)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[#0F172A] text-[11px] leading-snug">
+                              {step.instruction}
+                            </div>
+                            {step.street_name && (
+                              <div className="text-[10px] text-[#64748B] truncate">
+                                {step.street_name}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-0.5">
+                              <span>{formatRouteDistance(step.distance_meters)}</span>
+                              <span>•</span>
+                              <span>{formatRouteDuration(step.duration_seconds)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs text-[#64748B] text-center py-4">No turn steps available.</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 3: Heat Checkpoints */}
+                {mobileTab === 'checkpoints' && (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {activeRoute.checkpoints && activeRoute.checkpoints.length > 0 ? (
+                      activeRoute.checkpoints.map((cp, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleFocusPoint(cp.coordinates)}
+                          className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1"
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {renderCheckpointTypeIcon(cp.type)}
+                              <span className="font-bold text-[#0F172A] text-[11px] truncate">{cp.title}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {renderHeatRiskBadge(cp.heat_risk)}
+                              {renderTemperatureBadge(cp.temperature)}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-[#64748B]">{cp.desc}</p>
+                          {cp.nearby_respite && (
+                            <div className="text-[10px] text-sky-700 font-medium">Nearby: {cp.nearby_respite}</div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs text-[#64748B] text-center py-4">No checkpoints defined.</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mobile Navigation Button */}
                 {!isNavigating ? (
                   <button
                     onClick={startNavigation}
@@ -1185,10 +1596,18 @@ export const SafeRoutesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Route Comparison Highlights Card Strip */}
+      {/* Dynamic Route Comparison Highlights Strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Coolest Canopy Route Card */}
-        <Card padding="md" className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-200">
+        <Card 
+          padding="md" 
+          onClick={() => coolestRoute && setSelectedRouteId(coolestRoute.id)}
+          className={`cursor-pointer transition-all ${
+            selectedRouteId === coolestRoute?.id 
+              ? 'ring-2 ring-emerald-500 bg-gradient-to-br from-emerald-500/15 to-transparent border-emerald-300' 
+              : 'bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-200 hover:border-emerald-300'
+          }`}
+        >
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
               <Trees className="w-5 h-5" />
@@ -1201,17 +1620,35 @@ export const SafeRoutesPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-[#0F172A]">
-            <span className="text-[#64748B]">Sun Exposure</span>
-            <span className="font-bold text-emerald-700">38/100 (42% Less Sun)</span>
+            <span className="text-[#64748B]">Distance & Time</span>
+            <span className="font-bold text-emerald-700">
+              {coolestRoute?.formatted_distance || (coolestRoute ? `${coolestRoute.distance_km} km` : '—')} • {coolestRoute?.formatted_duration || (coolestRoute ? `${coolestRoute.duration_minutes} min` : '—')}
+            </span>
           </div>
           <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
-            <span className="text-[#64748B]">Tree Canopy Coverage</span>
-            <span className="font-semibold text-emerald-800">78% Shaded</span>
+            <span className="text-[#64748B]">Sun Exposure</span>
+            <span className="font-bold text-emerald-700">
+              {coolestRoute ? `${coolestRoute.heat_exposure_score}/100` : '—'}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
+            <span className="text-[#64748B]">Tree Canopy</span>
+            <span className="font-semibold text-emerald-800">
+              {coolestRoute ? `${coolestRoute.shade_coverage_pct}% Shaded` : '—'}
+            </span>
           </div>
         </Card>
 
         {/* Respite & Hydration Card */}
-        <Card padding="md" className="bg-gradient-to-br from-sky-500/10 to-transparent border-sky-200">
+        <Card 
+          padding="md" 
+          onClick={() => respiteRoute && setSelectedRouteId(respiteRoute.id)}
+          className={`cursor-pointer transition-all ${
+            selectedRouteId === respiteRoute?.id 
+              ? 'ring-2 ring-sky-500 bg-gradient-to-br from-sky-500/15 to-transparent border-sky-300' 
+              : 'bg-gradient-to-br from-sky-500/10 to-transparent border-sky-200 hover:border-sky-300'
+          }`}
+        >
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center shrink-0">
               <Droplets className="w-5 h-5" />
@@ -1224,17 +1661,35 @@ export const SafeRoutesPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-[#0F172A]">
+            <span className="text-[#64748B]">Distance & Time</span>
+            <span className="font-bold text-sky-700">
+              {respiteRoute?.formatted_distance || (respiteRoute ? `${respiteRoute.distance_km} km` : '—')} • {respiteRoute?.formatted_duration || (respiteRoute ? `${respiteRoute.duration_minutes} min` : '—')}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
             <span className="text-[#64748B]">Clean Water Kiosks</span>
-            <span className="font-bold text-sky-700">3 Verified Stations</span>
+            <span className="font-bold text-sky-700">
+              {respiteRoute ? `${respiteRoute.water_points_count} Verified Stations` : '—'}
+            </span>
           </div>
           <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
             <span className="text-[#64748B]">Cooling Shelters</span>
-            <span className="font-semibold text-sky-800">2 Municipal AC Halls</span>
+            <span className="font-semibold text-sky-800">
+              {respiteRoute ? `${respiteRoute.cooling_centres_count} Municipal AC Halls` : '—'}
+            </span>
           </div>
         </Card>
 
-        {/* Fastest Direct Highway Card */}
-        <Card padding="md" className="border-[#E2E8F0]">
+        {/* Fastest Direct Arterial Card */}
+        <Card 
+          padding="md" 
+          onClick={() => fastestRoute && setSelectedRouteId(fastestRoute.id)}
+          className={`cursor-pointer transition-all ${
+            selectedRouteId === fastestRoute?.id 
+              ? 'ring-2 ring-amber-500 bg-amber-500/5 border-amber-300' 
+              : 'border-[#E2E8F0] hover:border-amber-300'
+          }`}
+        >
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0">
               <Sun className="w-5 h-5" />
@@ -1247,12 +1702,20 @@ export const SafeRoutesPage: React.FC = () => {
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-[#0F172A]">
+            <span className="text-[#64748B]">Distance & Time</span>
+            <span className="font-bold text-amber-700">
+              {fastestRoute?.formatted_distance || (fastestRoute ? `${fastestRoute.distance_km} km` : '—')} • {fastestRoute?.formatted_duration || (fastestRoute ? `${fastestRoute.duration_minutes} min` : '—')}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
             <span className="text-[#64748B]">Sun Exposure</span>
-            <span className="font-bold text-amber-700">84/100 (High Exposure)</span>
+            <span className="font-bold text-amber-700">
+              {fastestRoute ? `${fastestRoute.heat_exposure_score}/100 (High Exposure)` : '—'}
+            </span>
           </div>
           <div className="mt-1 flex items-center justify-between text-xs text-[#0F172A]">
             <span className="text-[#64748B]">Asphalt Radiant Heat</span>
-            <span className="font-semibold text-rose-600">&gt; 45°C Surface Temp</span>
+            <span className="font-semibold text-rose-600">&gt; 42°C Surface Temp</span>
           </div>
         </Card>
       </div>

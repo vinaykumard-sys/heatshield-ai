@@ -116,15 +116,17 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
     const [cx, cy, cz] = center;
     targetLookAt.current.set(cx, cy, cz);
 
-    const safeRadius = Math.max(12, Math.min(60, radius));
+    const safeRadius = Math.max(10, Math.min(65, radius));
 
     if (viewPreset === 'top') {
-      targetCamPos.current.set(cx, cy + safeRadius * 2.2, cz + 0.01);
+      // Top Down: bird's-eye 90 degree plan view directly above the route
+      targetCamPos.current.set(cx, cy + safeRadius * 2.3, cz + 0.001);
     } else if (viewPreset === 'horizon') {
-      targetCamPos.current.set(cx - safeRadius * 0.7, cy + safeRadius * 0.35, cz + safeRadius * 0.9);
+      // Horizon: street-level forward horizon framing the route
+      targetCamPos.current.set(cx, cy + Math.max(2.5, safeRadius * 0.28), cz + safeRadius * 1.05);
     } else {
-      // Default: Cinematic Isometric 3D
-      targetCamPos.current.set(cx + safeRadius * 1.1, cy + safeRadius * 1.35, cz + safeRadius * 1.25);
+      // 3D Iso: cinematic perspective isometric framing
+      targetCamPos.current.set(cx + safeRadius * 1.15, cy + safeRadius * 1.35, cz + safeRadius * 1.25);
     }
 
     isTransitioning.current = true;
@@ -133,7 +135,7 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
   useFrame((_, delta) => {
     if (!isTransitioning.current) return;
 
-    const lerpFactor = Math.min(1, delta * 3.5);
+    const lerpFactor = Math.min(1, delta * 3.8);
     camera.position.lerp(targetCamPos.current, lerpFactor);
 
     if (controlsRef.current) {
@@ -141,7 +143,7 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
       controlsRef.current.update();
     }
 
-    if (camera.position.distanceTo(targetCamPos.current) < 0.1) {
+    if (camera.position.distanceTo(targetCamPos.current) < 0.08) {
       isTransitioning.current = false;
     }
   });
@@ -149,10 +151,13 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
   return (
     <OrbitControls
       ref={controlsRef}
+      onStart={() => {
+        isTransitioning.current = false;
+      }}
       enableDamping={true}
       dampingFactor={0.08}
-      minDistance={6}
-      maxDistance={120}
+      minDistance={5}
+      maxDistance={140}
       maxPolarAngle={Math.PI / 2.05} // prevent going underneath ground
       autoRotate={false}
       makeDefault
@@ -184,32 +189,35 @@ function GlowingRoutePolyline({
   const pulseRef = useRef<THREE.Mesh>(null);
   const glowOuterRef = useRef<THREE.Mesh>(null);
 
-  // Generate 3D Vector3 points
+  // Generate 3D Vector3 points from real road geometry
   const points = useMemo(() => {
     if (!route.coordinates || route.coordinates.length < 2) return [];
 
     const pts: THREE.Vector3[] = [];
-    route.coordinates.forEach(([lat, lon], idx) => {
+    route.coordinates.forEach(([lat, lon]) => {
       const [x, , z] = projectGps(lat, lon, centerLat, centerLon, scaleFactor);
-      // Small elevation arch so the route lifts gracefully over terrain
-      const arch = Math.sin((idx / Math.max(1, route.coordinates.length - 1)) * Math.PI) * 0.25;
-      pts.push(new THREE.Vector3(x, 0.28 + arch, z));
+      // Strictly hug road level (no artificial upward parabolic dome)
+      pts.push(new THREE.Vector3(x, 0.08, z));
     });
 
-    // Deduplicate overly dense points for smoother curve interpolation
+    // Remove microscopic duplicate points
     const filtered: THREE.Vector3[] = [pts[0]];
     for (let i = 1; i < pts.length; i++) {
-      if (pts[i].distanceTo(filtered[filtered.length - 1]) > 0.08) {
+      if (pts[i].distanceTo(filtered[filtered.length - 1]) > 0.02) {
         filtered.push(pts[i]);
       }
     }
     return filtered;
   }, [route.coordinates, scaleFactor, centerLat, centerLon]);
 
-  // Construct smooth CatmullRom spline
+  // Construct piecewise linear curve path following actual street turns and intersections
   const curve = useMemo(() => {
     if (points.length < 2) return null;
-    return new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.25);
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 0; i < points.length - 1; i++) {
+      path.add(new THREE.LineCurve3(points[i], points[i + 1]));
+    }
+    return path;
   }, [points]);
 
   // Styling based on route profile
@@ -223,7 +231,7 @@ function GlowingRoutePolyline({
       const t = (state.clock.elapsedTime * (route.route_type === 'shortest' ? 0.25 : 0.18)) % 1;
       const pos = curve.getPointAt(t);
       pulseRef.current.position.copy(pos);
-      pulseRef.current.position.y += 0.12;
+      pulseRef.current.position.y += 0.08;
 
       // Pulsing scale
       const s = 1 + Math.sin(state.clock.elapsedTime * 8) * 0.18;
@@ -241,8 +249,8 @@ function GlowingRoutePolyline({
   return (
     <group onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
       {/* 1. Underlying Dark Road Bed Ribbon */}
-      <mesh position={[0, -0.08, 0]}>
-        <tubeGeometry args={[curve, Math.min(220, points.length * 6), isSelected ? 0.45 : 0.28, 6, false]} />
+      <mesh position={[0, -0.04, 0]}>
+        <tubeGeometry args={[curve, Math.min(300, points.length * 4), isSelected ? 0.36 : 0.22, 6, false]} />
         <meshStandardMaterial
           color="#0B1329"
           roughness={0.9}
@@ -253,8 +261,8 @@ function GlowingRoutePolyline({
       </mesh>
 
       {/* 2. Core Glowing Neon Tube */}
-      <mesh>
-        <tubeGeometry args={[curve, Math.min(220, points.length * 6), isSelected ? 0.22 : 0.12, 10, false]} />
+      <mesh position={[0, 0.02, 0]}>
+        <tubeGeometry args={[curve, Math.min(300, points.length * 4), isSelected ? 0.18 : 0.10, 8, false]} />
         <meshStandardMaterial
           color={style.primary}
           emissive={style.emissive}
@@ -268,8 +276,8 @@ function GlowingRoutePolyline({
 
       {/* 3. Outer Volumetric Atmosphere Glow Tube (Selected Only) */}
       {isSelected && (
-        <mesh ref={glowOuterRef}>
-          <tubeGeometry args={[curve, Math.min(180, points.length * 4), 0.58, 8, false]} />
+        <mesh ref={glowOuterRef} position={[0, 0.02, 0]}>
+          <tubeGeometry args={[curve, Math.min(240, points.length * 3), 0.42, 6, false]} />
           <meshStandardMaterial
             color={style.glow}
             emissive={style.primary}
@@ -326,6 +334,26 @@ function CityTerrain({
   const [cx, , cz] = bounds.center;
   const radius = Math.max(14, bounds.radius);
 
+  // Pre-project route line segments for accurate road corridor clearance calculation
+  const routeSegments = useMemo(() => {
+    if (!activeRoute.coordinates || activeRoute.coordinates.length < 2) return [];
+    const pts = activeRoute.coordinates.map(([lat, lon]) => {
+      const [x, , z] = projectGps(lat, lon, centerLat, centerLon, scaleFactor);
+      return [x, z] as [number, number];
+    });
+
+    const segs: Array<{ x1: number; z1: number; x2: number; z2: number }> = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      segs.push({
+        x1: pts[i][0],
+        z1: pts[i][1],
+        x2: pts[i + 1][0],
+        z2: pts[i + 1][1]
+      });
+    }
+    return segs;
+  }, [activeRoute.coordinates, centerLat, centerLon, scaleFactor]);
+
   // Generate procedural city blocks flanking the route area
   const buildings = useMemo(() => {
     if (!showBuildings) return [];
@@ -344,6 +372,7 @@ function CityTerrain({
     // Deterministic pseudo-random based on grid coordinate
     const gridSize = Math.ceil(radius * 1.5);
     const step = 4.2;
+    const CLEARANCE_THRESHOLD_SQ = 1.4 * 1.4; // Strict 1.4 units minimum clearance to route segments
 
     let id = 0;
     for (let x = cx - gridSize; x <= cx + gridSize; x += step) {
@@ -357,21 +386,32 @@ function CityTerrain({
         const jx = x + (rand - 0.5) * 1.8;
         const jz = z + ((rand * 3.1) % 1 - 0.5) * 1.8;
 
-        // Skip buildings placed directly on top of route coordinates
+        // Ensure procedural buildings are not rendered within 1.4 units of any route segment points
         let isTooCloseToRoad = false;
-        if (activeRoute.coordinates) {
-          for (let i = 0; i < activeRoute.coordinates.length; i += 3) {
-            const [rx, , rz] = projectGps(
-              activeRoute.coordinates[i][0],
-              activeRoute.coordinates[i][1],
-              centerLat,
-              centerLon,
-              scaleFactor
-            );
-            if (Math.hypot(jx - rx, jz - rz) < 2.0) {
-              isTooCloseToRoad = true;
-              break;
-            }
+        for (let s = 0; s < routeSegments.length; s++) {
+          const seg = routeSegments[s];
+          const dx = seg.x2 - seg.x1;
+          const dz = seg.z2 - seg.z1;
+          const l2 = dx * dx + dz * dz;
+
+          let distSq: number;
+          if (l2 === 0) {
+            const ex = jx - seg.x1;
+            const ez = jz - seg.z1;
+            distSq = ex * ex + ez * ez;
+          } else {
+            let t = ((jx - seg.x1) * dx + (jz - seg.z1) * dz) / l2;
+            t = Math.max(0, Math.min(1, t));
+            const projX = seg.x1 + t * dx;
+            const projZ = seg.z1 + t * dz;
+            const ex = jx - projX;
+            const ez = jz - projZ;
+            distSq = ex * ex + ez * ez;
+          }
+
+          if (distSq < CLEARANCE_THRESHOLD_SQ) {
+            isTooCloseToRoad = true;
+            break;
           }
         }
 
@@ -404,7 +444,7 @@ function CityTerrain({
     }
 
     return blocks;
-  }, [cx, cz, radius, showBuildings, activeRoute.coordinates, centerLat, centerLon, scaleFactor]);
+  }, [cx, cz, radius, showBuildings, routeSegments]);
 
   // Heat island zones (areas along unshaded arterial sectors)
   const heatIslandLocations = useMemo(() => {
@@ -603,8 +643,8 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
       {startPoint && (
         <group position={startPoint}>
           {/* Concentric Pulsing Base Ring */}
-          <mesh ref={startRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
-            <ringGeometry args={[0.6, 1.1, 32]} />
+          <mesh ref={startRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.5, 1.0, 32]} />
             <meshStandardMaterial
               color="#10B981"
               emissive="#10B981"
@@ -616,8 +656,8 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
           </mesh>
 
           {/* Vertical Laser Pillar */}
-          <mesh position={[0, 2.2, 0]}>
-            <cylinderGeometry args={[0.08, 0.15, 4.4, 16]} />
+          <mesh position={[0, 2.0, 0]}>
+            <cylinderGeometry args={[0.08, 0.15, 4.0, 16]} />
             <meshStandardMaterial
               color="#34D399"
               emissive="#10B981"
@@ -628,12 +668,12 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
           </mesh>
 
           {/* Floating Origin Pin / 3D HTML Badge */}
-          <Html position={[0, 4.6, 0]} center distanceFactor={26}>
+          <Html position={[0, 4.4, 0]} center distanceFactor={26}>
             <div className="flex flex-col items-center pointer-events-auto select-none">
-              <div className="px-3 py-1 rounded-xl bg-slate-900/90 border-2 border-emerald-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900/95 border-2 border-emerald-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">START</span>
-                <span className="text-xs font-semibold text-slate-200 max-w-[130px] truncate">{startPlace}</span>
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">START:</span>
+                <span className="text-xs font-semibold text-slate-200 max-w-[140px] truncate">{startPlace}</span>
               </div>
               <div className="w-0.5 h-3 bg-emerald-400" />
             </div>
@@ -645,8 +685,8 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
       {endPoint && (
         <group position={endPoint}>
           {/* Concentric Pulsing Base Ring */}
-          <mesh ref={endRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
-            <ringGeometry args={[0.6, 1.1, 32]} />
+          <mesh ref={endRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.5, 1.0, 32]} />
             <meshStandardMaterial
               color="#F59E0B"
               emissive="#D97706"
@@ -658,8 +698,8 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
           </mesh>
 
           {/* Vertical Laser Pillar */}
-          <mesh position={[0, 2.2, 0]}>
-            <cylinderGeometry args={[0.08, 0.15, 4.4, 16]} />
+          <mesh position={[0, 2.0, 0]}>
+            <cylinderGeometry args={[0.08, 0.15, 4.0, 16]} />
             <meshStandardMaterial
               color="#FBBF24"
               emissive="#F59E0B"
@@ -670,12 +710,12 @@ function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: Waypoin
           </mesh>
 
           {/* Floating Destination Pin / 3D HTML Badge */}
-          <Html position={[0, 4.6, 0]} center distanceFactor={26}>
+          <Html position={[0, 4.4, 0]} center distanceFactor={26}>
             <div className="flex flex-col items-center pointer-events-auto select-none">
-              <div className="px-3 py-1 rounded-xl bg-slate-900/90 border-2 border-amber-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white">
-                <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">DESTINATION</span>
-                <span className="text-xs font-semibold text-slate-200 max-w-[130px] truncate">{endPlace}</span>
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900/95 border-2 border-amber-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white whitespace-nowrap">
+                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">DESTINATION:</span>
+                <span className="text-xs font-semibold text-slate-200 max-w-[140px] truncate">{endPlace}</span>
               </div>
               <div className="w-0.5 h-3 bg-amber-400" />
             </div>
@@ -1018,7 +1058,33 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
     };
   }, [routes]);
 
-  // Start & End Point in 3D
+  // Dynamically calculate camera bounds framing origin, entire road route, and destination
+  const activeBounds = useMemo(() => {
+    if (!activeRoute || !activeRoute.coordinates || activeRoute.coordinates.length === 0) {
+      return geoBounds.bounds3D;
+    }
+
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    activeRoute.coordinates.forEach(([lat, lon]) => {
+      const [x, , z] = projectGps(lat, lon, geoBounds.centerLat, geoBounds.centerLon, geoBounds.scaleFactor);
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    });
+
+    const cx = (minX + maxX) / 2;
+    const cz = (minZ + maxZ) / 2;
+    const span = Math.hypot(maxX - minX, maxZ - minZ);
+    const radius = Math.max(span / 2 + 2, 8);
+
+    return {
+      center: [cx, 0, cz] as [number, number, number],
+      radius
+    };
+  }, [activeRoute, geoBounds]);
+
+  // Start & End Point in 3D (positioned at exact projected road level y=0.08)
   const { start3D, end3D } = useMemo(() => {
     if (!activeRoute || !activeRoute.coordinates || activeRoute.coordinates.length < 2) {
       return { start3D: null, end3D: null };
@@ -1030,8 +1096,8 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
     const [ex, , ez] = projectGps(endCoord[0], endCoord[1], geoBounds.centerLat, geoBounds.centerLon, geoBounds.scaleFactor);
 
     return {
-      start3D: [sx, 0.25, sz] as [number, number, number],
-      end3D: [ex, 0.25, ez] as [number, number, number]
+      start3D: [sx, 0.08, sz] as [number, number, number],
+      end3D: [ex, 0.08, ez] as [number, number, number]
     };
   }, [activeRoute, geoBounds]);
 
@@ -1053,9 +1119,9 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
         {/* Dynamic Sun & Atmosphere */}
         <DynamicLighting departureHour={departureTimeHour} />
 
-        {/* Camera Framer & OrbitControls */}
+        {/* Camera Framer & OrbitControls - bounds fitting to active route */}
         <CameraController
-          bounds={geoBounds.bounds3D}
+          bounds={activeBounds}
           viewPreset={viewPreset}
           resetSignal={resetSignal}
         />
