@@ -20,6 +20,7 @@ import { NewRequestModal } from '../components/requests/NewRequestModal';
 import { SolarArcGauge } from '../components/common/SolarArcGauge';
 import { HeatRiskCard } from '../components/common/HeatRiskCard';
 import { HeatRiskMap } from '../components/map/HeatRiskMap';
+import { CityHeatMap3D, TemperatureOrb3D } from '../components/3d';
 import { useLocationTracker } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
 import { mockDb } from '../lib/mockDb';
@@ -60,8 +61,10 @@ export const DashboardPage: React.FC = () => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isHourlyModalOpen, setIsHourlyModalOpen] = useState(false);
   const [dailyModalDayIndex, setDailyModalDayIndex] = useState<number | null>(null);
+  const [mapViewMode, setMapViewMode] = useState<'3d_city' | '2d_map'>('3d_city');
 
   const locations = mockDb.getLocations();
+  const coolingCentres = useMemo(() => mockDb.getCoolingCentres(), []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -179,40 +182,91 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 8. SMART HEAT MAP */}
+      {/* 8. SMART HEAT MAP (3D DIGITAL TWIN & 2D MULTIMODAL MAP) */}
       <section id="thermal-heat-risk-map" aria-label="Thermal Heat Risk Map">
         <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-7 shadow-sm shadow-blue-500/5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                   <span>Smart Interactive Heat Map</span>
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 </h3>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1E60F2] border border-blue-200/80">
-                  Multimodal Layers
+                  {mapViewMode === '3d_city' ? '3D Digital Twin City' : 'Multimodal 2D Layers'}
+                </span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                  WebGL Accelerated
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                Explore Heat Risk, Cooling Centers, Drinking Water Points, and Hospitals in {currentLocation.localityName || currentLocation.city}
+                {mapViewMode === '3d_city'
+                  ? `Interactive 3D procedural simulation, cooling shelters, and heatwave radiation for ${currentLocation.localityName || currentLocation.city}`
+                  : `Explore Heat Risk, Cooling Centers, Drinking Water Points, and Hospitals in ${currentLocation.localityName || currentLocation.city}`}
               </p>
             </div>
             
-            <Link 
-              to="/map" 
-              className="text-xs text-[#1E60F2] font-bold hover:underline flex items-center gap-1 self-start sm:self-auto"
-            >
-              <span>Full interactive map</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+              {/* 3D vs 2D Mode Switcher */}
+              <div className="flex items-center p-1 rounded-2xl bg-slate-100/90 border border-slate-200/80 text-xs font-bold shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setMapViewMode('3d_city')}
+                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                    mapViewMode === '3d_city'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Switch to 3D Digital Twin View"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#1E60F2]" />
+                  <span>3D City View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapViewMode('2d_map')}
+                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                    mapViewMode === '2d_map'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Switch to 2D Geospatial Map"
+                >
+                  <Layers className="w-3.5 h-3.5 text-slate-500" />
+                  <span>2D Map</span>
+                </button>
+              </div>
+
+              <Link 
+                to="/map" 
+                className="text-xs text-[#1E60F2] font-bold hover:underline flex items-center gap-1"
+              >
+                <span>Full map</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
-          <HeatRiskMap 
-            locations={locations} 
-            selectedLocationId={selectedZone?.id} 
-            onSelectLocation={selectCustomLocality}
-            className="h-[380px] sm:h-[420px] rounded-2xl shadow-2xs border border-slate-100 overflow-hidden" 
-          />
+          {mapViewMode === '3d_city' ? (
+            <CityHeatMap3D
+              localityName={currentLocation.localityName || currentLocation.city}
+              cityName={currentLocation.city}
+              temperature={Math.round(currentTemp)}
+              feelsLike={Math.round(feelsLike)}
+              riskCategory={actionResult.riskLevel}
+              riskScore={actionResult.riskScore}
+              coolingCentres={coolingCentres}
+              height={460}
+              onSelectShelter={() => handleLocateOnMap()}
+            />
+          ) : (
+            <HeatRiskMap 
+              locations={locations} 
+              selectedLocationId={selectedZone?.id} 
+              onSelectLocation={selectCustomLocality}
+              className="h-[380px] sm:h-[420px] rounded-2xl shadow-2xs border border-slate-100 overflow-hidden" 
+            />
+          )}
         </div>
       </section>
 
@@ -225,12 +279,12 @@ export const DashboardPage: React.FC = () => {
         />
       </section>
 
-      {/* 10. OTHER REGIONAL HOTSPOTS & SOLAR ARC TRACKER */}
+      {/* 10. OTHER REGIONAL HOTSPOTS & 3D THERMAL TELEMETRY */}
       <section aria-label="Other Hotspots & Solar Arc Tracker" className="space-y-6">
         <OtherCitiesRail />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          <div className="lg:col-span-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          <div>
             <HeatRiskCard
               score={actionResult.riskScore}
               category={actionResult.riskLevel === 'extreme' ? 'critical' : actionResult.riskLevel}
@@ -240,7 +294,21 @@ export const DashboardPage: React.FC = () => {
             />
           </div>
 
-          <div className="lg:col-span-6">
+          <div>
+            <TemperatureOrb3D
+              temperature={currentTemp}
+              feelsLike={feelsLike}
+              riskCategory={actionResult.riskLevel}
+              riskScore={actionResult.riskScore}
+              condition={currentReading?.weather_condition || 'Active Telemetry'}
+              localityName={currentLocation.localityName || currentLocation.city}
+              height="100%"
+              className="h-full min-h-[320px]"
+              onClick={() => setIsHourlyModalOpen(true)}
+            />
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-1">
             <SolarArcGauge
               sunrise="05:48 AM"
               sunset="06:42 PM"

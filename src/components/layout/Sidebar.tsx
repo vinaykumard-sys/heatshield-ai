@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -24,8 +25,9 @@ import {
   Cpu, 
   X, 
   PhoneCall, 
-  ChevronDown,
-  MessageCircle
+  ChevronRight,
+  MessageCircle,
+  Radio
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../common/BrandLogo';
@@ -42,6 +44,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   show?: boolean;
   badge?: number | string;
+  badgeType?: 'alert' | 'info' | 'pulse';
   aliasMatches?: string[];
 }
 
@@ -57,25 +60,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { user, role, isAdmin, isVolunteer } = useAuth();
   const location = useLocation();
+  const shouldReduceMotion = useReducedMotion();
+  const activeLayoutId = useId();
 
   // Close mobile sidebar automatically whenever pathname changes
   useEffect(() => {
     onCloseMobile();
   }, [location.pathname]);
 
+  // Handle Escape key to close mobile menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, onCloseMobile]);
+
   const navGroups: NavGroup[] = [
     {
       title: 'Main',
       items: [
         { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/map', label: 'Heat Map', icon: MapPin, aliasMatches: ['/heat-map', '/explore'] },
+        { to: '/map', label: 'Heat Map', icon: MapPin, aliasMatches: ['/heat-map', '/explore'], badge: '3D', badgeType: 'info' },
         { to: '/predictions', label: 'Forecast', icon: TrendingUp },
       ]
     },
     {
       title: 'Heat Safety',
       items: [
-        { to: '/heat-alerts', label: 'Heat Alerts', icon: Flame, aliasMatches: ['/alerts'] },
+        { to: '/heat-alerts', label: 'Heat Alerts', icon: Flame, aliasMatches: ['/alerts'], badge: 'Live', badgeType: 'alert' },
         { to: '/resident-dashboard', label: 'My Safety', icon: ShieldCheck, aliasMatches: ['/my-safety'] },
         { to: '/water-stations', label: 'Nearby Help', icon: Droplets },
         { to: '/cooling-centres', label: 'Cooling Centres', icon: Building2 },
@@ -92,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { to: '/hospital-directory', label: 'Hospital Directory', icon: Stethoscope },
         { to: '/academy', label: 'Heat Academy', icon: Sparkles },
         { to: '/heat-simulator', label: 'Heat Simulator', icon: Sliders },
-        { to: '/assistant', label: 'AI Assistant', icon: Bot },
+        { to: '/assistant', label: 'AI Assistant', icon: Bot, badge: 'AI', badgeType: 'info' },
       ]
     },
     ...(isAdmin || isVolunteer ? [{
@@ -125,59 +141,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop Overlay with Frosted Glass */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 z-[1040] bg-slate-900/30 backdrop-blur-xs lg:hidden transition-opacity duration-200"
+          className="fixed inset-0 z-[1040] bg-slate-900/40 backdrop-blur-xs lg:hidden transition-opacity duration-200"
           onClick={onCloseMobile}
           aria-hidden="true"
         />
       )}
 
-      {/* Slim & Sleek Navigation Rail */}
+      {/* 3D-Aware Slim & Sleek Navigation Rail */}
       <aside 
-        className={`fixed lg:static top-0 bottom-0 left-0 z-[1050] lg:z-auto w-[256px] shrink-0 bg-white/95 backdrop-blur-xl border-r border-[#E9F0FA] flex flex-col transition-transform duration-200 ease-out lg:rounded-l-[32px] ${
+        className={`fixed lg:static top-0 bottom-0 left-0 z-[1050] lg:z-auto w-[264px] shrink-0 bg-white/95 backdrop-blur-2xl border-r border-[#E8EFF9] flex flex-col transition-transform duration-250 ease-out lg:rounded-l-[32px] shadow-[1px_0_24px_rgba(15,35,70,0.05)] lg:shadow-none select-none ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         aria-label="Sidebar navigation"
       >
         {/* Top Brand Header */}
-        <div className="h-[72px] px-5 flex items-center justify-between border-b border-[#E9F0FA] shrink-0">
-          <Link to="/dashboard" onClick={onCloseMobile} className="flex items-center group">
+        <div className="h-[72px] px-5 flex items-center justify-between border-b border-[#E8EFF9] shrink-0 bg-gradient-to-b from-white to-[#F9FBFE]">
+          <Link 
+            to="/dashboard" 
+            onClick={onCloseMobile} 
+            className="flex items-center group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-xl"
+            aria-label="HeatShield AI - Return to dashboard"
+          >
             <BrandLogo size="md" showBadge={true} />
           </Link>
           <button 
             onClick={onCloseMobile}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-[#EEF3FB] lg:hidden transition-colors cursor-pointer"
-            aria-label="Close menu"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-[#EEF3FB] lg:hidden transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            aria-label="Close navigation menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Real-time System Status Pill */}
-        <div className="px-4 pt-3.5 pb-1">
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-[#EEF3FB] border border-[#E5EDF7] text-[11px] font-semibold text-slate-600">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              <span className="text-slate-700 font-bold tracking-tight">Heat Defense</span>
-            </span>
-            <span className="text-[10px] uppercase font-bold text-blue-600 bg-white px-2 py-0.5 rounded-full shadow-2xs border border-blue-100">
-              Active
-            </span>
+        {/* 3D-styled Real-time Heat Defense Status Pill */}
+        <div className="px-3.5 pt-3.5 pb-1">
+          <div className="relative group overflow-hidden px-3 py-2 rounded-2xl bg-gradient-to-r from-[#EEF4FD] via-[#F4F8FE] to-[#EEF4FD] border border-[#DFEAF8] shadow-[0_2px_8px_rgba(20,50,90,0.04)] text-[11px] font-semibold text-slate-700 transition-all hover:border-blue-200">
+            {/* Subtle ambient shimmer edge */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                </span>
+                <span className="text-slate-800 font-bold tracking-tight text-xs">Heat Defense</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-blue-700 bg-white/90 px-2 py-0.5 rounded-full shadow-2xs border border-blue-100/80">
+                <Radio className="w-2.5 h-2.5 text-blue-500 animate-pulse" />
+                <span>Live</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Items (Modern soft navigation pills with active blue state & inactive hover state) */}
-        <div className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+        {/* Navigation Items (Layered 3D active pill glider & silky transitions) */}
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto overscroll-contain" aria-label="Main navigation menu">
           {navGroups.map((group) => {
             const visibleItems = group.items.filter(item => item.show === undefined || item.show);
             if (visibleItems.length === 0) return null;
 
             return (
               <div key={group.title} className="space-y-1">
-                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  {group.title}
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400/90 flex items-center justify-between">
+                  <span>{group.title}</span>
                 </div>
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
@@ -187,68 +216,99 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       key={item.to}
                       to={item.to}
                       onClick={onCloseMobile}
-                      className={`group flex items-center justify-between px-3.5 py-2.5 text-xs transition-all duration-150 ${
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`relative group flex items-center justify-between px-3.5 py-2.5 text-xs rounded-2xl transition-all duration-150 transform-gpu focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                         isActive
-                          ? 'bg-blue-600 text-white rounded-2xl shadow-md shadow-blue-500/20 font-semibold'
-                          : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 rounded-2xl font-medium'
-                      }`}
+                          ? 'text-white font-semibold shadow-md shadow-blue-500/25'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-medium'
+                      } ${!shouldReduceMotion && !isActive ? 'hover:translate-x-1' : ''}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      {/* Smooth Liquid Active Glider */}
+                      {isActive && (
+                        <motion.div
+                          layoutId={`sidebarActiveIndicator-${activeLayoutId}`}
+                          className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-blue-500 z-0 shadow-sm"
+                          transition={{
+                            type: shouldReduceMotion ? false : 'spring',
+                            stiffness: 380,
+                            damping: 32,
+                          }}
+                        >
+                          {/* Inner 3D specular highlight */}
+                          <div className="absolute inset-x-2 top-0 h-px bg-white/30 rounded-full" />
+                        </motion.div>
+                      )}
+
+                      <div className="relative z-10 flex items-center gap-3 min-w-0">
+                        <Icon className={`w-4 h-4 shrink-0 transition-transform ${!shouldReduceMotion ? 'group-hover:scale-110' : ''} ${
+                          isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'
+                        }`} />
                         <span className="truncate">{item.label}</span>
                       </div>
-                      {isActive ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.95)] animate-pulse shrink-0 ml-1" />
-                      ) : item.badge !== undefined ? (
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-600">
-                          {item.badge}
-                        </span>
-                      ) : null}
+
+                      <div className="relative z-10 flex items-center gap-1.5 shrink-0 ml-1">
+                        {isActive ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.95)] animate-pulse" />
+                        ) : item.badge !== undefined ? (
+                          <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-full ${
+                            item.badgeType === 'alert'
+                              ? 'bg-rose-100 text-rose-600 animate-pulse'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </div>
                     </Link>
                   );
                 })}
               </div>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Rail Footer: User Profile Chip & Settings */}
-        <div className="p-3 border-t border-[#E9F0FA] space-y-2 shrink-0 bg-white/70">
+        {/* Rail Footer: Elevated Layered Profile Chip & Settings Dock */}
+        <div className="p-3 border-t border-[#E8EFF9] space-y-2 shrink-0 bg-white/80 backdrop-blur-md">
           <Link
             to="/account"
             onClick={onCloseMobile}
-            className={`flex items-center gap-2.5 p-2 rounded-2xl text-xs transition-all btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+            aria-current={location.pathname === '/account' ? 'page' : undefined}
+            className={`group relative flex items-center gap-2.5 p-2 rounded-2xl text-xs transition-all duration-150 border focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
               location.pathname === '/account'
-                ? 'bg-blue-50 text-blue-700 font-bold border border-blue-100'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-[#EEF3FB] font-medium'
+                ? 'bg-blue-50 text-blue-800 font-bold border-blue-200/90 shadow-xs'
+                : 'bg-slate-50/70 hover:bg-[#EEF3FB] text-slate-700 hover:text-slate-900 border-[#E5EDF7]'
             }`}
           >
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-400 text-white flex items-center justify-center font-bold text-[11px] shadow-xs shrink-0 ring-1 ring-white">
+            {/* Iridescent 3D Avatar Orb */}
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 ring-2 ring-white/90 group-hover:ring-blue-200 transition-all">
               {userInitial}
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <div className="truncate font-bold text-slate-800 text-xs">
-                {user?.full_name || 'Resident'}
+              <div className="truncate font-bold text-slate-800 text-xs flex items-center gap-1">
+                <span className="truncate">{user?.full_name || 'Resident'}</span>
               </div>
-              <div className="text-[10px] text-slate-400 truncate">
-                {roleLabel}
+              <div className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>{roleLabel}</span>
               </div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
 
-          <div className="flex items-center gap-1 px-1">
+          <div className="flex items-center gap-1.5 pt-0.5">
             <Link
               to="/settings"
               onClick={onCloseMobile}
               title="Application Settings"
-              className={`p-2 rounded-xl text-xs font-medium transition-colors flex-1 flex items-center justify-center gap-1.5 btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              aria-label="Settings"
+              aria-current={location.pathname === '/settings' ? 'page' : undefined}
+              className={`p-2 rounded-xl text-xs font-semibold transition-colors flex-1 flex items-center justify-center gap-1.5 border focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                 location.pathname === '/settings'
-                  ? 'bg-blue-50 text-blue-600 font-semibold border border-blue-100'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-[#EEF3FB]'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-2xs'
+                  : 'bg-white hover:bg-[#EEF3FB] text-slate-600 hover:text-slate-900 border-[#E5EDF7]'
               }`}
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings className="w-3.5 h-3.5 text-slate-500" />
               <span className="text-[11px]">Settings</span>
             </Link>
             <button
@@ -256,10 +316,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onCloseMobile();
                 if (onOpenEmergency) onOpenEmergency();
               }}
-              title="Immediate Heat Emergency"
-              className="p-2 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 text-xs font-semibold flex items-center justify-center transition-colors px-2.5 btn-press focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer"
+              title="Immediate Heat Emergency Call"
+              aria-label="Immediate Heat Emergency Call"
+              className="p-2 rounded-xl text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 border border-rose-200 text-xs font-bold flex items-center justify-center transition-all px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
             >
-              <PhoneCall className="w-3.5 h-3.5" />
+              <PhoneCall className="w-3.5 h-3.5 animate-pulse" />
             </button>
           </div>
         </div>

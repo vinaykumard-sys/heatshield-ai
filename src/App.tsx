@@ -37,6 +37,7 @@ import { WorkerSafetyPage } from './pages/WorkerSafetyPage';
 import { OrganizationPage } from './pages/OrganizationPage';
 import { CommandCentrePage } from './pages/CommandCentrePage';
 import { SafeRoutesPage } from './pages/SafeRoutesPage';
+import { HeatSafePlannerPage } from './pages/HeatSafePlannerPage';
 import { FamilySafetyPage } from './pages/FamilySafetyPage';
 import { SchoolSafetyPage } from './pages/SchoolSafetyPage';
 import { HospitalDirectoryPage } from './pages/HospitalDirectoryPage';
@@ -308,6 +309,30 @@ export function App() {
                   element={
                     <ProtectedRoute>
                       <SafeRoutesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/safe-route"
+                  element={
+                    <ProtectedRoute>
+                      <SafeRoutesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/heat-safe-planner"
+                  element={
+                    <ProtectedRoute>
+                      <HeatSafePlannerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/planner"
+                  element={
+                    <ProtectedRoute>
+                      <HeatSafePlannerPage />
                     </ProtectedRoute>
                   }
                 />

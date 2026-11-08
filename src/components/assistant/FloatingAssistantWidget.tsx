@@ -28,6 +28,7 @@ import { mockDb } from '../../lib/mockDb';
 import { generateAssistantReply, getSpeechLocale, AssistantContext } from '../../lib/assistantEngine';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Badge } from '../common/Badge';
+import { AssistantOrb3D } from '../3d/AssistantOrb3D';
 
 // 4 One-click resident prompts for widget empty state and quick action
 const WIDGET_PROMPTS = [
@@ -196,23 +197,19 @@ export const FloatingAssistantWidget: React.FC = () => {
 
   return (
     <aside aria-label="AI Assistant" className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 pointer-events-auto">
-      {/* Floating Toggle Button (Visible when closed) */}
+      {/* Floating 3D Interactive Assistant Orb (Visible when closed) */}
       {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2.5 px-4 py-3 bg-[#1E60F2] hover:bg-[#184FD0] text-white rounded-full shadow-[0_10px_25px_-4px_rgba(30,96,242,0.4),0_4px_10px_-2px_rgba(30,96,242,0.2)] hover:shadow-[0_14px_30px_-4px_rgba(30,96,242,0.5),0_6px_14px_-2px_rgba(30,96,242,0.25)] transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-500/25"
-          title="Open HeatShield AI Assistant"
-        >
-          {/* Online green beacon */}
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-          </span>
-
-          <Bot className="w-5 h-5 text-white transition-transform duration-200 group-hover:rotate-6" />
-          <span className="text-xs font-bold tracking-tight hidden sm:inline-block">AI Assistant</span>
-        </button>
+        <div className="flex flex-col items-end">
+          <AssistantOrb3D
+            onClick={() => setIsOpen(true)}
+            isOpen={isOpen}
+            isListening={isListening}
+            isTyping={isTyping}
+            isSpeaking={!!speakingId}
+            size={72}
+            hasUnread={messages.length > 0}
+          />
+        </div>
       )}
 
       {/* Floating Chat Panel (Visible when open) - Rounded-3xl soft-card container */}

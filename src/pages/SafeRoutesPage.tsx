@@ -24,8 +24,10 @@ import {
   Crosshair,
   Loader2,
   ArrowLeftRight,
-  X
+  X,
+  Box
 } from 'lucide-react';
+import { RouteScene3D } from '../components/3d/RouteScene3D';
 import { HeatSafeRoute, GeocodedPlace } from '../types';
 import { fetchHeatSafeRoutes, calculateHeatSafeRoutes } from '../lib/safeRoutingService';
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
@@ -63,12 +65,22 @@ export const SafeRoutesPage: React.FC = () => {
   const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  // UI Panel State
+  // UI Panel & View State
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState(false);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
   const [mapStyle, setMapStyle] = useState<'carto' | 'osm'>('carto');
   const [showStopsLayer, setShowStopsLayer] = useState(true);
+
+  // Invalidate Leaflet map size when switching back to 2D
+  useEffect(() => {
+    if (viewMode === '2d' && mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 120);
+    }
+  }, [viewMode]);
 
   // Live Navigation Simulation State
   const [isNavigating, setIsNavigating] = useState(false);
@@ -627,41 +639,71 @@ export const SafeRoutesPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Travel Mode Selector */}
-        <div className="flex items-center gap-1.5 p-1 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs self-start sm:self-auto">
-          <button
-            onClick={() => setTravelMode('walk')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              travelMode === 'walk'
-                ? 'bg-[#1E60F2] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
-          >
-            <Footprints className="w-3.5 h-3.5" />
-            <span>Walking</span>
-          </button>
-          <button
-            onClick={() => setTravelMode('cycle')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              travelMode === 'cycle'
-                ? 'bg-[#1E60F2] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
-          >
-            <Bike className="w-3.5 h-3.5" />
-            <span>Cycling</span>
-          </button>
-          <button
-            onClick={() => setTravelMode('drive')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              travelMode === 'drive'
-                ? 'bg-[#1E60F2] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
-          >
-            <Car className="w-3.5 h-3.5" />
-            <span>Driving</span>
-          </button>
+        {/* Controls: View Mode (2D / 3D) & Travel Mode Selector */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* 3D vs 2D Mode Switcher */}
+          <div className="flex items-center gap-1 p-1 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs">
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === '3d'
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Box className="w-3.5 h-3.5" />
+              <span>3D City View</span>
+              <span className="px-1 py-0.2 rounded bg-white/20 text-[9px] uppercase font-black">3D</span>
+            </button>
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === '2d'
+                  ? 'bg-[#1E60F2] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>2D Leaflet</span>
+            </button>
+          </div>
+
+          {/* Travel Mode Selector */}
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs">
+            <button
+              onClick={() => setTravelMode('walk')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                travelMode === 'walk'
+                  ? 'bg-[#1E60F2] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Footprints className="w-3.5 h-3.5" />
+              <span>Walking</span>
+            </button>
+            <button
+              onClick={() => setTravelMode('cycle')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                travelMode === 'cycle'
+                  ? 'bg-[#1E60F2] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Bike className="w-3.5 h-3.5" />
+              <span>Cycling</span>
+            </button>
+            <button
+              onClick={() => setTravelMode('drive')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                travelMode === 'drive'
+                  ? 'bg-[#1E60F2] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Car className="w-3.5 h-3.5" />
+              <span>Driving</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -725,46 +767,67 @@ export const SafeRoutesPage: React.FC = () => {
       </Card>
 
       {/* Main Map Viewport with OVERLAID Floating Route Info Panel */}
-      <div className="relative w-full h-[620px] lg:h-[700px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-100">
-        {/* Leaflet Canvas Container */}
-        <div ref={mapContainerRef} className="w-full h-full z-0" />
-
-        {/* Top-Right Map Controls Overlay */}
-        <div className="absolute top-3.5 right-14 z-[900] flex items-center gap-1.5">
-          {/* Fit Route Bounds Button */}
-          <button
-            onClick={handleFitRouteBounds}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
-            title="Fit complete route in map view"
-          >
-            <Crosshair className="w-3.5 h-3.5 text-[#1E60F2]" />
-            <span className="hidden sm:inline">Fit Route</span>
-          </button>
-
-          {/* Toggle Cooling/Water Stops */}
-          <button
-            onClick={() => setShowStopsLayer(!showStopsLayer)}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-md border backdrop-blur-sm transition-all ${
-              showStopsLayer
-                ? 'bg-blue-50 text-[#1E60F2] border-blue-200'
-                : 'bg-white/90 hover:bg-white text-[#64748B] border-[#E2E8F0]'
-            }`}
-            title="Toggle nearby cooling centers & water stops"
-          >
-            <Droplets className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cooling Stops</span>
-          </button>
-
-          {/* Map Layer Switcher */}
-          <button
-            onClick={() => setMapStyle(mapStyle === 'carto' ? 'osm' : 'carto')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
-            title="Toggle map style"
-          >
-            <Layers className="w-3.5 h-3.5 text-[#64748B]" />
-            <span className="text-[11px] uppercase font-bold">{mapStyle}</span>
-          </button>
+      <div className="relative w-full h-[620px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-950">
+        {/* 2D Leaflet Canvas Container (Kept in DOM so state is preserved) */}
+        <div className={`w-full h-full z-0 ${viewMode === '2d' ? 'block' : 'hidden'}`}>
+          <div ref={mapContainerRef} className="w-full h-full z-0" />
         </div>
+
+        {/* 3D City Route Viewport */}
+        {viewMode === '3d' && (
+          <div className="w-full h-full z-0">
+            <RouteScene3D
+              routes={routes}
+              selectedRouteId={selectedRouteId}
+              onSelectRoute={setSelectedRouteId}
+              startPlace={startPlace}
+              endPlace={endPlace}
+              coolingCentres={INITIAL_COOLING_CENTRES}
+              waterPoints={INITIAL_WATER_POINTS}
+              travelMode={travelMode}
+              height="100%"
+            />
+          </div>
+        )}
+
+        {/* Top-Right Map Controls Overlay (Shown for 2D Leaflet Mode) */}
+        {viewMode === '2d' && (
+          <div className="absolute top-3.5 right-14 z-[900] flex items-center gap-1.5">
+            {/* Fit Route Bounds Button */}
+            <button
+              onClick={handleFitRouteBounds}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
+              title="Fit complete route in map view"
+            >
+              <Crosshair className="w-3.5 h-3.5 text-[#1E60F2]" />
+              <span className="hidden sm:inline">Fit Route</span>
+            </button>
+
+            {/* Toggle Cooling/Water Stops */}
+            <button
+              onClick={() => setShowStopsLayer(!showStopsLayer)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-md border backdrop-blur-sm transition-all ${
+                showStopsLayer
+                  ? 'bg-blue-50 text-[#1E60F2] border-blue-200'
+                  : 'bg-white/90 hover:bg-white text-[#64748B] border-[#E2E8F0]'
+              }`}
+              title="Toggle nearby cooling centers & water stops"
+            >
+              <Droplets className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Cooling Stops</span>
+            </button>
+
+            {/* Map Layer Switcher */}
+            <button
+              onClick={() => setMapStyle(mapStyle === 'carto' ? 'osm' : 'carto')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 hover:bg-white text-[#0F172A] text-xs font-semibold shadow-md border border-[#E2E8F0] backdrop-blur-sm transition-all"
+              title="Toggle map style"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#64748B]" />
+              <span className="text-[11px] uppercase font-bold">{mapStyle}</span>
+            </button>
+          </div>
+        )}
 
         {/* Live Navigation Active Banner (Top Center) */}
         {isNavigating && (
@@ -1196,3 +1259,6 @@ export const SafeRoutesPage: React.FC = () => {
     </div>
   );
 };
+
+export const SafeRoutePage = SafeRoutesPage;
+export default SafeRoutesPage;
