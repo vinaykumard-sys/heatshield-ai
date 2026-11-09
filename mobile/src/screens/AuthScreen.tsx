@@ -271,6 +271,26 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               )}
             </TouchableOpacity>
 
+            {/* Instant Demo Access Button */}
+            <TouchableOpacity
+              style={styles.demoButton}
+              onPress={() => {
+                if (onAuthSuccess) {
+                  onAuthSuccess({
+                    user: {
+                      id: 'usr-citizen-demo',
+                      email: 'citizen.resident@heatshield.gov.in',
+                      user_metadata: { full_name: 'Verified Citizen Resident' }
+                    }
+                  });
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color="#34D399" />
+              <Text style={styles.demoButtonText}>Quick Demo Access — Enter Dashboard</Text>
+            </TouchableOpacity>
+
             {/* Helper Text */}
             <Text style={styles.legalSubtext}>
               {mode === 'signin'
@@ -502,6 +522,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
     lineHeight: 16,
+  },
+  demoButton: {
+    backgroundColor: '#064E3B',
+    borderColor: '#059669',
+    borderWidth: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    flexDirection: 'row',
+  },
+  demoButtonText: {
+    color: '#34D399',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 6,
   },
   footerBadges: {
     alignItems: 'center',

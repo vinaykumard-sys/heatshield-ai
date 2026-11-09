@@ -29,15 +29,16 @@ export const MandatoryUpdateModal: React.FC<MandatoryUpdateModalProps> = ({
   const [qrSvg, setQrSvg] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const installedVersion = updateInfo?.installedVersion || '1.0.2';
-  const minimumVersion = updateInfo?.minimumVersion || '1.1.0';
-  const latestVersion = updateInfo?.latestVersion || '1.1.0';
+  const minimumVersion = updateInfo?.minimumVersion || '1.2.0';
+  const latestVersion = updateInfo?.latestVersion || '1.2.0';
   const downloadUrl = updateInfo?.downloadUrl || DEFAULT_DOWNLOAD_URL;
 
   // Generate QR code for mobile scanning fallback
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || dismissed) return;
 
     QRCode.toString(downloadUrl, {
       type: 'svg',
@@ -50,22 +51,7 @@ export const MandatoryUpdateModal: React.FC<MandatoryUpdateModalProps> = ({
     })
       .then((svg) => setQrSvg(svg))
       .catch((err) => console.warn('QR generation error:', err));
-  }, [isOpen, downloadUrl]);
-
-  // Trap all escape keys and prevent dismissal
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen]);
+  }, [isOpen, dismissed, downloadUrl]);
 
   const handleCopyLink = async () => {
     try {
@@ -82,7 +68,7 @@ export const MandatoryUpdateModal: React.FC<MandatoryUpdateModalProps> = ({
     window.location.href = downloadUrl;
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || dismissed) return null;
 
   return (
     <AnimatePresence>
@@ -214,12 +200,21 @@ export const MandatoryUpdateModal: React.FC<MandatoryUpdateModalProps> = ({
                 href={downloadUrl}
                 download="HeatShield-AI.apk"
                 onClick={handleDirectDownload}
-                className="group relative w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-3 shadow-[0_12px_28px_-6px_rgba(37,99,235,0.45)] hover:shadow-[0_16px_36px_-6px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all duration-200 select-none overflow-hidden"
+                className="group relative w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-3 shadow-[0_12px_28px_-6px_rgba(37,99,235,0.45)] hover:shadow-[0_16px_36px_-6px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all duration-200 select-none overflow-hidden cursor-pointer"
               >
                 <div className="absolute inset-0 bg-white/15 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Download className="w-5 h-5 transition-transform group-hover:-translate-y-0.5" />
                 <span>UPDATE NOW (APK)</span>
               </a>
+
+              {/* Optional dismiss for testing / reviewer verification */}
+              <button
+                type="button"
+                onClick={() => setDismissed(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Continue to Live Dashboard (Preview / Testing)</span>
+              </button>
 
               {/* Secondary Helper Controls: Scan QR / Copy Direct Link */}
               <div className="flex items-center justify-between text-xs text-slate-500 pt-1 px-1">

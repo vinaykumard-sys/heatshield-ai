@@ -37,7 +37,8 @@ import java.io.InputStream;
 public class MainActivity extends Activity {
 
     private static final int PERMISSION_REQUEST_LOCATION = 1001;
-    private static final String APP_URL = "file:///android_asset/www/index.html";
+    private static final String APP_URL = "https://heatshield-ai-eight.vercel.app/";
+    private static final String FALLBACK_URL = "file:///android_asset/www/index.html";
 
     private WebView mWebView;
     private FrameLayout mContainer;
@@ -121,7 +122,7 @@ public class MainActivity extends Activity {
 
         // Custom User-Agent suffix for HeatShield AI Native App
         String defaultUA = settings.getUserAgentString();
-        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.1.0 (Android; versionCode 4)");
+        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.2.0 (Android; versionCode 5)");
 
         // Set DownloadListener to handle downloads via system intent
         mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {

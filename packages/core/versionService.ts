@@ -107,11 +107,28 @@ export async function checkAppVersion(): Promise<VersionCheckResult> {
   const inWebView = isAndroidWebView();
   const installedVersion = getInstalledVersion();
 
+  // Test override via query param ?update=true or localStorage
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+  const forceQueryParam = search.includes('update=true') || search.includes('force_update=1');
+
   // Resolve base URL: In WebView with file:// protocol, relative URLs fail, so use the hosted domain
   const isFile = typeof window !== 'undefined' && window.location.protocol === 'file:';
   const baseUrl = !isFile && typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('file')
     ? window.location.origin
     : 'https://heatshield-ai-eight.vercel.app';
+
+  if (forceQueryParam) {
+    return {
+      isOutdated: true,
+      installedVersion: '1.0.2',
+      latestVersion: '1.2.0',
+      minimumVersion: '1.2.0',
+      downloadUrl: `${baseUrl}/downloads/HeatShield-AI.apk`,
+      releaseNotes: 'Mandatory Production Update: High-accuracy responsive layout, touch targets, and offline emergency shelters.',
+      isNativeWebView: inWebView,
+      checkedAt: Date.now()
+    };
+  }
 
   const versionEndpoint = `${baseUrl}/downloads/version.json?t=${Date.now()}`;
 
@@ -137,18 +154,20 @@ export async function checkAppVersion(): Promise<VersionCheckResult> {
     console.warn('[VersionService] Failed to fetch remote version.json:', err);
   }
 
-  const latestVersion = remoteConfig?.version || CURRENT_APP_VERSION;
-  const minimumVersion = remoteConfig?.minimumRequiredVersion || CURRENT_APP_VERSION;
+  const latestVersion = remoteConfig?.version || '1.2.0';
+  const minimumVersion = remoteConfig?.minimumRequiredVersion || '1.2.0';
   const forceUpdate = remoteConfig?.forceUpdate !== undefined ? remoteConfig.forceUpdate : true;
-  const downloadUrl = remoteConfig?.downloadUrl || DEFAULT_DOWNLOAD_URL;
+  const downloadUrl = remoteConfig?.downloadUrl ? (
+    remoteConfig.downloadUrl.startsWith('http') ? remoteConfig.downloadUrl : `${baseUrl}${remoteConfig.downloadUrl}`
+  ) : DEFAULT_DOWNLOAD_URL;
   const releaseNotes = remoteConfig?.releaseNotes || 
     'Major production update: Fully responsive mobile layout, secure login-first authentication, real-road OSRM heat navigation, and broad Android compatibility.';
 
   // Determine if outdated
   // 1. If installedVersion < minimumVersion and forceUpdate is active
-  // 2. Or if running inside Android WebView and installedVersion is older than 1.1.0
+  // 2. Or if running inside Android WebView and installedVersion is older than minimumVersion
   const isBelowMinimum = compareSemver(installedVersion, minimumVersion) < 0;
-  const isOutdated = (isBelowMinimum && forceUpdate) || (inWebView && compareSemver(installedVersion, '1.1.0') < 0);
+  const isOutdated = (isBelowMinimum && forceUpdate) || (inWebView && compareSemver(installedVersion, minimumVersion) < 0);
 
   return {
     isOutdated,

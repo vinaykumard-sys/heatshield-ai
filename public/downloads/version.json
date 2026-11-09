@@ -1,8 +1,10 @@
 {
-  "version": "1.1.0",
-  "versionCode": 4,
-  "releaseDate": "2026-11-08",
-  "releaseNotes": "Production native Android release v1.1.0 (versionCode 4) with fully responsive layout, touch targets, native back button handler, offline shelter caching, and v1+v2+v3 APK signatures.",
+  "version": "1.2.0",
+  "versionCode": 5,
+  "minimumRequiredVersion": "1.2.0",
+  "forceUpdate": true,
+  "releaseDate": "2026-11-09",
+  "releaseNotes": "Production Update: Fully responsive mobile layout, one-tap citizen access, offline heat shelter caching, and verified v1+v2+v3 APK signatures.",
   "minAndroidVersion": "7.0 (API 24)+",
   "targetAndroidVersion": "14.0 (API 34)",
   "supportedAbis": [
@@ -14,8 +16,8 @@
   "universal": true,
   "fileSize": "1.30 MB",
   "sizeBytes": 1358552,
-  "sha256": "7696bd81a4b49e7626ccf38a74091bdb8f120e48458cef21631e229f323999e8",
-  "downloadUrl": "/downloads/HeatShield-AI.apk",
+  "sha256": "dc72e58080bdcb35c0705489dceee146522fccb2a13e49e22616b2f5160cb1c1",
+  "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk",
   "verifiedSchemes": [
     "v1",
     "v2",

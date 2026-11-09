@@ -25,7 +25,7 @@ import { Button } from '../components/common/Button';
 import { ThermalGlobe3D } from '../components/3d/ThermalGlobe3D';
 
 export const AuthPage: React.FC = () => {
-  const { isAuthenticated, user, needsPhoneVerification, login, loginWithGoogle, signup, resetPassword } = useAuth();
+  const { isAuthenticated, user, needsPhoneVerification, login, loginWithGoogle, loginAsDemo, signup, resetPassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -354,6 +354,60 @@ export const AuthPage: React.FC = () => {
                   </p>
                 </div>
 
+                {/* Quick Instant Citizen & Role Access */}
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsSubmitting(true);
+                      await loginAsDemo('resident');
+                      handleAuthSuccess();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 border border-emerald-400/30 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-emerald-200" />
+                    <span>Instant Access — Enter Citizen Dashboard</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  {/* 1-Tap Role Selector for testing all profiles */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        await loginAsDemo('resident');
+                        handleAuthSuccess();
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors text-center"
+                    >
+                      🧑 Citizen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        await loginAsDemo('admin');
+                        handleAuthSuccess();
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors text-center"
+                    >
+                      🛡️ Official
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        await loginAsDemo('volunteer');
+                        handleAuthSuccess();
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors text-center"
+                    >
+                      🤝 Volunteer
+                    </button>
+                  </div>
+                </div>
+
                 {/* Google Sign-In Quick Action */}
                 <div className="space-y-3">
                   <button
@@ -559,6 +613,21 @@ export const AuthPage: React.FC = () => {
                           ? 'Create Resident Account'
                           : 'Send Reset Link'}
                       </Button>
+
+                      {/* Quick Instant Access Button — Jump Directly to Live Dashboard */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsSubmitting(true);
+                          await loginAsDemo();
+                          handleAuthSuccess();
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 border border-emerald-400/30 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-emerald-200" />
+                        <span>Instant Access — Enter Citizen Dashboard</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </form>
 
                     {/* Mode Switcher */}

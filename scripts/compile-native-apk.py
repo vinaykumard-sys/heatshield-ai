@@ -74,8 +74,8 @@ def main():
         "--manifest", manifest,
         "--min-sdk-version", "21",
         "--target-sdk-version", "34",
-        "--version-code", "4",
-        "--version-name", "1.1.0",
+        "--version-code", "5",
+        "--version-name", "1.2.0",
         "-o", base_apk,
         "--java", gen_dir,
         "--auto-add-overlay",
@@ -229,10 +229,12 @@ def main():
         apk_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     version_info = {
-        "version": "1.1.0",
-        "versionCode": 4,
+        "version": "1.2.0",
+        "versionCode": 5,
+        "minimumRequiredVersion": "1.2.0",
+        "forceUpdate": True,
         "releaseDate": time.strftime("%Y-%m-%d"),
-        "releaseNotes": "Production native Android release v1.1.0 (versionCode 4) with fully responsive layout, touch targets, native back button handler, offline shelter caching, and v1+v2+v3 APK signatures.",
+        "releaseNotes": "Production Update: Fully responsive mobile layout, one-tap citizen access, offline heat shelter caching, and verified v1+v2+v3 APK signatures.",
         "minAndroidVersion": "7.0 (API 24)+",
         "targetAndroidVersion": "14.0 (API 34)",
         "supportedAbis": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],
@@ -240,7 +242,7 @@ def main():
         "fileSize": f"{apk_stat.st_size / (1024 * 1024):.2f} MB",
         "sizeBytes": apk_stat.st_size,
         "sha256": apk_sha256,
-        "downloadUrl": "/downloads/HeatShield-AI.apk",
+        "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk",
         "verifiedSchemes": ["v1", "v2", "v3"]
     }
 
