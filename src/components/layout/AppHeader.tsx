@@ -18,6 +18,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { mockDb } from '../../lib/mockDb';
 import { LocationZone } from '../../types';
 import { ProfileDropdown } from '../common/ProfileDropdown';
+import { isNativeApp } from '../../lib/deviceUtils';
 
 export interface AppHeaderProps {
   onOpenMobileSidebar: () => void;
@@ -246,21 +247,23 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
       {/* Right Action Cluster: Download App, SOS, Notification Bell, and Profile Dropdown */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Prominent Download App Button - Hidden on mobile (< sm) because it's in the mobile drawer and dashboard */}
-        <button
-          type="button"
-          onClick={onOpenDownload}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-150 btn-press cursor-pointer border border-blue-500/20 shrink-0"
-          title="Download HeatShield AI Android App"
-          aria-label="Download HeatShield AI Android App"
-        >
-          <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-100 shrink-0" />
-          <span className="hidden md:inline">Download App</span>
-          <span className="md:hidden text-[11px]">APK</span>
-          <span className="hidden lg:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
-            v1.0
-          </span>
-        </button>
+        {/* Prominent Download App Button - Only shown on Web, completely hidden inside the Native Android App */}
+        {!isNativeApp() && (
+          <button
+            type="button"
+            onClick={onOpenDownload}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-150 btn-press cursor-pointer border border-blue-500/20 shrink-0"
+            title="Download HeatShield AI Android App"
+            aria-label="Download HeatShield AI Android App"
+          >
+            <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-100 shrink-0" />
+            <span className="hidden md:inline">Download App</span>
+            <span className="md:hidden text-[11px]">APK</span>
+            <span className="hidden lg:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
+              v1.2
+            </span>
+          </button>
+        )}
 
         {/* SOS Emergency Hotline Button (Pill Button) - Compact responsive design */}
         <button

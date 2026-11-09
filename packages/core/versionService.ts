@@ -193,11 +193,14 @@ export async function checkAppVersion(): Promise<VersionCheckResult> {
   const releaseNotes = remoteConfig?.releaseNotes || 
     'Major production update: Fully responsive mobile layout, secure login-first authentication, real-road OSRM heat navigation, and broad Android compatibility.';
 
-  // Determine if outdated
-  // 1. If installedVersion < minimumVersion and forceUpdate is active
-  // 2. Or if running inside Android WebView and installedVersion is older than minimumVersion
-  const isBelowMinimum = compareSemver(installedVersion, minimumVersion) < 0;
-  const isOutdated = (isBelowMinimum && forceUpdate) || (inWebView && compareSemver(installedVersion, minimumVersion) < 0);
+  // CRITICAL SEPARATION RULE:
+  // The Web Application NEVER asks users to update an APK. Web updates automatically.
+  // Only the Native Android App enforces APK updates when the installed native build is outdated.
+  let isOutdated = false;
+  if (inWebView) {
+    const isBelowMinimum = compareSemver(installedVersion, minimumVersion) < 0;
+    isOutdated = isBelowMinimum && forceUpdate;
+  }
 
   return {
     isOutdated,

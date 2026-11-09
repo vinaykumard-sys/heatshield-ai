@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { VersionCheckResult, DEFAULT_DOWNLOAD_URL } from '../../lib/versionService';
+import { isNativeApp } from '../../lib/deviceUtils';
 
 export interface MandatoryUpdateModalProps {
   isOpen: boolean;
@@ -68,7 +69,8 @@ export const MandatoryUpdateModal: React.FC<MandatoryUpdateModalProps> = ({
     window.location.href = downloadUrl;
   };
 
-  if (!isOpen || dismissed) return null;
+  const isForceParam = typeof window !== 'undefined' && window.location.search.includes('update=true');
+  if (!isOpen || dismissed || (!isNativeApp() && !isForceParam)) return null;
 
   return (
     <AnimatePresence>

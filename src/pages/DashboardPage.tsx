@@ -17,6 +17,7 @@ import {
 import { LocationTrackerBar } from '../components/common/LocationTrackerBar';
 import { EmergencyModal } from '../components/common/EmergencyModal';
 import { AppDownloadSection } from '../components/common/AppDownloadSection';
+import { isNativeApp } from '../lib/deviceUtils';
 import { NewRequestModal } from '../components/requests/NewRequestModal';
 import { SolarArcGauge } from '../components/common/SolarArcGauge';
 import { HeatRiskCard } from '../components/common/HeatRiskCard';
@@ -321,8 +322,8 @@ export const DashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Modern Android App Download Showcase */}
-      <AppDownloadSection />
+      {/* Modern Android App Download Showcase (Web only; hidden inside the native Android app) */}
+      {!isNativeApp() && <AppDownloadSection />}
 
       {/* Emergency Modal */}
       <EmergencyModal

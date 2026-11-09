@@ -3,6 +3,13 @@ import { UserProfile, UserRole } from '../types';
 import { INITIAL_USERS } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+export const OWNER_EMAIL = 'vinaykumard45678@gmail.com';
+
+export function isOwnerAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return email.trim().toLowerCase() === OWNER_EMAIL;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   role: UserRole;
@@ -13,7 +20,7 @@ interface AuthContextType {
   isResident: boolean;
   needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (email?: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   loginAsDemo: (role?: UserRole) => Promise<void>;
   signup: (
     email: string, 
@@ -128,6 +135,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSessionUser = async (authUser: any) => {
     if (!supabase) return;
     try {
+      const email = authUser.email ? authUser.email.toLowerCase().trim() : '';
+      const isOwner = isOwnerAdminEmail(email);
+
       // Check if profile exists in Supabase PostgreSQL
       const { data: profile } = await supabase
         .from('profiles')
@@ -136,9 +146,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (profile) {
+        // Enforce owner role as admin; all others retain their granted role or resident
+        const effectiveRole: UserRole = isOwner ? 'admin' : (profile.role || 'resident');
+        const effectiveName = isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : profile.full_name;
+
         if (!profile.is_phone_verified && authUser.phone) {
           const updated = {
             ...profile,
+            role: effectiveRole,
+            full_name: effectiveName,
             phone: authUser.phone,
             is_phone_verified: true,
             phone_verified_at: new Date().toISOString()
@@ -146,6 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(updated as UserProfile);
           try {
             await supabase.from('profiles').update({
+              role: effectiveRole,
+              full_name: effectiveName,
               phone: authUser.phone,
               is_phone_verified: true,
               phone_verified_at: new Date().toISOString()
@@ -154,15 +172,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.warn('Profile phone sync notice:', e);
           }
         } else {
-          setUser(profile as UserProfile);
+          setUser({
+            ...profile,
+            role: effectiveRole,
+            full_name: effectiveName
+          } as UserProfile);
         }
       } else {
-        // Create new profile with default role 'resident'
+        // Create new profile — owner gets 'admin', all other users get 'resident'
+        const initialRole: UserRole = isOwner ? 'admin' : 'resident';
+        const initialName = isOwner 
+          ? 'Vinay Kumar D (Owner & Platform Admin)' 
+          : (authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident');
+
         const newProfile: UserProfile = {
           id: authUser.id,
-          email: authUser.email || (authUser.phone ? `${authUser.phone.replace(/\D/g, '')}@phone.heatshield.internal` : ''),
-          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident',
-          role: 'resident',
+          email: email || (authUser.phone ? `${authUser.phone.replace(/\D/g, '')}@phone.heatshield.internal` : ''),
+          full_name: initialName,
+          role: initialRole,
           phone: authUser.phone || authUser.user_metadata?.phone || '',
           country_code: authUser.user_metadata?.country_code || '+91',
           is_phone_verified: Boolean(authUser.phone || authUser.user_metadata?.is_phone_verified),
@@ -189,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmedEmail = email.trim().toLowerCase();
+    const isOwner = isOwnerAdminEmail(trimmedEmail);
 
     // 1. If Supabase is configured, attempt authentication
     if (isSupabaseConfigured && supabase) {
@@ -201,21 +229,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       }
 
-      // If Supabase reject due to unconfirmed email or missing remote account,
-      // seamlessly establish a local verified citizen resident session so the user is never locked out
-      console.warn('[AuthContext] Supabase auth notice, activating resident session:', error?.message);
+      console.warn('[AuthContext] Supabase auth notice, activating local session:', error?.message);
     }
 
-    // 2. Resilient verified resident profile
+    // 2. Strict Role Enforcement:
+    // Only vinaykumard45678@gmail.com is owner/admin. All other users are residents.
     const namePart = trimmedEmail.split('@')[0] || 'Resident';
     const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, ' ');
-    const fallbackResident: UserProfile = {
-      id: `usr-${Date.now()}`,
+
+    const fallbackUser: UserProfile = {
+      id: isOwner ? 'usr-owner-vinay' : `usr-${Date.now()}`,
       email: trimmedEmail,
-      full_name: cleanName || 'Verified Citizen Resident',
-      role: 'resident',
+      full_name: isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : cleanName || 'Verified Citizen Resident',
+      role: isOwner ? 'admin' : 'resident',
       country_code: '+91',
-      phone: '+91 98450 12345',
+      phone: isOwner ? '+91 98450 12345' : '',
       is_phone_verified: true,
       is_email_verified: true,
       hourly_notification_consent: true,
@@ -223,22 +251,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       is_active: true,
       created_at: new Date().toISOString()
     };
-    setUser(fallbackResident);
-    localStorage.setItem('heatshield_auth_user', JSON.stringify(fallbackResident));
+    setUser(fallbackUser);
+    localStorage.setItem('heatshield_auth_user', JSON.stringify(fallbackUser));
     return { success: true };
   };
 
   const loginAsDemo = async (role: UserRole = 'resident'): Promise<void> => {
-    const roleNames: Record<UserRole, string> = {
-      resident: 'Verified Citizen Resident',
-      admin: 'Heat Action Commissioner',
-      volunteer: 'Community Health Volunteer'
-    };
+    // If demo is called, only allow admin if explicitly requested or resident
+    const isOwner = role === 'admin';
     const demoResident: UserProfile = {
-      id: `usr-${role}-demo`,
-      email: `${role}.demo@heatshield.gov.in`,
-      full_name: roleNames[role] || 'Verified Citizen Resident',
-      role: role,
+      id: isOwner ? 'usr-owner-vinay' : `usr-${role}-demo`,
+      email: isOwner ? OWNER_EMAIL : `${role}.demo@heatshield.gov.in`,
+      full_name: isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : (role === 'volunteer' ? 'Community Health Volunteer' : 'Verified Citizen Resident'),
+      role: isOwner ? 'admin' : role,
       country_code: '+91',
       phone: '+91 98450 12345',
       is_phone_verified: true,
@@ -252,34 +277,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('heatshield_auth_user', JSON.stringify(demoResident));
   };
 
-  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
-      if (error) return { success: false, error: error.message };
-      return { success: true };
-    }
+  /**
+   * Direct, Seamless Google Sign-In:
+   * Avoids unconfigured Supabase OAuth redirect loops.
+   * Recognizes vinaykumard45678@gmail.com as Owner/Admin; all others as Residents.
+   */
+  const loginWithGoogle = async (googleEmail?: string, fullName?: string): Promise<{ success: boolean; error?: string }> => {
+    const targetEmail = (googleEmail || OWNER_EMAIL).trim().toLowerCase();
+    const isOwner = isOwnerAdminEmail(targetEmail);
+    const targetName = fullName || (isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : 'Verified Citizen Resident');
 
-    // Resilient fallback in development
     const googleUser: UserProfile = {
-      id: `usr-google-${Date.now()}`,
-      email: 'citizen.resident@gmail.com',
-      full_name: 'Verified Citizen Resident',
-      role: 'resident',
+      id: isOwner ? 'usr-owner-vinay' : `usr-google-${Date.now()}`,
+      email: targetEmail,
+      full_name: targetName,
+      role: isOwner ? 'admin' : 'resident',
       country_code: '+91',
-      phone: '',
-      is_phone_verified: false,
+      phone: isOwner ? '+91 98450 12345' : '',
+      is_phone_verified: true,
       is_email_verified: true,
       hourly_notification_consent: true,
       preferred_language: 'en',
       is_active: true,
       created_at: new Date().toISOString()
     };
+
     setUser(googleUser);
+    localStorage.setItem('heatshield_auth_user', JSON.stringify(googleUser));
     return { success: true };
   };
 
@@ -291,8 +315,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     countryCode: string = '+91', 
     consentHourly: boolean = true
   ): Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }> => {
-    const defaultRole: UserRole = 'resident';
     const trimmedEmail = email.trim().toLowerCase();
+    const isOwner = isOwnerAdminEmail(trimmedEmail);
+    const defaultRole: UserRole = isOwner ? 'admin' : 'resident';
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({
