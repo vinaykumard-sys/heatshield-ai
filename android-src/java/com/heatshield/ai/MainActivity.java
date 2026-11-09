@@ -120,6 +120,16 @@ public class MainActivity extends Activity {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
+        // Expose synchronous Native Bridge Interface for immediate version detection
+        mWebView.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public String getVersion() { return "1.2.0"; }
+            @android.webkit.JavascriptInterface
+            public int getVersionCode() { return 5; }
+            @android.webkit.JavascriptInterface
+            public boolean isNative() { return true; }
+        }, "HeatShieldNative");
+
         // Custom User-Agent suffix for HeatShield AI Native App
         String defaultUA = settings.getUserAgentString();
         settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.2.0 (Android; versionCode 5)");
@@ -226,12 +236,23 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                view.evaluateJavascript(
+                    "window.__HEATSHIELD_NATIVE_APP__ = true; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.2.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 5;",
+                    null
+                );
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
                     "window.__HEATSHIELD_NATIVE_APP__ = true; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.1.0'; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 4;",
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.2.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 5;",
                     null
                 );
                 dismissSplash();

@@ -4,8 +4,8 @@
  * and enforcement of mandatory version updates.
  */
 
-export const CURRENT_APP_VERSION = '1.1.0';
-export const CURRENT_VERSION_CODE = 4;
+export const CURRENT_APP_VERSION = '1.2.0';
+export const CURRENT_VERSION_CODE = 5;
 export const DEFAULT_DOWNLOAD_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
 
 export interface RemoteVersionConfig {
@@ -77,23 +77,53 @@ export function isAndroidWebView(): boolean {
 
 /**
  * Detect currently installed version.
- * - Checks window.__HEATSHIELD_NATIVE_VERSION__
- * - Checks if in Android WebView without version flag (older build v1.0.2)
- * - Defaults to CURRENT_APP_VERSION for web clients
+ * 1. Checks native JavascriptInterface bridge: window.HeatShieldNative.getVersion()
+ * 2. Checks injected window global: window.__HEATSHIELD_NATIVE_VERSION__
+ * 3. Checks User-Agent string for HeatShieldApp/X.Y.Z
+ * 4. Checks legacy signatures (v1.0.2 / v1.1.0)
+ * 5. Falls back to CURRENT_APP_VERSION (v1.2.0)
  */
 export function getInstalledVersion(): string {
   if (typeof window === 'undefined') {
     return CURRENT_APP_VERSION;
   }
 
+  // 1. Synchronous Android JavascriptInterface bridge
+  try {
+    const nativeBridge = (window as any).HeatShieldNative;
+    if (nativeBridge && typeof nativeBridge.getVersion === 'function') {
+      const ver = nativeBridge.getVersion();
+      if (ver && String(ver).trim().length > 0) {
+        return String(ver).trim();
+      }
+    }
+  } catch (e) {
+    // Ignore bridge access errors
+  }
+
+  // 2. Injected window global from Android WebView
   const nativeVersion = (window as any).__HEATSHIELD_NATIVE_VERSION__;
   if (typeof nativeVersion === 'string' && nativeVersion.trim().length > 0) {
     return nativeVersion.trim();
   }
 
-  // If in Android WebView and no explicit native version is set,
-  // it signifies an older APK build prior to v1.1.0 (such as v1.0.2)
-  if (isAndroidWebView()) {
+  // 3. User-Agent parsing: "HeatShieldApp/1.2.0"
+  const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+  const uaMatch = ua.match(/HeatShieldApp\/([0-9.]+)/i);
+  if (uaMatch && uaMatch[1]) {
+    return uaMatch[1].trim();
+  }
+
+  // 4. Specific legacy builds detection
+  if (ua.includes('HeatShieldApp/1.0.2')) {
+    return '1.0.2';
+  }
+  if (ua.includes('HeatShieldApp/1.1.0')) {
+    return '1.1.0';
+  }
+
+  // 5. Older APK running purely offline under file:// protocol without version tag
+  if (window.location.protocol === 'file:') {
     return '1.0.2';
   }
 

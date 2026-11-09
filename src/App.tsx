@@ -80,8 +80,12 @@ export function App() {
     const runVersionCheck = async () => {
       try {
         const result = await checkAppVersion();
-        if (mounted && result.isOutdated) {
-          setUpdateInfo(result);
+        if (mounted) {
+          if (result.isOutdated) {
+            setUpdateInfo(result);
+          } else {
+            setUpdateInfo(null);
+          }
         }
       } catch (err) {
         console.warn('[HeatShield] Version check failed:', err);
