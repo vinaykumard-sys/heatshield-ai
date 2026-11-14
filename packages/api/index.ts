@@ -3,13 +3,24 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // Environment variable resolution: Works in Vite (import.meta.env) and Node / React Native (process.env)
 const envUrl =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
-  (typeof process !== 'undefined' && (process.env?.EXPO_PUBLIC_SUPABASE_URL || process.env?.VITE_SUPABASE_URL)) ||
-  '';
+  (typeof process !== 'undefined' && (
+    process.env?.EXPO_PUBLIC_SUPABASE_URL ||
+    process.env?.VITE_SUPABASE_URL ||
+    process.env?.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env?.SUPABASE_URL
+  )) ||
+  'https://shayisuhjkpuulmouxju.supabase.co';
 
 const envKey =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
-  (typeof process !== 'undefined' && (process.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY)) ||
-  '';
+  (typeof process !== 'undefined' && (
+    process.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env?.VITE_SUPABASE_ANON_KEY ||
+    process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env?.SUPABASE_ANON_KEY ||
+    process.env?.SUPABASE_PUBLISHABLE_KEY
+  )) ||
+  'sb_publishable_R4EYgtfRm5tNoGb61YdDng_JDTUTejW';
 
 export const supabaseUrl: string = envUrl;
 export const supabaseAnonKey: string = envKey;
@@ -35,6 +46,7 @@ export function createSupabaseClient(url = supabaseUrl, key = supabaseAnonKey): 
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      flowType: 'pkce',
     },
   });
 }

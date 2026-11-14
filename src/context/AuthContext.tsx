@@ -137,14 +137,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const email = authUser.email ? authUser.email.toLowerCase().trim() : '';
 
-      // Check if profile exists in Supabase PostgreSQL
-      const { data: profile, error } = await supabase
+      // Check if profile exists in Supabase PostgreSQL by user ID, or fallback by verified email
+      let profile: any = null;
+      const { data: profileById, error: idError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
-      if (profile && !error) {
+      if (profileById && !idError) {
+        profile = profileById;
+      } else if (email) {
+        const { data: profileByEmail } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+        if (profileByEmail) {
+          profile = profileByEmail;
+          // Synchronize profile ID if it differed due to provider link
+          if (profile.id !== authUser.id) {
+            try {
+              await supabase
+                .from('profiles')
+                .update({ id: authUser.id, updated_at: new Date().toISOString() })
+                .eq('email', email);
+              profile.id = authUser.id;
+            } catch (syncErr) {
+              console.warn('Profile ID synchronization note:', syncErr);
+            }
+          }
+        }
+      }
+
+      if (profile) {
         // Enforce role strictly from Supabase DB record
         const dbRole: UserRole = profile.role === 'admin' 
           ? 'admin' 
@@ -241,14 +267,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Google Sign-In via Supabase OAuth
+   * Google Sign-In via Supabase OAuth with dedicated callback handler
    */
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const callbackUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : 'https://heatshield-ai-eight.vercel.app/auth/callback';
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,
+          redirectTo: callbackUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
       });
       if (error) {

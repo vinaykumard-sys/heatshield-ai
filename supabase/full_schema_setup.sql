@@ -476,19 +476,40 @@ CREATE POLICY "Residents can view their own consent records"
 -- AUTOMATIC PROFILE CREATION TRIGGER ON AUTH.SIGNUP
 -- ==============================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
-    INSERT INTO public.profiles (id, email, full_name, role, preferred_language)
+    INSERT INTO public.profiles (
+        id, 
+        email, 
+        full_name, 
+        role, 
+        preferred_language,
+        created_at,
+        updated_at
+    )
     VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'role', 'resident'),
-        COALESCE(NEW.raw_user_meta_data->>'preferred_language', 'en')
-    );
+        COALESCE(NEW.raw_user_meta_data->>'preferred_language', 'en'),
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
+        updated_at = NOW();
+    RETURN NEW;
+EXCEPTION WHEN unique_violation THEN
+    UPDATE public.profiles
+    SET id = NEW.id,
+        full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', public.profiles.full_name),
+        updated_at = NOW()
+    WHERE email = NEW.email;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Drop trigger if exists and recreate
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;

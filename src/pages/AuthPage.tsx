@@ -54,6 +54,18 @@ export const AuthPage: React.FC = () => {
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
+  // If redirected back from OAuth callback with query/hash parameters, forward to /auth/callback
+  useEffect(() => {
+    if (
+      location.search.includes('code=') ||
+      location.search.includes('error=') ||
+      location.hash.includes('access_token=') ||
+      location.hash.includes('error=')
+    ) {
+      navigate(`/auth/callback${location.search}${location.hash}`, { replace: true });
+    }
+  }, [location, navigate]);
+
   // If already authenticated and not currently playing the transition, redirect immediately
   useEffect(() => {
     if (isAuthenticated && !isTransitioning) {
@@ -160,12 +172,11 @@ export const AuthPage: React.FC = () => {
       const res = await loginWithGoogle();
       if (!res.success) {
         setErrorMsg(res.error || 'Google authentication encountered an issue.');
-      } else {
-        handleAuthSuccess();
+        setIsGoogleLoading(false);
       }
+      // Keep loading indicator active while browser redirects to Google OAuth
     } catch (e: any) {
       setErrorMsg(e.message || 'Google authentication error.');
-    } finally {
       setIsGoogleLoading(false);
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -16,6 +16,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 // Public Pages
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TermsPage } from './pages/TermsPage';
 
@@ -67,6 +68,18 @@ const SettingsRoute: React.FC = () => {
 // Root route: Check authentication before routing
 const RootRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+
+  // If OAuth callback parameters arrive at root, route directly to /auth/callback
+  if (
+    location.search.includes('code=') ||
+    location.search.includes('error=') ||
+    location.hash.includes('access_token=') ||
+    location.hash.includes('error=')
+  ) {
+    return <Navigate to={`/auth/callback${location.search}${location.hash}`} replace />;
+  }
+
   if (isLoading) return <LoadingSpinner />;
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
@@ -146,6 +159,10 @@ export function App() {
                       <AuthPage />
                     </PublicLayout>
                   }
+                />
+                <Route
+                  path="/auth/callback"
+                  element={<AuthCallbackPage />}
                 />
                 <Route
                   path="/landing"

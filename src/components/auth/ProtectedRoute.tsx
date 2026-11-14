@@ -22,6 +22,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <LoadingSpinner />;
   }
 
+  // If arriving at a protected route with OAuth callback parameters, delegate to /auth/callback
+  if (
+    location.search.includes('code=') ||
+    location.search.includes('error=') ||
+    location.hash.includes('access_token=') ||
+    location.hash.includes('error=')
+  ) {
+    return <Navigate to={`/auth/callback${location.search}${location.hash}`} replace />;
+  }
+
   // Strictly require authentication for all protected routes
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
