@@ -37,7 +37,7 @@ import java.io.InputStream;
 public class MainActivity extends Activity {
 
     private static final int PERMISSION_REQUEST_LOCATION = 1001;
-    private static final String APP_URL = "https://heatshield-ai-eight.vercel.app/";
+    private static final String APP_URL = "file:///android_asset/www/index.html";
     private static final String FALLBACK_URL = "file:///android_asset/www/index.html";
 
     private WebView mWebView;
@@ -287,7 +287,7 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && request != null && request.getUrl() != null) {
                     Uri uri = request.getUrl();
                     String path = uri.getPath();
-                    if (path != null && (path.startsWith("/assets/") || path.equals("/favicon.svg") || path.equals("/manifest.json"))) {
+                    if (path != null && (path.startsWith("/_expo/") || path.startsWith("/assets/") || path.equals("/favicon.ico") || path.equals("/favicon.svg") || path.equals("/manifest.json"))) {
                         try {
                             String assetPath = "www" + path;
                             InputStream is = getAssets().open(assetPath);
@@ -297,6 +297,7 @@ public class MainActivity extends Activity {
                             else if (path.endsWith(".png")) mime = "image/png";
                             else if (path.endsWith(".svg")) mime = "image/svg+xml";
                             else if (path.endsWith(".json")) mime = "application/json";
+                            else if (path.endsWith(".ttf")) mime = "font/ttf";
                             return new WebResourceResponse(mime, "UTF-8", is);
                         } catch (Exception e) {
                             // fall back to default loader
@@ -311,8 +312,8 @@ public class MainActivity extends Activity {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(
                     "window.__HEATSHIELD_NATIVE_APP__ = true; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.4.0'; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 7;",
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.5.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 8;",
                     null
                 );
             }
@@ -322,8 +323,8 @@ public class MainActivity extends Activity {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
                     "window.__HEATSHIELD_NATIVE_APP__ = true; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.4.0'; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 7;",
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.5.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 8;",
                     null
                 );
                 dismissSplash();
@@ -493,7 +494,7 @@ public class MainActivity extends Activity {
         if ("heatshield".equalsIgnoreCase(scheme)) {
             String query = uri.getEncodedQuery();
             String fragment = uri.getEncodedFragment();
-            StringBuilder redirectUrl = new StringBuilder("https://heatshield-ai-eight.vercel.app/auth/callback");
+            StringBuilder redirectUrl = new StringBuilder("file:///android_asset/www/index.html");
             if (query != null && !query.isEmpty()) {
                 redirectUrl.append("?").append(query);
             }
@@ -510,8 +511,18 @@ public class MainActivity extends Activity {
 
         // 2. Web callback: https://heatshield-ai-eight.vercel.app/auth/callback
         if ("https".equalsIgnoreCase(scheme) && "heatshield-ai-eight.vercel.app".equalsIgnoreCase(host) && path != null && path.contains("/auth/callback")) {
+            String query = uri.getEncodedQuery();
+            String fragment = uri.getEncodedFragment();
+            StringBuilder redirectUrl = new StringBuilder("file:///android_asset/www/index.html");
+            if (query != null && !query.isEmpty()) {
+                redirectUrl.append("?").append(query);
+            }
+            if (fragment != null && !fragment.isEmpty()) {
+                redirectUrl.append("#").append(fragment);
+            }
+
             if (mWebView != null) {
-                mWebView.loadUrl(uri.toString());
+                mWebView.loadUrl(redirectUrl.toString());
             }
             dismissSplash();
             return;

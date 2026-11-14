@@ -52,6 +52,8 @@ assert(compareSemver('1.2.0', '1.3.0') === -1, '1.2.0 < 1.3.0 -> -1');
 assert(compareSemver('1.3.0', '1.3.0') === 0, '1.3.0 === 1.3.0 -> 0');
 assert(compareSemver('1.3.0', '1.4.0') === -1, '1.3.0 < 1.4.0 -> -1');
 assert(compareSemver('1.4.0', '1.4.0') === 0, '1.4.0 === 1.4.0 -> 0');
+assert(compareSemver('1.4.0', '1.5.0') === -1, '1.4.0 < 1.5.0 -> -1');
+assert(compareSemver('1.5.0', '1.5.0') === 0, '1.5.0 === 1.5.0 -> 0');
 assert(compareSemver('2.0.0', '1.9.9') === 1, '2.0.0 > 1.9.9 -> 1');
 
 // Test outdated detection rules:

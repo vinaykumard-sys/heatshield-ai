@@ -25,6 +25,7 @@ interface Props {
   onNavigateToAssistance: () => void;
   onNavigateToAssistant: () => void;
   onNavigateToProfile?: () => void;
+  user?: any;
   userEmail?: string | null;
   onLogout?: () => void;
 }
@@ -38,12 +39,26 @@ export default function DashboardScreen({
   onNavigateToAssistance,
   onNavigateToAssistant,
   onNavigateToProfile,
+  user,
   userEmail,
   onLogout,
 }: Props) {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [waterModalVisible, setWaterModalVisible] = useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+
+  // Dynamically derive authenticated user details
+  const userMetadata = user?.user_metadata;
+  const currentEmail = user?.email || userEmail || '';
+  const displayName = userMetadata?.full_name || userMetadata?.name || (currentEmail ? currentEmail.split('@')[0] : 'Resident');
+  const displayRole = userMetadata?.role === 'admin' ? 'Administrator' : 'Resident';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map((p: string) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'R';
 
   const handleLogout = () => {
     setProfileSheetVisible(false);
@@ -145,7 +160,7 @@ export default function DashboardScreen({
               <Text style={styles.assistantBadgeText}>AI Consult</Text>
             </TouchableOpacity>
 
-            {/* Profile Avatar / Touch Target: 'VD / Vinay / Resident / ▼' */}
+            {/* Profile Avatar / Touch Target: Dynamic Avatar / Name / Role / ▼ */}
             <TouchableOpacity
               style={styles.headerProfileBtn}
               onPress={() => setProfileSheetVisible(true)}
@@ -153,14 +168,14 @@ export default function DashboardScreen({
               accessibilityLabel="User profile and account settings"
             >
               <View style={styles.headerProfileAvatar}>
-                <Text style={styles.headerProfileAvatarText}>VD</Text>
+                <Text style={styles.headerProfileAvatarText}>{initials}</Text>
               </View>
               <View style={styles.headerProfileTextWrap}>
                 <Text style={styles.headerProfileName} numberOfLines={1}>
-                  Vinay
+                  {displayName.split(' ')[0]}
                 </Text>
                 <Text style={styles.headerProfileRole} numberOfLines={1}>
-                  Resident
+                  {displayRole}
                 </Text>
               </View>
               <Feather name="chevron-down" size={13} color="#64748B" />
@@ -560,17 +575,17 @@ export default function DashboardScreen({
             <View style={styles.modalHeader}>
               <View style={styles.profileModalHeaderLeft}>
                 <View style={styles.profileSheetAvatar}>
-                  <Text style={styles.profileSheetAvatarText}>VD</Text>
+                  <Text style={styles.profileSheetAvatarText}>{initials}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.profileSheetName}>Vinay</Text>
+                    <Text style={styles.profileSheetName}>{displayName}</Text>
                     <View style={styles.profileSheetRoleBadge}>
-                      <Text style={styles.profileSheetRoleBadgeText}>Resident</Text>
+                      <Text style={styles.profileSheetRoleBadgeText}>{displayRole}</Text>
                     </View>
                   </View>
                   <Text style={styles.profileSheetEmail} numberOfLines={1}>
-                    {userEmail || 'vinay@heatshield.gov.in'}
+                    {currentEmail || 'Active Citizen'}
                   </Text>
                 </View>
               </View>

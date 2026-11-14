@@ -127,14 +127,13 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setErrorMessage(null);
       setInfoMessage(null);
 
-      // Create proper redirect URL for deep linking (heatshield://auth/callback)
-      const redirectUrl = Linking.createURL('auth/callback');
+      // Create proper redirect URL
+      const redirectUrl = 'https://heatshield-ai-eight.vercel.app/auth/callback';
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
@@ -152,8 +151,14 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         return;
       }
 
-      // Open external authentication session (Custom Tabs / System Browser)
-      // Google never blocks system browser user agents
+      // If running inside Android WebView or web browser, navigate to the OAuth endpoint.
+      // MainActivity.java will intercept external OAuth URLs and launch the system browser.
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.href = data.url;
+        return;
+      }
+
+      // On native Expo, open external authentication session (Custom Tabs / System Browser)
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
       if (result.type === 'success' && result.url) {

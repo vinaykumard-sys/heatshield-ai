@@ -83,11 +83,11 @@ INSERT INTO public.app_updates (
 (
     'android',
     '1.3.0',
-    '1.4.0',
-    7,
+    '1.5.0',
+    8,
     'binary',
     'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk',
-    'Version 1.4.0: Native system browser OAuth flow, Android deep linking, responsive Profile bottom sheet, and touch interaction fixes.',
+    'Version 1.5.0: Native mobile architecture isolation, offline Expo mobile application bundling, dynamic user profile mapping, and enhanced OAuth session handoff.',
     true,
     NOW()
 )

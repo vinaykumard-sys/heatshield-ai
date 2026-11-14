@@ -81,6 +81,45 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
+    // Process deep link or OAuth query/hash parameters if returned to app
+    if (typeof window !== 'undefined') {
+      try {
+        const search = window.location.search || '';
+        const hash = window.location.hash || '';
+
+        if (search.includes('code=')) {
+          const params = new URLSearchParams(search);
+          const code = params.get('code');
+          if (code) {
+            supabase.auth.exchangeCodeForSession(code)
+              .then(({ data }) => {
+                if (isMounted && data?.session) {
+                  setSession(data.session);
+                  setAuthLoading(false);
+                }
+              })
+              .catch(console.warn);
+          }
+        } else if (hash.includes('access_token=')) {
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const access_token = hashParams.get('access_token');
+          const refresh_token = hashParams.get('refresh_token');
+          if (access_token && refresh_token) {
+            supabase.auth.setSession({ access_token, refresh_token })
+              .then(({ data }) => {
+                if (isMounted && data?.session) {
+                  setSession(data.session);
+                  setAuthLoading(false);
+                }
+              })
+              .catch(console.warn);
+          }
+        }
+      } catch (e) {
+        console.warn('[App] OAuth param check error:', e);
+      }
+    }
+
     // Fetch initial session
     supabase.auth.getSession()
       .then(({ data: { session: initialSession } }) => {
@@ -224,8 +263,12 @@ export default function App() {
             }}
             onNavigateToAssistant={() => setShowAssistantModal(true)}
             onNavigateToProfile={() => setActiveTab('profile')}
+            user={session?.user}
             userEmail={session?.user?.email}
-            onLogout={() => {
+            onLogout={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (e) {}
               setSession(null);
             }}
           />
@@ -312,8 +355,12 @@ export default function App() {
 
         {activeTab === 'profile' && (
           <ProfileScreen
+            user={session?.user}
             userEmail={session?.user?.email}
-            onLogout={() => {
+            onLogout={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (e) {}
               setSession(null);
             }}
           />

@@ -134,7 +134,7 @@ export interface UserProfile {
   phone: string;
   email: string;
   city: string;
-  role: 'Resident' | 'Community Heat Warden' | 'Health Officer' | 'NGO Volunteer';
+  role: 'Resident' | 'Community Heat Warden' | 'Health Officer' | 'NGO Volunteer' | 'Administrator';
   hasElderlyAtHome: boolean;
   outdoorWorker: boolean;
 }

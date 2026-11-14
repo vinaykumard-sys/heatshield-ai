@@ -19,14 +19,22 @@ import { supabase } from '../services/supabase';
 import { checkAppVersion, CURRENT_APP_VERSION, DEFAULT_APK_URL } from '../services/versionService';
 
 interface ProfileScreenProps {
+  user?: any;
   userEmail?: string | null;
   onLogout?: () => void;
 }
 
-export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProps = {}) {
+export default function ProfileScreen({ user, userEmail, onLogout }: ProfileScreenProps = {}) {
+  const userMetadata = user?.user_metadata;
+  const currentEmail = user?.email || userEmail;
+  const currentName = userMetadata?.full_name || userMetadata?.name || (currentEmail ? currentEmail.split('@')[0] : MOCK_USER_PROFILE.name);
+  const currentRole = userMetadata?.role === 'admin' ? 'Administrator' : 'Resident';
+
   const [profile, setProfile] = useState<UserProfile>(() => ({
     ...MOCK_USER_PROFILE,
-    email: userEmail || MOCK_USER_PROFILE.email,
+    name: currentName,
+    email: currentEmail || MOCK_USER_PROFILE.email,
+    role: currentRole,
   }));
   const [contacts, setContacts] = useState<EmergencyContact[]>(INITIAL_EMERGENCY_CONTACTS);
   const [newName, setNewName] = useState('');

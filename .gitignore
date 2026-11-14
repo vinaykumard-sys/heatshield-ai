@@ -47,3 +47,7 @@ build/
 android-src/assets/
 *.keystore
 *.idsig
+
+.expo/
+mobile/.expo/
+mobile/dist/

@@ -74,8 +74,8 @@ def main():
         "--manifest", manifest,
         "--min-sdk-version", "21",
         "--target-sdk-version", "34",
-        "--version-code", "7",
-        "--version-name", "1.4.0",
+        "--version-code", "8",
+        "--version-name", "1.5.0",
         "-o", base_apk,
         "--java", gen_dir,
         "--auto-add-overlay",
@@ -133,11 +133,19 @@ def main():
     src_www_dir = os.path.join(ROOT_DIR, "android-src", "assets", "www")
     os.makedirs(www_dir, exist_ok=True)
     os.makedirs(src_www_dir, exist_ok=True)
-    dist_dir = os.path.join(ROOT_DIR, "dist")
-    for item in os.listdir(dist_dir):
+    # Source assets from the genuine native mobile app build (mobile/dist)
+    mobile_dist = os.path.join(ROOT_DIR, "mobile", "dist")
+    if os.path.exists(mobile_dist) and os.path.exists(os.path.join(mobile_dist, "index.html")):
+        source_dir = mobile_dist
+        print(f"[ASSETS] Packaging genuine native mobile app from: {source_dir}")
+    else:
+        source_dir = os.path.join(ROOT_DIR, "dist")
+        print(f"[ASSETS] Warning: mobile/dist not found, falling back to: {source_dir}")
+
+    for item in os.listdir(source_dir):
         if item == "downloads":
             continue
-        s = os.path.join(dist_dir, item)
+        s = os.path.join(source_dir, item)
         d = os.path.join(www_dir, item)
         sd = os.path.join(src_www_dir, item)
         if os.path.isdir(s):
@@ -147,18 +155,23 @@ def main():
             shutil.copy2(s, d)
             shutil.copy2(s, sd)
 
-    # Fix relative paths in assets/www/index.html if needed
+    # Fix relative paths in assets/www/index.html so file:///android_asset/www/ loads properly
     www_index = os.path.join(www_dir, "index.html")
-    if os.path.exists(www_index):
-        with open(www_index, "r", encoding="utf-8") as f:
-            content = f.read()
-        # Ensure href and src for /assets/ work seamlessly
-        content = content.replace('src="/assets/', 'src="./assets/')
-        content = content.replace('href="/assets/', 'href="./assets/')
-        content = content.replace('href="/favicon.svg', 'href="./favicon.svg')
-        content = content.replace('href="/manifest.json', 'href="./manifest.json')
-        with open(www_index, "w", encoding="utf-8") as f:
-            f.write(content)
+    src_www_index = os.path.join(src_www_dir, "index.html")
+    for idx_file in [www_index, src_www_index]:
+        if os.path.exists(idx_file):
+            with open(idx_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Ensure relative paths for Expo web export and static assets
+            content = content.replace('src="/_expo/', 'src="./_expo/')
+            content = content.replace('href="/_expo/', 'href="./_expo/')
+            content = content.replace('href="/favicon.ico', 'href="./favicon.ico')
+            content = content.replace('src="/assets/', 'src="./assets/')
+            content = content.replace('href="/assets/', 'href="./assets/')
+            content = content.replace('href="/favicon.svg', 'href="./favicon.svg')
+            content = content.replace('href="/manifest.json', 'href="./manifest.json')
+            with open(idx_file, "w", encoding="utf-8") as f:
+                f.write(content)
 
     # 6. Package unaligned APK
     print("\n--- Step 6: Creating unaligned APK archive ---")
@@ -229,12 +242,12 @@ def main():
         apk_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     version_info = {
-        "version": "1.4.0",
-        "versionCode": 7,
+        "version": "1.5.0",
+        "versionCode": 8,
         "minimumRequiredVersion": "1.3.0",
         "forceUpdate": True,
         "releaseDate": time.strftime("%Y-%m-%d"),
-        "releaseNotes": "Version 1.4.0: Native Google OAuth system browser support, deep linking authentication handling, responsive mobile profile bottom sheet, and emergency heat response updates.",
+        "releaseNotes": "Version 1.5.0: Native mobile architecture isolation, offline Expo mobile application bundling, dynamic user profile mapping, and enhanced OAuth session handoff.",
         "minAndroidVersion": "7.0 (API 24)+",
         "targetAndroidVersion": "14.0 (API 34)",
         "supportedAbis": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],
