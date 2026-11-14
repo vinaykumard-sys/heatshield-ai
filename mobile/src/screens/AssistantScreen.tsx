@@ -142,11 +142,11 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
         <View style={styles.headerLeft}>
           {onBack && (
             <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-              <Feather name="arrow-left" size={20} color="#F8FAFC" />
+              <Feather name="arrow-left" size={20} color="#0F172A" />
             </TouchableOpacity>
           )}
           <View style={styles.shieldBadge}>
-            <MaterialCommunityIcons name="shield-sun" size={22} color="#38BDF8" />
+            <MaterialCommunityIcons name="shield-sun" size={22} color="#0284C7" />
           </View>
           <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>HeatShield AI Assistant</Text>
@@ -169,7 +169,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
           onPress={() => handleEmergencyCall('108')}
           activeOpacity={0.8}
         >
-          <Ionicons name="call" size={13} color="#EF4444" />
+          <Ionicons name="call" size={13} color="#DC2626" />
           <Text style={styles.sosHeaderText}>108 SOS</Text>
         </TouchableOpacity>
       </View>
@@ -197,7 +197,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
               {/* Branded shield badge on left for AI Assistant */}
               {!isUser && (
                 <View style={styles.botShieldAvatar}>
-                  <MaterialCommunityIcons name="shield-check" size={16} color="#06B6D4" />
+                  <MaterialCommunityIcons name="shield-check" size={16} color="#0284C7" />
                 </View>
               )}
 
@@ -213,14 +213,14 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
                     <Text style={styles.botName}>HeatShield AI</Text>
                     {isUrgent && (
                       <View style={styles.urgentBadge}>
-                        <Ionicons name="alert-circle" size={12} color="#EF4444" />
+                        <Ionicons name="alert-circle" size={12} color="#DC2626" />
                         <Text style={styles.urgentBadgeText}>URGENT</Text>
                       </View>
                     )}
                   </View>
                 )}
 
-                {/* Message Bubble: User (Blue) vs AI Assistant (Slate/Dark with Shield) */}
+                {/* Message Bubble: User (Blue) vs AI Assistant (White Clean Card) */}
                 <View
                   style={[
                     styles.messageBubble,
@@ -236,7 +236,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
                   {item.relatedShelter && (
                     <View style={styles.shelterCard}>
                       <View style={styles.shelterCardHeader}>
-                        <Ionicons name="location" size={16} color="#06B6D4" />
+                        <Ionicons name="location" size={16} color="#0284C7" />
                         <Text style={styles.shelterCardTitle} numberOfLines={1}>
                           {item.relatedShelter.name}
                         </Text>
@@ -258,7 +258,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
                           onPress={() => handleEmergencyCall(item.relatedShelter!.contactPhone)}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="call" size={13} color="#06B6D4" />
+                          <Ionicons name="call" size={13} color="#0284C7" />
                           <Text style={styles.shelterCallBtnText}>Call Shelter</Text>
                         </TouchableOpacity>
                       </View>
@@ -270,7 +270,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
                     <TouchableOpacity
                       style={styles.emergencyActionBtn}
                       onPress={() => handleEmergencyCall('108')}
-                      activeOpacity={0.85}
+                      activeOpacity={0.88}
                     >
                       <Ionicons name="call" size={15} color="#FFF" />
                       <Text style={styles.emergencyActionText}>Call Emergency Medical (108)</Text>
@@ -311,7 +311,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
         {typing && (
           <View style={[styles.messageRow, styles.assistantMessageRow]}>
             <View style={styles.botShieldAvatar}>
-              <MaterialCommunityIcons name="shield-check" size={16} color="#06B6D4" />
+              <MaterialCommunityIcons name="shield-check" size={16} color="#0284C7" />
             </View>
             <View style={styles.typingBubble}>
               <Animated.View
@@ -369,7 +369,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
             Listening for your heat safety question...
           </Text>
           <TouchableOpacity onPress={() => setIsListening(false)}>
-            <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            <Ionicons name="close-circle" size={18} color="#64748B" />
           </TouchableOpacity>
         </View>
       )}
@@ -385,7 +385,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
           <Feather
             name={isListening ? 'mic-off' : 'mic'}
             size={19}
-            color={isListening ? '#FFF' : '#38BDF8'}
+            color={isListening ? '#FFF' : '#0284C7'}
           />
         </TouchableOpacity>
 
@@ -395,7 +395,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
           value={inputText}
           onChangeText={setInputText}
           placeholder="Ask HeatShield AI (symptoms, water, run)..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor="#94A3B8"
           onSubmitEditing={() => handleSend()}
           returnKeyType="send"
         />
@@ -408,7 +408,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
           ]}
           onPress={() => handleSend()}
           disabled={!inputText.trim()}
-          activeOpacity={0.8}
+          activeOpacity={0.88}
         >
           <Ionicons name="arrow-up" size={20} color="#FFF" />
         </TouchableOpacity>
@@ -420,7 +420,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
 
   // 1. Header Styles
@@ -431,9 +431,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0B1329',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -448,9 +453,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0F2347',
+    backgroundColor: '#E0F2FE',
     borderWidth: 1.5,
-    borderColor: '#38BDF8',
+    borderColor: '#BAE6FD',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -461,7 +466,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: 0.3,
   },
   statusRow: {
@@ -474,19 +479,19 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#10B981',
+    color: '#059669',
   },
   sosHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: '#FECACA',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
@@ -495,7 +500,7 @@ const styles = StyleSheet.create({
   sosHeaderText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#DC2626',
   },
 
   // 2. Chat Scroll & Bubbles
@@ -522,9 +527,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#0F2347',
+    backgroundColor: '#E0F2FE',
     borderWidth: 1,
-    borderColor: '#06B6D4',
+    borderColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -549,14 +554,14 @@ const styles = StyleSheet.create({
   botName: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   urgentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#FEF2F2',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -565,7 +570,7 @@ const styles = StyleSheet.create({
   urgentBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#EF4444',
+    color: '#DC2626',
   },
 
   // Bubbles
@@ -575,19 +580,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   userBubble: {
-    backgroundColor: '#2563EB', // Vibrant Blue user bubble
+    backgroundColor: '#0284C7', // Clean primary blue
     borderBottomRightRadius: 4,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
   },
   botBubble: {
-    backgroundColor: '#0F1A30',
+    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   botBubbleUrgent: {
-    borderColor: '#EF4444',
+    borderColor: '#FCA5A5',
     borderWidth: 1.5,
-    backgroundColor: '#1E1218',
+    backgroundColor: '#FEF2F2',
   },
   messageText: {
     fontSize: 14,
@@ -598,7 +613,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   botText: {
-    color: '#E2E8F0',
+    color: '#1E293B',
   },
   timestampText: {
     fontSize: 10,
@@ -606,17 +621,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   userTimestamp: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   botTimestamp: {
-    color: '#64748B',
+    color: '#94A3B8',
   },
 
   // Shelter Card inside Bot Message
   shelterCard: {
-    backgroundColor: '#071124',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 10,
     marginTop: 10,
@@ -629,12 +644,12 @@ const styles = StyleSheet.create({
   shelterCardTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#0284C7',
     flex: 1,
   },
   shelterCardAddress: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 3,
   },
   shelterActionRow: {
@@ -663,9 +678,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F2347',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#06B6D4',
+    borderColor: '#0284C7',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
@@ -674,7 +689,7 @@ const styles = StyleSheet.create({
   shelterCallBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
   },
 
   // Emergency Action Button inside Bot Message
@@ -682,7 +697,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     paddingVertical: 10,
     borderRadius: 10,
     marginTop: 10,
@@ -702,16 +717,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   inlineChip: {
-    backgroundColor: '#0B172E',
+    backgroundColor: '#E0F2FE',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#BAE6FD',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
   },
   inlineChipText: {
     fontSize: 11,
-    color: '#38BDF8',
+    color: '#0284C7',
     fontWeight: '600',
   },
 
@@ -719,9 +734,9 @@ const styles = StyleSheet.create({
   typingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F1A30',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -731,19 +746,19 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#06B6D4',
+    backgroundColor: '#0284C7',
   },
   typingText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     fontStyle: 'italic',
   },
 
   // 3. Quick-Action Suggestion Chips (Required 4 Prompts)
   suggestionChipsContainer: {
-    backgroundColor: '#091024',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#16223D',
+    borderTopColor: '#E2E8F0',
     paddingVertical: 8,
   },
   suggestionChipsScroll: {
@@ -753,9 +768,9 @@ const styles = StyleSheet.create({
   suggestionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F1D3D',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#1E3A6E',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
@@ -767,16 +782,16 @@ const styles = StyleSheet.create({
   suggestionChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#BAE6FD',
+    color: '#334155',
   },
 
   // Voice Listening Banner
   voiceListeningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0C2147',
+    backgroundColor: '#E0F2FE',
     borderTopWidth: 1,
-    borderTopColor: '#0284C7',
+    borderTopColor: '#BAE6FD',
     paddingHorizontal: 16,
     paddingVertical: 8,
     justifyContent: 'space-between',
@@ -791,7 +806,7 @@ const styles = StyleSheet.create({
   },
   voiceListeningText: {
     fontSize: 12,
-    color: '#E0F2FE',
+    color: '#0369A1',
     fontWeight: '600',
     flex: 1,
     marginLeft: 10,
@@ -802,9 +817,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#0B1329',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#E2E8F0',
     alignItems: 'center',
     gap: 8,
   },
@@ -812,36 +827,41 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0F1D3D',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#1E3A6E',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   micButtonActive: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 14,
   },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sendButtonDisabled: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#E2E8F0',
   },
 });

@@ -933,3 +933,151 @@ CREATE TABLE IF NOT EXISTS public.situation_reports (
     data_freshness_pct INT DEFAULT 98,
     generated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
+
+
+-- ==============================================================================
+-- 34. APP UPDATES & ROLE SECURITY POLICIES
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.app_updates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform TEXT NOT NULL CHECK (platform IN ('android', 'ios', 'web')),
+    minimum_version TEXT NOT NULL,
+    latest_version TEXT NOT NULL,
+    android_version_code INTEGER DEFAULT 1,
+    update_type TEXT NOT NULL DEFAULT 'binary' CHECK (update_type IN ('binary', 'ota')),
+    update_url TEXT NOT NULL,
+    release_notes TEXT,
+    is_required BOOLEAN NOT NULL DEFAULT true,
+    published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_updates_platform_published ON public.app_updates(platform, published_at DESC);
+
+ALTER TABLE public.app_updates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view app updates" ON public.app_updates;
+CREATE POLICY "Public can view app updates"
+    ON public.app_updates
+    FOR SELECT
+    TO public
+    USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage app updates" ON public.app_updates;
+CREATE POLICY "Admins can manage app updates"
+    ON public.app_updates
+    FOR ALL
+    TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- Seed initial valid Android releases (v1.1.0 code 4, v1.2.0 code 5)
+INSERT INTO public.app_updates (
+    platform,
+    minimum_version,
+    latest_version,
+    android_version_code,
+    update_type,
+    update_url,
+    release_notes,
+    is_required,
+    published_at
+) VALUES 
+(
+    'android',
+    '1.1.0',
+    '1.1.0',
+    4,
+    'binary',
+    'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk',
+    'Initial Android release with real-time heat index monitoring, early heatwave warnings, and SOS emergency beacon.',
+    true,
+    NOW() - INTERVAL '2 days'
+),
+(
+    'android',
+    '1.2.0',
+    '1.2.0',
+    5,
+    'binary',
+    'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk',
+    'Production Release: High-contrast daylight Safe Route navigation, role-based database security, offline shelter caching, and Android notification channels.',
+    true,
+    NOW()
+)
+ON CONFLICT DO NOTHING;
+
+-- Enforce Role Tampering Protection on Profiles
+CREATE OR REPLACE FUNCTION public.prevent_role_tampering()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NEW.role IS DISTINCT FROM OLD.role THEN
+        IF NOT public.is_admin() THEN
+            NEW.role := OLD.role;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_role_tampering ON public.profiles;
+CREATE TRIGGER trg_prevent_role_tampering
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION public.prevent_role_tampering();
+
+-- Table: admin_audit_logs (Strictly Admin-Only)
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    actor_name TEXT,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id TEXT,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can access audit logs" ON public.admin_audit_logs;
+CREATE POLICY "Admins can access audit logs"
+    ON public.admin_audit_logs
+    FOR ALL
+    TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- Table: broadcast_alerts (Admin managed, residents can only view active broadcasts)
+CREATE TABLE IF NOT EXISTS public.broadcast_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK (severity IN ('advisory', 'warning', 'critical', 'emergency')),
+    target_wards TEXT[] DEFAULT ARRAY[]::TEXT[],
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true,
+    sent_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.broadcast_alerts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins have full access to broadcast_alerts" ON public.broadcast_alerts;
+CREATE POLICY "Admins have full access to broadcast_alerts"
+    ON public.broadcast_alerts
+    FOR ALL
+    TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Residents can view active broadcast alerts" ON public.broadcast_alerts;
+CREATE POLICY "Residents can view active broadcast alerts"
+    ON public.broadcast_alerts
+    FOR SELECT
+    TO authenticated
+    USING (is_active = true);

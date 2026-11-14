@@ -86,22 +86,35 @@ export default function WeatherScreen({
   const getRiskColor = (risk: string) => {
     switch (risk?.toUpperCase()) {
       case 'EXTREME':
-        return '#EF4444';
+        return '#DC2626';
       case 'HIGH':
-        return '#F97316';
+        return '#EA580C';
       case 'MODERATE':
-        return '#F59E0B';
+        return '#D97706';
       default:
-        return '#10B981';
+        return '#059669';
+    }
+  };
+
+  const getRiskBg = (risk: string) => {
+    switch (risk?.toUpperCase()) {
+      case 'EXTREME':
+        return '#FEF2F2';
+      case 'HIGH':
+        return '#FFF7ED';
+      case 'MODERATE':
+        return '#FFFBEB';
+      default:
+        return '#ECFDF5';
     }
   };
 
   const getUVBadge = (uv: number) => {
-    if (uv >= 11) return { label: 'Extreme', color: '#DC2626', bg: 'rgba(220, 38, 38, 0.2)' };
-    if (uv >= 8) return { label: 'Very High', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.2)' };
-    if (uv >= 6) return { label: 'High', color: '#F97316', bg: 'rgba(249, 115, 22, 0.2)' };
-    if (uv >= 3) return { label: 'Moderate', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.2)' };
-    return { label: 'Low', color: '#10B981', bg: 'rgba(16, 185, 129, 0.2)' };
+    if (uv >= 11) return { label: 'Extreme', color: '#DC2626', bg: '#FEF2F2' };
+    if (uv >= 8) return { label: 'Very High', color: '#EA580C', bg: '#FFF7ED' };
+    if (uv >= 6) return { label: 'High', color: '#D97706', bg: '#FFFBEB' };
+    if (uv >= 3) return { label: 'Moderate', color: '#0284C7', bg: '#E0F2FE' };
+    return { label: 'Low', color: '#059669', bg: '#ECFDF5' };
   };
 
   const current: DetailedWeatherReading | undefined = weatherData?.current;
@@ -109,6 +122,7 @@ export default function WeatherScreen({
   const daily: DailyWeatherPoint[] = weatherData?.daily || [];
   const advice: HeatSafetyAdvice | undefined = weatherData?.safetyAdvice;
   const activeRiskColor = getRiskColor(current?.risk_level || selectedLocality.riskLevel);
+  const activeRiskBg = getRiskBg(current?.risk_level || selectedLocality.riskLevel);
   const uvBadge = getUVBadge(current?.uv_index || 8.5);
 
   return (
@@ -122,11 +136,11 @@ export default function WeatherScreen({
             onPress={() => setSelectorVisible(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="location-sharp" size={17} color="#06B6D4" />
+            <Ionicons name="location-sharp" size={16} color="#0284C7" />
             <Text style={styles.localityChipText} numberOfLines={1}>
               {selectedLocality.name}
             </Text>
-            <Feather name="chevron-down" size={16} color="#94A3B8" />
+            <Feather name="chevron-down" size={15} color="#64748B" />
           </TouchableOpacity>
         </View>
 
@@ -137,9 +151,9 @@ export default function WeatherScreen({
             activeOpacity={0.7}
           >
             {refreshing ? (
-              <ActivityIndicator size="small" color="#06B6D4" />
+              <ActivityIndicator size="small" color="#0284C7" />
             ) : (
-              <Ionicons name="sync" size={18} color="#94A3B8" />
+              <Ionicons name="sync" size={18} color="#64748B" />
             )}
           </TouchableOpacity>
 
@@ -149,7 +163,7 @@ export default function WeatherScreen({
               onPress={onNavigateToSOS}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="alert-octagon" size={16} color="#FFF" />
+              <MaterialCommunityIcons name="alert-octagon" size={15} color="#FFF" />
               <Text style={styles.sosCompactText}>SOS</Text>
             </TouchableOpacity>
           )}
@@ -164,32 +178,24 @@ export default function WeatherScreen({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#06B6D4"
-            colors={['#06B6D4', '#EF4444']}
+            tintColor="#0284C7"
+            colors={['#0284C7', '#DC2626']}
           />
         }
       >
         {loading && !refreshing && !weatherData ? (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#06B6D4" />
+            <ActivityIndicator size="large" color="#0284C7" />
             <Text style={styles.loaderText}>Syncing Open-Meteo High-Resolution Telemetry...</Text>
           </View>
         ) : (
           <>
             {/* 1. CURRENT WEATHER HERO */}
-            <View style={[styles.heroCard, { borderColor: `${activeRiskColor}40` }]}>
-              {/* Background Glow Ring */}
-              <View
-                style={[
-                  styles.heroGlow,
-                  { backgroundColor: activeRiskColor, opacity: 0.08 },
-                ]}
-              />
-
+            <View style={[styles.heroCard, { borderColor: '#E2E8F0' }]}>
               {/* Status Header: Data Source & Risk Badge */}
               <View style={styles.heroTopRow}>
                 <View style={styles.liveBadge}>
-                  <View style={[styles.liveDot, { backgroundColor: '#10B981' }]} />
+                  <View style={[styles.liveDot, { backgroundColor: '#059669' }]} />
                   <Text style={styles.liveBadgeText}>
                     {weatherData?.source === 'Open-Meteo Live' ? 'OPEN-METEO LIVE' : 'STATION TELEMETRY'}
                   </Text>
@@ -200,7 +206,7 @@ export default function WeatherScreen({
                   style={[
                     styles.riskBadge,
                     {
-                      backgroundColor: `${activeRiskColor}22`,
+                      backgroundColor: activeRiskBg,
                       borderColor: activeRiskColor,
                     },
                   ]}
@@ -233,7 +239,7 @@ export default function WeatherScreen({
                 <View style={styles.heroEmojiCol}>
                   <Text style={styles.heroEmojiText}>{current?.emoji || '☀️'}</Text>
                   <View style={styles.cityWardSubChip}>
-                    <Ionicons name="business-outline" size={12} color="#94A3B8" />
+                    <Ionicons name="business-outline" size={12} color="#64748B" />
                     <Text style={styles.cityWardText} numberOfLines={1}>
                       {selectedLocality.city} Ward
                     </Text>
@@ -246,7 +252,7 @@ export default function WeatherScreen({
                 {/* Feels-like */}
                 <View style={styles.thermalPill}>
                   <View style={styles.thermalPillTop}>
-                    <Ionicons name="thermometer-outline" size={14} color="#38BDF8" />
+                    <Ionicons name="thermometer-outline" size={14} color="#0284C7" />
                     <Text style={styles.thermalPillLabel}>FEELS LIKE</Text>
                   </View>
                   <Text style={styles.thermalPillValue}>
@@ -258,13 +264,13 @@ export default function WeatherScreen({
                 {/* Wet Bulb */}
                 <View style={[styles.thermalPill, styles.thermalPillBordered]}>
                   <View style={styles.thermalPillTop}>
-                    <MaterialCommunityIcons name="water-thermometer" size={14} color="#06B6D4" />
+                    <MaterialCommunityIcons name="water-thermometer" size={14} color="#0284C7" />
                     <Text style={styles.thermalPillLabel}>WET BULB</Text>
                   </View>
                   <Text
                     style={[
                       styles.thermalPillValue,
-                      (current?.wet_bulb_c || 0) >= 29 && { color: '#EF4444' },
+                      (current?.wet_bulb_c || 0) >= 29 && { color: '#DC2626' },
                     ]}
                   >
                     {current?.wet_bulb_c.toFixed(1) ?? selectedLocality.wetBulb.toFixed(1)}°C
@@ -292,7 +298,7 @@ export default function WeatherScreen({
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleWrap}>
-                  <MaterialCommunityIcons name="clock-time-four-outline" size={18} color="#06B6D4" />
+                  <MaterialCommunityIcons name="clock-time-four-outline" size={18} color="#0284C7" />
                   <Text style={styles.sectionTitle}>24-HOUR HOURLY HEAT CURVE</Text>
                 </View>
                 <Text style={styles.sectionSub}>Horizontal Swipe</Text>
@@ -314,7 +320,7 @@ export default function WeatherScreen({
                         styles.hourlyCard,
                         isSelected && [
                           styles.hourlyCardSelected,
-                          { borderColor: itemRiskColor },
+                          { borderColor: '#0284C7', backgroundColor: '#E0F2FE' },
                         ],
                       ]}
                       onPress={() => setSelectedHourlyIndex(idx)}
@@ -344,7 +350,7 @@ export default function WeatherScreen({
                       {/* Rain Probability Badge */}
                       {h.precipitation_prob > 0 ? (
                         <View style={styles.hourlyRainBadge}>
-                          <Ionicons name="water" size={10} color="#38BDF8" />
+                          <Ionicons name="water" size={10} color="#0284C7" />
                           <Text style={styles.hourlyRainText}>{h.precipitation_prob}%</Text>
                         </View>
                       ) : (
@@ -387,7 +393,7 @@ export default function WeatherScreen({
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleWrap}>
-                  <Ionicons name="stats-chart" size={18} color="#06B6D4" />
+                  <Ionicons name="stats-chart" size={18} color="#0284C7" />
                   <Text style={styles.sectionTitle}>ATMOSPHERIC & BIOMETRIC VITALS</Text>
                 </View>
                 <Text style={styles.sectionSub}>Live Sensors</Text>
@@ -397,7 +403,7 @@ export default function WeatherScreen({
                 {/* Card 1: UV Index */}
                 <View style={styles.metricCard}>
                   <View style={styles.metricCardHeader}>
-                    <Feather name="sun" size={18} color="#F59E0B" />
+                    <Feather name="sun" size={18} color="#EA580C" />
                     <View style={[styles.miniBadge, { backgroundColor: uvBadge.bg }]}>
                       <Text style={[styles.miniBadgeText, { color: uvBadge.color }]}>
                         {uvBadge.label}
@@ -428,7 +434,7 @@ export default function WeatherScreen({
                 {/* Card 2: Relative Humidity */}
                 <View style={styles.metricCard}>
                   <View style={styles.metricCardHeader}>
-                    <Ionicons name="water-outline" size={18} color="#38BDF8" />
+                    <Ionicons name="water" size={18} color="#0284C7" />
                     <Text style={styles.metricSubTag}>SWEAT EVAP</Text>
                   </View>
                   <Text style={styles.metricValue}>
@@ -442,7 +448,7 @@ export default function WeatherScreen({
                         styles.meterFill,
                         {
                           width: `${Math.min(100, current?.relative_humidity_pct || selectedLocality.humidity)}%`,
-                          backgroundColor: '#38BDF8',
+                          backgroundColor: '#0284C7',
                         },
                       ]}
                     />
@@ -457,9 +463,9 @@ export default function WeatherScreen({
                 {/* Card 3: Wind Speed & Direction */}
                 <View style={styles.metricCard}>
                   <View style={styles.metricCardHeader}>
-                    <Feather name="wind" size={18} color="#10B981" />
+                    <Feather name="wind" size={18} color="#059669" />
                     <View style={styles.compassChip}>
-                      <Ionicons name="navigate" size={11} color="#10B981" />
+                      <Ionicons name="navigate" size={11} color="#059669" />
                       <Text style={styles.compassChipText}>
                         {current?.wind_direction_compass || 'WSW'}
                       </Text>
@@ -476,7 +482,7 @@ export default function WeatherScreen({
                         styles.meterFill,
                         {
                           width: `${Math.min(100, ((current?.wind_speed_kmh || 14) / 40) * 100)}%`,
-                          backgroundColor: '#10B981',
+                          backgroundColor: '#059669',
                         },
                       ]}
                     />
@@ -489,7 +495,7 @@ export default function WeatherScreen({
                 {/* Card 4: Rain & Storm Probability */}
                 <View style={styles.metricCard}>
                   <View style={styles.metricCardHeader}>
-                    <Ionicons name="cloud-outline" size={18} color="#818CF8" />
+                    <Ionicons name="cloud-outline" size={18} color="#6366F1" />
                     <Text style={styles.metricSubTag}>PRECIPITATION</Text>
                   </View>
                   <Text style={styles.metricValue}>
@@ -502,7 +508,7 @@ export default function WeatherScreen({
                         styles.meterFill,
                         {
                           width: `${Math.min(100, current?.precipitation_probability || 10)}%`,
-                          backgroundColor: '#818CF8',
+                          backgroundColor: '#6366F1',
                         },
                       ]}
                     />
@@ -515,15 +521,15 @@ export default function WeatherScreen({
                 {/* Card 5: Heat Exposure / Bio-Thermal Stress */}
                 <View style={[styles.metricCard, styles.metricCardWide]}>
                   <View style={styles.metricCardHeader}>
-                    <MaterialCommunityIcons name="heart-pulse" size={18} color="#EC4899" />
+                    <MaterialCommunityIcons name="heart-pulse" size={18} color="#DC2626" />
                     <View
                       style={[
                         styles.miniBadge,
                         {
                           backgroundColor:
                             (current?.air_quality_score || 50) >= 70
-                              ? 'rgba(239, 68, 68, 0.2)'
-                              : 'rgba(245, 158, 11, 0.2)',
+                              ? '#FEF2F2'
+                              : '#FFFBEB',
                         },
                       ]}
                     >
@@ -533,8 +539,8 @@ export default function WeatherScreen({
                           {
                             color:
                               (current?.air_quality_score || 50) >= 70
-                                ? '#EF4444'
-                                : '#F59E0B',
+                                ? '#DC2626'
+                                : '#D97706',
                           },
                         ]}
                       >
@@ -559,7 +565,7 @@ export default function WeatherScreen({
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleWrap}>
-                  <MaterialCommunityIcons name="calendar-month-outline" size={18} color="#06B6D4" />
+                  <MaterialCommunityIcons name="calendar-month-outline" size={18} color="#0284C7" />
                   <Text style={styles.sectionTitle}>7-DAY HEAT & WEATHER OUTLOOK</Text>
                 </View>
                 <Text style={styles.sectionSub}>Extended View</Text>
@@ -568,7 +574,6 @@ export default function WeatherScreen({
               <View style={styles.dailyStack}>
                 {daily.map((d, index) => {
                   const dayRiskColor = getRiskColor(d.risk_level);
-                  // Calculate range bar width relative to 20°C - 45°C
                   const minPct = Math.max(0, Math.min(80, ((d.min_temp_c - 18) / (46 - 18)) * 100));
                   const maxPct = Math.max(minPct + 15, Math.min(100, ((d.max_temp_c - 18) / (46 - 18)) * 100));
 
@@ -624,7 +629,7 @@ export default function WeatherScreen({
                         style={[
                           styles.dailyRiskTag,
                           {
-                            backgroundColor: `${dayRiskColor}22`,
+                            backgroundColor: `${dayRiskColor}15`,
                             borderColor: dayRiskColor,
                           },
                         ]}
@@ -641,7 +646,7 @@ export default function WeatherScreen({
 
             {/* 5. ACTIONABLE HEAT SAFETY ADVICE */}
             {advice && (
-              <View style={[styles.adviceCard, { borderColor: `${activeRiskColor}60` }]}>
+              <View style={[styles.adviceCard, { borderColor: '#E2E8F0' }]}>
                 {/* Header Badge */}
                 <View style={styles.adviceHeaderRow}>
                   <View style={[styles.advicePulseDot, { backgroundColor: activeRiskColor }]} />
@@ -652,7 +657,7 @@ export default function WeatherScreen({
 
                 {/* Peak Hours Restriction Banner */}
                 <View style={styles.peakHoursBox}>
-                  <Ionicons name="time" size={18} color="#F59E0B" />
+                  <Ionicons name="time" size={18} color="#EA580C" />
                   <View style={styles.peakHoursTextWrap}>
                     <Text style={styles.peakHoursTitle}>CRITICAL PEAK SUN HOURS</Text>
                     <Text style={styles.peakHoursValue}>{advice.peakHoursRange}</Text>
@@ -664,7 +669,7 @@ export default function WeatherScreen({
                   {/* Hydration */}
                   <View style={styles.adviceItem}>
                     <View style={styles.adviceIconWrap}>
-                      <Ionicons name="water" size={18} color="#38BDF8" />
+                      <Ionicons name="water" size={18} color="#0284C7" />
                     </View>
                     <View style={styles.adviceTextWrap}>
                       <Text style={styles.adviceItemTitle}>TARGETED HYDRATION</Text>
@@ -675,7 +680,7 @@ export default function WeatherScreen({
                   {/* Sun Protection */}
                   <View style={styles.adviceItem}>
                     <View style={styles.adviceIconWrap}>
-                      <Feather name="shield" size={18} color="#F59E0B" />
+                      <Feather name="shield" size={18} color="#EA580C" />
                     </View>
                     <View style={styles.adviceTextWrap}>
                       <Text style={styles.adviceItemTitle}>UV & SUN DEFENSE</Text>
@@ -686,7 +691,7 @@ export default function WeatherScreen({
                   {/* Outdoor Work / Physical Exertion */}
                   <View style={styles.adviceItem}>
                     <View style={styles.adviceIconWrap}>
-                      <MaterialCommunityIcons name="run" size={18} color="#EF4444" />
+                      <MaterialCommunityIcons name="run" size={18} color="#DC2626" />
                     </View>
                     <View style={styles.adviceTextWrap}>
                       <Text style={styles.adviceItemTitle}>EXERTION PROTOCOL</Text>
@@ -697,7 +702,7 @@ export default function WeatherScreen({
                   {/* High Risk Demographics */}
                   <View style={styles.adviceItem}>
                     <View style={styles.adviceIconWrap}>
-                      <Ionicons name="people-outline" size={18} color="#10B981" />
+                      <Ionicons name="people-outline" size={18} color="#059669" />
                     </View>
                     <View style={styles.adviceTextWrap}>
                       <Text style={styles.adviceItemTitle}>VULNERABLE INDIVIDUALS</Text>
@@ -711,19 +716,19 @@ export default function WeatherScreen({
                   <TouchableOpacity
                     style={styles.actionCtaBtn}
                     onPress={onNavigateToRoute}
-                    activeOpacity={0.85}
+                    activeOpacity={0.88}
                   >
-                    <Ionicons name="navigate-circle" size={22} color="#060D1E" />
+                    <Ionicons name="navigate-circle" size={20} color="#FFFFFF" />
                     <Text style={styles.actionCtaBtnText}>
                       Route Through Shaded Tree Canopies
                     </Text>
-                    <Feather name="arrow-right" size={16} color="#060D1E" />
+                    <Feather name="arrow-right" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 )}
               </View>
             )}
 
-            <View style={{ height: 40 }} />
+            <View style={{ height: 36 }} />
           </>
         )}
       </ScrollView>
@@ -748,7 +753,7 @@ export default function WeatherScreen({
                 onPress={() => setSelectorVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={22} color="#FFF" />
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
@@ -759,6 +764,7 @@ export default function WeatherScreen({
               renderItem={({ item }) => {
                 const isSelected = item.id === selectedLocality.id;
                 const locRiskColor = getRiskColor(item.riskLevel);
+                const locRiskBg = getRiskBg(item.riskLevel);
 
                 return (
                   <TouchableOpacity
@@ -797,7 +803,7 @@ export default function WeatherScreen({
                         style={[
                           styles.locModalRiskBadge,
                           {
-                            backgroundColor: `${locRiskColor}22`,
+                            backgroundColor: locRiskBg,
                             borderColor: locRiskColor,
                           },
                         ]}
@@ -821,18 +827,23 @@ export default function WeatherScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 12 : 16,
+    paddingTop: Platform.OS === 'ios' ? 12 : 14,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    backgroundColor: '#0B1329',
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerLeft: {
     flex: 1,
@@ -841,16 +852,16 @@ const styles = StyleSheet.create({
   headerEyebrow: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#06B6D4',
-    letterSpacing: 1.2,
+    color: '#0284C7',
+    letterSpacing: 1.0,
     marginBottom: 4,
   },
   localitySelectorChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    backgroundColor: '#E0F2FE',
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
+    borderColor: '#BAE6FD',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -859,7 +870,7 @@ const styles = StyleSheet.create({
   localityChipText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginHorizontal: 6,
     maxWidth: SCREEN_WIDTH * 0.45,
   },
@@ -872,14 +883,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sosCompactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
@@ -895,7 +908,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 14,
   },
   loaderContainer: {
     paddingVertical: 80,
@@ -903,28 +916,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loaderText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     marginTop: 12,
+    fontWeight: '500',
   },
 
   /* 1. HERO WEATHER CARD */
   heroCard: {
-    backgroundColor: '#0B1329',
-    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 18,
-    marginBottom: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  heroGlow: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -943,7 +953,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   liveBadgeText: {
-    color: '#94A3B8',
+    color: '#059669',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -970,7 +980,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     paddingVertical: 4,
   },
   heroTempCol: {
@@ -981,35 +991,35 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   largeTempNumber: {
-    fontSize: 64,
+    fontSize: 60,
     fontWeight: '900',
-    color: '#F8FAFC',
-    lineHeight: 68,
+    color: '#0F172A',
+    lineHeight: 64,
     letterSpacing: -2,
   },
   tempDegreeSymbol: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
     marginTop: 8,
     marginLeft: 2,
   },
   conditionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: '#334155',
     marginTop: 4,
   },
   heroEmojiCol: {
     alignItems: 'center',
   },
   heroEmojiText: {
-    fontSize: 56,
+    fontSize: 52,
   },
   cityWardSubChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1017,17 +1027,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cityWardText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },
   heroThermalStats: {
     flexDirection: 'row',
-    backgroundColor: '#060D1E',
-    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#1E293B',
-    paddingVertical: 10,
+    borderColor: '#E2E8F0',
+    paddingVertical: 12,
     paddingHorizontal: 6,
   },
   thermalPill: {
@@ -1037,7 +1047,7 @@ const styles = StyleSheet.create({
   thermalPillBordered: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
   },
   thermalPillTop: {
     flexDirection: 'row',
@@ -1048,13 +1058,13 @@ const styles = StyleSheet.create({
   thermalPillLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 0.5,
   },
   thermalPillValue: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   thermalPillSub: {
     fontSize: 10,
@@ -1064,13 +1074,13 @@ const styles = StyleSheet.create({
 
   /* 2. HOURLY FORECAST STRIP */
   sectionContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitleWrap: {
     flexDirection: 'row',
@@ -1078,9 +1088,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     letterSpacing: 0.8,
   },
   sectionSub: {
@@ -1090,47 +1100,52 @@ const styles = StyleSheet.create({
   },
   hourlyScrollContent: {
     paddingRight: 16,
-    gap: 10,
+    gap: 8,
   },
   hourlyCard: {
     width: 78,
-    backgroundColor: '#0B1329',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     paddingVertical: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   hourlyCardSelected: {
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
     borderWidth: 1.5,
   },
   hourlyTimeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 6,
+    color: '#64748B',
+    marginBottom: 4,
   },
   hourlyTimeSelected: {
-    color: '#06B6D4',
+    color: '#0284C7',
+    fontWeight: '800',
   },
   hourlyEmoji: {
-    fontSize: 24,
+    fontSize: 22,
     marginVertical: 4,
   },
   hourlyTempText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#F8FAFC',
-    marginVertical: 3,
+    color: '#0F172A',
+    marginVertical: 2,
   },
   hourlyRiskPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginTop: 2,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   hourlyRiskDot: {
     width: 6,
@@ -1145,7 +1160,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: '#E0F2FE',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1153,7 +1168,7 @@ const styles = StyleSheet.create({
   hourlyRainText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#38BDF8',
+    color: '#0284C7',
   },
   hourlyWindBadge: {
     flexDirection: 'row',
@@ -1169,12 +1184,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0B1329',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 10,
     marginTop: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   snippetLeft: {
     flex: 1,
@@ -1182,11 +1202,11 @@ const styles = StyleSheet.create({
   snippetTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
   },
   snippetCondition: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#475569',
     marginTop: 2,
   },
   snippetRight: {
@@ -1195,11 +1215,11 @@ const styles = StyleSheet.create({
   snippetUV: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: '#EA580C',
   },
   snippetRH: {
     fontSize: 11,
-    color: '#38BDF8',
+    color: '#0284C7',
     marginTop: 2,
   },
 
@@ -1207,15 +1227,20 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   metricCard: {
-    width: (SCREEN_WIDTH - 44) / 2,
-    backgroundColor: '#0B1329',
-    borderRadius: 14,
+    width: (SCREEN_WIDTH - 42) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   metricCardWide: {
     width: SCREEN_WIDTH - 32,
@@ -1242,33 +1267,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#F8FAFC',
-    lineHeight: 28,
+    color: '#0F172A',
+    lineHeight: 26,
   },
   metricUnit: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   metricLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
     marginBottom: 8,
   },
   meterTrack: {
-    height: 4,
-    backgroundColor: '#1E293B',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 6,
   },
   meterFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   metricHint: {
     fontSize: 10,
@@ -1279,7 +1304,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1287,7 +1312,7 @@ const styles = StyleSheet.create({
   compassChipText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#059669',
   },
   exposureValueRow: {
     flexDirection: 'row',
@@ -1296,23 +1321,28 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   exposureNumber: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
-    color: '#EC4899',
+    color: '#DC2626',
   },
   exposureMax: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
 
   /* 4. 7-DAY FORECAST */
   dailyStack: {
-    backgroundColor: '#0B1329',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   dailyRowCard: {
     flexDirection: 'row',
@@ -1320,10 +1350,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#F1F5F9',
   },
   dailyRowCardToday: {
-    backgroundColor: 'rgba(6, 182, 212, 0.05)',
+    backgroundColor: '#E0F2FE',
   },
   dailyDayCol: {
     width: 64,
@@ -1331,10 +1361,11 @@ const styles = StyleSheet.create({
   dailyDayName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   dailyDayNameToday: {
-    color: '#06B6D4',
+    color: '#0284C7',
+    fontWeight: '800',
   },
   dailyDateSub: {
     fontSize: 10,
@@ -1352,12 +1383,12 @@ const styles = StyleSheet.create({
   },
   dailyCondText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#475569',
     flex: 1,
   },
   dailyRainText: {
     fontSize: 9,
-    color: '#38BDF8',
+    color: '#0284C7',
     fontWeight: '600',
   },
   dailyRangeCol: {
@@ -1376,19 +1407,19 @@ const styles = StyleSheet.create({
   },
   dailyRangeBarTrack: {
     flex: 1,
-    height: 4,
-    backgroundColor: '#1E293B',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 3,
     position: 'relative',
   },
   dailyRangeBarFill: {
     position: 'absolute',
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   dailyMaxTemp: {
     fontSize: 12,
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontWeight: '700',
     width: 22,
   },
@@ -1407,11 +1438,17 @@ const styles = StyleSheet.create({
 
   /* 5. ACTIONABLE SAFETY ADVICE */
   adviceCard: {
-    backgroundColor: '#0B1329',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   adviceHeaderRow: {
     flexDirection: 'row',
@@ -1433,10 +1470,10 @@ const styles = StyleSheet.create({
   peakHoursBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 10,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
     padding: 10,
     gap: 10,
     marginBottom: 14,
@@ -1447,13 +1484,13 @@ const styles = StyleSheet.create({
   peakHoursTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: '#EA580C',
     letterSpacing: 0.5,
   },
   peakHoursValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginTop: 2,
   },
   adviceList: {
@@ -1469,7 +1506,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -1480,12 +1517,12 @@ const styles = StyleSheet.create({
   adviceItemTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.5,
   },
   adviceItemDesc: {
     fontSize: 12,
-    color: '#E2E8F0',
+    color: '#334155',
     lineHeight: 17,
     marginTop: 2,
   },
@@ -1493,13 +1530,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#06B6D4',
+    backgroundColor: '#0284C7',
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     gap: 8,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   actionCtaBtnText: {
-    color: '#060D1E',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1507,17 +1549,20 @@ const styles = StyleSheet.create({
   /* MODAL */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0B1329',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '75%',
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1526,20 +1571,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   modalSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   modalCloseBtn: {
     padding: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
   },
   localityModalItem: {
     flexDirection: 'row',
@@ -1547,26 +1594,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
   },
   localityModalItemSelected: {
-    borderColor: '#06B6D4',
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+    borderColor: '#0284C7',
+    backgroundColor: '#E0F2FE',
   },
   locModalLeft: {
     flex: 1,
   },
   locModalName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   locModalNameSelected: {
-    color: '#06B6D4',
+    color: '#0284C7',
+    fontWeight: '800',
   },
   locModalSub: {
     fontSize: 11,

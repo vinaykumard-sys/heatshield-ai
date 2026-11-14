@@ -77,24 +77,48 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
   const getUrgencyColor = (u: string) => {
     switch (u) {
       case 'CRITICAL_IMMEDIATE':
-        return '#EF4444';
+        return '#DC2626';
       case 'HIGH_PRIORITY':
-        return '#F97316';
+        return '#EA580C';
       default:
-        return '#F59E0B';
+        return '#0284C7';
+    }
+  };
+
+  const getUrgencyBg = (u: string) => {
+    switch (u) {
+      case 'CRITICAL_IMMEDIATE':
+        return '#FEF2F2';
+      case 'HIGH_PRIORITY':
+        return '#FFF7ED';
+      default:
+        return '#E0F2FE';
     }
   };
 
   const getStatusColor = (s: string) => {
     switch (s) {
       case 'DELIVERED':
-        return '#10B981';
+        return '#059669';
       case 'EN_ROUTE':
-        return '#06B6D4';
+        return '#0284C7';
       case 'DISPATCHED':
-        return '#F59E0B';
+        return '#D97706';
       default:
-        return '#94A3B8';
+        return '#64748B';
+    }
+  };
+
+  const getStatusBg = (s: string) => {
+    switch (s) {
+      case 'DELIVERED':
+        return '#ECFDF5';
+      case 'EN_ROUTE':
+        return '#E0F2FE';
+      case 'DISPATCHED':
+        return '#FFFBEB';
+      default:
+        return '#F1F5F9';
     }
   };
 
@@ -103,8 +127,8 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
       {/* Header */}
       <View style={styles.header}>
         {onBack && (
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <Feather name="arrow-left" size={22} color="#F8FAFC" />
+          <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
+            <Feather name="arrow-left" size={20} color="#0F172A" />
           </TouchableOpacity>
         )}
         <View style={styles.headerTitleWrap}>
@@ -141,6 +165,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             {(['CRITICAL_IMMEDIATE', 'HIGH_PRIORITY', 'ROUTINE_AID'] as const).map((lvl) => {
               const isSel = urgency === lvl;
               const uColor = getUrgencyColor(lvl);
+              const uBg = getUrgencyBg(lvl);
               const label =
                 lvl === 'CRITICAL_IMMEDIATE'
                   ? 'Critical SOS'
@@ -153,7 +178,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
                   key={lvl}
                   style={[
                     styles.urgencyBtn,
-                    isSel && { borderColor: uColor, backgroundColor: `${uColor}20` },
+                    isSel && { borderColor: uColor, backgroundColor: uBg },
                   ]}
                   onPress={() => setUrgency(lvl)}
                   activeOpacity={0.8}
@@ -173,7 +198,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
           <View style={styles.inputWrap}>
             <Text style={styles.inputLabel}>Current Locality</Text>
             <View style={styles.localityBox}>
-              <Ionicons name="location-sharp" size={16} color="#06B6D4" />
+              <Ionicons name="location-sharp" size={16} color="#0284C7" />
               <Text style={styles.localityBoxText}>
                 {selectedLocality?.name || 'Yelahanka Satellite Town'}, {selectedLocality?.city || 'Bengaluru'}
               </Text>
@@ -185,7 +210,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             <TextInput
               style={styles.textInput}
               placeholder="+91 98765 43210"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#94A3B8"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
@@ -197,7 +222,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             <TextInput
               style={styles.textInput}
               placeholder="e.g. Ramesh Kumar"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#94A3B8"
               value={name}
               onChangeText={setName}
             />
@@ -208,7 +233,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             <TextInput
               style={[styles.textInput, styles.textArea]}
               placeholder="e.g. Near Community Hall Gate 2, 15 people in need of drinking water"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={3}
               value={notes}
@@ -221,7 +246,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             style={styles.submitBtn}
             onPress={handleSubmit}
             disabled={submitting}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
             <MaterialCommunityIcons name="send-check" size={20} color="#FFFFFF" />
             <Text style={styles.submitBtnText}>
@@ -233,13 +258,15 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
         {/* Active Requests Tracker */}
         <View style={styles.trackerSection}>
           <View style={styles.trackerHeader}>
-            <MaterialCommunityIcons name="clipboard-text-clock" size={18} color="#06B6D4" />
+            <MaterialCommunityIcons name="clipboard-text-clock" size={18} color="#0284C7" />
             <Text style={styles.trackerTitle}>ACTIVE REQUESTS STATUS TRACKER</Text>
           </View>
 
           {requests.map((req) => {
             const uCol = getUrgencyColor(req.urgency);
+            const uBg = getUrgencyBg(req.urgency);
             const sCol = getStatusColor(req.status);
+            const sBg = getStatusBg(req.status);
 
             return (
               <View key={req.id} style={styles.requestCard}>
@@ -248,7 +275,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
                     <Text style={styles.requestId}>{req.id}</Text>
                     <Text style={styles.requestCategory}>{req.category}</Text>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: `${sCol}20` }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: sBg }]}>
                     <Text style={[styles.statusBadgeText, { color: sCol }]}>{req.status}</Text>
                   </View>
                 </View>
@@ -257,12 +284,12 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
 
                 <View style={styles.requestCardFooter}>
                   <View style={styles.etaRow}>
-                    <Feather name="clock" size={12} color="#94A3B8" />
+                    <Feather name="clock" size={12} color="#64748B" />
                     <Text style={styles.etaText}>
                       ETA: {req.etaMinutes} mins • {req.timestamp}
                     </Text>
                   </View>
-                  <View style={[styles.urgencyTag, { backgroundColor: `${uCol}20` }]}>
+                  <View style={[styles.urgencyTag, { backgroundColor: uBg }]}>
                     <Text style={[styles.urgencyTagText, { color: uCol }]}>
                       {req.urgency.replace('_', ' ')}
                     </Text>
@@ -271,7 +298,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
 
                 {req.assignedResponder && (
                   <View style={styles.responderBox}>
-                    <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+                    <Ionicons name="shield-checkmark" size={14} color="#059669" />
                     <Text style={styles.responderText}>{req.assignedResponder}</Text>
                   </View>
                 )}
@@ -280,7 +307,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
           })}
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 36 }} />
       </ScrollView>
     </View>
   );
@@ -289,32 +316,38 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backBtn: {
-    marginRight: 12,
+    marginRight: 10,
+    padding: 4,
   },
   headerTitleWrap: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
-    letterSpacing: 0.5,
+    color: '#0F172A',
+    letterSpacing: 0.6,
   },
   headerSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   scrollContent: {
@@ -323,17 +356,22 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   formCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   formSectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
     marginBottom: 10,
   },
@@ -341,25 +379,25 @@ const styles = StyleSheet.create({
     marginHorizontal: -4,
   },
   categoryChip: {
-    backgroundColor: '#1E293B60',
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginHorizontal: 4,
   },
   categoryChipActive: {
-    backgroundColor: '#06B6D420',
-    borderColor: '#06B6D4',
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7',
   },
   categoryChipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   categoryChipTextActive: {
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '700',
   },
   urgencyRow: {
@@ -371,9 +409,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B40',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingVertical: 8,
     gap: 6,
@@ -385,7 +423,7 @@ const styles = StyleSheet.create({
   },
   urgencyBtnText: {
     fontSize: 11,
-    color: '#CBD5E1',
+    color: '#475569',
     fontWeight: '600',
   },
   inputWrap: {
@@ -394,29 +432,31 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: '#334155',
     marginBottom: 6,
   },
   localityBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B50',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
   },
   localityBoxText: {
     fontSize: 12,
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontWeight: '600',
   },
   textInput: {
-    backgroundColor: '#1E293B50',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
-    color: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    color: '#0F172A',
     fontSize: 13,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -429,11 +469,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#0284C7',
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 18,
     gap: 8,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitBtnText: {
     color: '#FFFFFF',
@@ -453,16 +498,21 @@ const styles = StyleSheet.create({
   trackerTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
   },
   requestCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   requestCardTop: {
     flexDirection: 'row',
@@ -473,12 +523,12 @@ const styles = StyleSheet.create({
   requestId: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#06B6D4',
+    color: '#0284C7',
   },
   requestCategory: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginTop: 2,
   },
   statusBadge: {
@@ -491,9 +541,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   requestNotes: {
-    fontSize: 11,
-    color: '#94A3B8',
-    lineHeight: 16,
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 17,
     marginVertical: 6,
   },
   requestCardFooter: {
@@ -503,7 +553,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#F1F5F9',
   },
   etaRow: {
     flexDirection: 'row',
@@ -526,7 +576,7 @@ const styles = StyleSheet.create({
   responderBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B40',
+    backgroundColor: '#ECFDF5',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 6,
@@ -534,8 +584,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   responderText: {
-    fontSize: 10,
-    color: '#10B981',
+    fontSize: 11,
+    color: '#059669',
     fontWeight: '600',
   },
 });

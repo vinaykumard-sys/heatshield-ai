@@ -184,8 +184,8 @@ export async function checkAppVersion(): Promise<VersionCheckResult> {
     console.warn('[VersionService] Failed to fetch remote version.json:', err);
   }
 
-  const latestVersion = remoteConfig?.version || '1.2.0';
-  const minimumVersion = remoteConfig?.minimumRequiredVersion || '1.2.0';
+  const latestVersion = remoteConfig?.version || '1.1.0';
+  const minimumVersion = remoteConfig?.minimumRequiredVersion || '1.1.0';
   const forceUpdate = remoteConfig?.forceUpdate !== undefined ? remoteConfig.forceUpdate : true;
   const downloadUrl = remoteConfig?.downloadUrl ? (
     remoteConfig.downloadUrl.startsWith('http') ? remoteConfig.downloadUrl : `${baseUrl}${remoteConfig.downloadUrl}`

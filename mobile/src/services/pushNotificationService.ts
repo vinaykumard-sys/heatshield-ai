@@ -23,6 +23,8 @@ export interface PushTokenRecord {
   deviceName?: string;
 }
 
+export type NotificationTargetScreen = 'dashboard' | 'routes' | 'sos' | 'assistant' | 'profile';
+
 // ==============================================================================
 // 2. ANDROID NOTIFICATION CHANNELS CONFIGURATION
 // ==============================================================================
@@ -66,6 +68,19 @@ export async function configureAndroidNotificationChannels(): Promise<void> {
     enableVibrate: true,
     showBadge: true,
   });
+
+  // Channel 4: SOS Emergency & Relief Alerts (MAX Importance)
+  await Notifications.setNotificationChannelAsync('emergency-sos', {
+    name: 'SOS Emergency & Relief Alerts',
+    description: 'Urgent heat safety emergency alerts, responder check-ins, and cooling relief dispatches.',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 500, 200, 500],
+    lightColor: '#EF4444',
+    sound: 'default',
+    enableLights: true,
+    enableVibrate: true,
+    showBadge: true,
+  });
 }
 
 // ==============================================================================
@@ -95,7 +110,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
 // 4. EXPO PUSH TOKEN REGISTRATION & SUPABASE STORAGE
 // ==============================================================================
 /**
- * Obtains the device's Expo Push Token and syncs it with the Supabase database.
+ * Obtains the device's real Expo Push Token and syncs it with the Supabase database.
+ * No hardcoded or fake notifications/tokens are created.
  */
 export async function registerForPushNotificationsAsync(
   userId?: string
@@ -105,7 +121,7 @@ export async function registerForPushNotificationsAsync(
 
   // Verify device environment
   if (!Device.isDevice && Platform.OS !== 'web') {
-    console.log('[PushNotification] Push notifications require a physical device on Android/iOS.');
+    console.log('[PushNotification] Physical device recommended for native push notification delivery.');
   }
 
   // Check current permissions
@@ -124,16 +140,20 @@ export async function registerForPushNotificationsAsync(
     Constants?.expoConfig?.extra?.eas?.projectId ||
     Constants?.easConfig?.projectId;
 
-  let tokenData: string;
+  let tokenData: string | null = null;
   try {
     const pushTokenResult = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined
     );
     tokenData = pushTokenResult.data;
   } catch (err: any) {
-    console.warn('[PushNotification] Could not generate Expo push token:', err?.message || err);
-    // Fallback pseudo-token for local simulator/offline testing
-    tokenData = `ExponentPushToken[local-${Platform.OS}-${Date.now()}]`;
+    console.warn('[PushNotification] Could not generate Expo push token (offline or development simulator):', err?.message || err);
+    // Real notification flow: do not generate fake tokens when generation fails
+    return null;
+  }
+
+  if (!tokenData) {
+    return null;
   }
 
   const deviceModel = Device.modelName || Device.deviceName || 'Android Device';
@@ -155,14 +175,14 @@ export async function registerForPushNotificationsAsync(
 }
 
 /**
- * Saves or upserts the push token to Supabase table `push_tokens`
+ * Saves or upserts the push token to Supabase table `push_tokens` (with fallback to `user_devices`)
  */
 export async function savePushTokenToSupabase(
   record: PushTokenRecord,
   userId?: string
 ): Promise<boolean> {
   if (!supabase) {
-    console.log('[PushNotification] Supabase not configured. Token cached locally:', record.token);
+    console.log('[PushNotification] Supabase not configured. Push token sync skipped.');
     return false;
   }
 
@@ -175,11 +195,14 @@ export async function savePushTokenToSupabase(
     }
 
     if (!targetUserId) {
-      console.log('[PushNotification] Anonymous/Guest device, token saved for anonymous alerts.');
+      console.log('[PushNotification] Anonymous/Guest device, token saved locally.');
       return false;
     }
 
-    const { error } = await supabase.from('push_tokens').upsert(
+    const nowIso = new Date().toISOString();
+
+    // 1. Primary: push_tokens table
+    const { error: pushTokensError } = await supabase.from('push_tokens').upsert(
       {
         user_id: targetUserId,
         expo_push_token: record.token,
@@ -187,29 +210,94 @@ export async function savePushTokenToSupabase(
         device_id: record.deviceId,
         device_name: record.deviceName,
         enabled: true,
-        last_seen_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_seen_at: nowIso,
+        updated_at: nowIso,
       },
       {
         onConflict: 'expo_push_token',
       }
     );
 
-    if (error) {
-      console.error('[PushNotification] Failed to upsert push token to Supabase:', error.message);
-      return false;
+    if (!pushTokensError) {
+      console.log('[PushNotification] Token successfully synced with Supabase push_tokens for user:', targetUserId);
+      return true;
     }
 
-    console.log('[PushNotification] Token successfully synced with Supabase for user:', targetUserId);
-    return true;
+    // 2. Compatibility fallback: user_devices table if present
+    const { error: deviceError } = await supabase.from('user_devices').upsert(
+      {
+        user_id: targetUserId,
+        device_token: record.token,
+        platform: record.platform,
+        device_id: record.deviceId,
+        device_name: record.deviceName,
+        is_active: true,
+        updated_at: nowIso,
+      },
+      {
+        onConflict: 'device_token',
+      }
+    );
+
+    if (!deviceError) {
+      console.log('[PushNotification] Token synced with user_devices fallback for user:', targetUserId);
+      return true;
+    }
+
+    console.warn('[PushNotification] Push token sync warning:', pushTokensError.message);
+    return false;
   } catch (error: any) {
-    console.error('[PushNotification] Unexpected error saving push token:', error.message || error);
+    console.warn('[PushNotification] Error during push token persistence:', error.message || error);
     return false;
   }
 }
 
 // ==============================================================================
-// 5. NOTIFICATION LISTENERS (FOREGROUND & USER INTERACTION)
+// 5. NOTIFICATION ROUTING & RESOLUTION
+// ==============================================================================
+/**
+ * Resolves notification payload to the appropriate screen in the app.
+ */
+export function resolveNotificationRoute(notificationData: any): NotificationTargetScreen {
+  if (!notificationData) return 'dashboard';
+  const type = String(notificationData.type || '').toUpperCase();
+  const channelId = String(notificationData.channelId || '');
+
+  if (type === 'SAFE_ROUTE' || channelId === 'safe-routes') {
+    return 'routes';
+  }
+  if (type === 'SOS_ALERT' || type === 'ASSISTANCE' || channelId === 'emergency-sos') {
+    return 'sos';
+  }
+  if (type === 'ASSISTANT' || type === 'AI_ADVISORY') {
+    return 'assistant';
+  }
+  if (type === 'PROFILE' || type === 'ACCOUNT') {
+    return 'profile';
+  }
+  // Default for HEATWAVE_ALERT, MORNING_BRIEFING, heat-alerts, weather-briefings
+  return 'dashboard';
+}
+
+/**
+ * Checks if the app was launched by tapping a push notification from killed state.
+ */
+export async function checkInitialNotificationResponse(): Promise<any | null> {
+  try {
+    const getResponse = (Notifications as any).getLastNotificationResponseAsync;
+    if (typeof getResponse === 'function') {
+      const response = await getResponse();
+      return response;
+    }
+    return null;
+  } catch (error) {
+    console.warn('[PushNotification] Error checking initial notification response:', error);
+    return null;
+  }
+}
+
+// ==============================================================================
+// 6. NOTIFICATION LISTENERS (FOREGROUND & USER INTERACTION)
 // ==============================================================================
 export function setupNotificationListeners(
   onNotificationReceived?: (notification: any) => void,
@@ -234,6 +322,14 @@ export function setupNotificationListeners(
       }
     }
   );
+
+  // Also check for cold-start launch via notification
+  checkInitialNotificationResponse().then((initialResponse) => {
+    if (initialResponse && onNotificationResponse) {
+      console.log('[PushNotification] App launched from notification tap:', initialResponse?.notification?.request?.content?.title);
+      onNotificationResponse(initialResponse);
+    }
+  });
 
   return () => {
     receivedSubscription.remove();

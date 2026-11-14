@@ -902,7 +902,7 @@ export const SafeRoutesPage: React.FC = () => {
       </Card>
 
       {/* Main Map Viewport with OVERLAID Floating Route Info Panel */}
-      <div className="relative w-full h-[52vh] min-h-[380px] sm:h-[580px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-950">
+      <div className="relative w-full h-[52vh] min-h-[380px] sm:h-[580px] lg:h-[720px] rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm bg-slate-50">
         {/* 2D Leaflet Canvas Container */}
         <div className={`w-full h-full z-0 ${viewMode === '2d' ? 'block' : 'hidden'}`}>
           <div ref={mapContainerRef} className="w-full h-full z-0" />
@@ -920,6 +920,7 @@ export const SafeRoutesPage: React.FC = () => {
               coolingCentres={INITIAL_COOLING_CENTRES}
               waterPoints={INITIAL_WATER_POINTS}
               travelMode={travelMode}
+              isLoading={isCalculatingRoutes}
               height="100%"
             />
           </div>
@@ -1077,12 +1078,12 @@ export const SafeRoutesPage: React.FC = () => {
             {/* Collapsible Content */}
             {!isPanelCollapsed && activeRoute && (
               <>
-                {/* Route Alternatives Selection Pills */}
+                {/* Route Alternatives Selection Cards per Section 17 */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase font-bold tracking-wider text-[#64748B] block">
-                    Select Path Variant:
+                    Select Route Variant:
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-2">
                     {routes.map(r => {
                       const isSelected = r.id === selectedRouteId;
                       const isCanopy = r.route_type === 'low_heat_exposure';
@@ -1092,26 +1093,44 @@ export const SafeRoutesPage: React.FC = () => {
                         <button
                           key={r.id}
                           onClick={() => setSelectedRouteId(r.id)}
-                          className={`p-2 rounded-xl text-left border transition-all ${
+                          className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-blue-50/90 border-[#1E60F2] ring-1 ring-[#1E60F2]'
-                              : 'bg-white hover:bg-slate-50 border-[#E2E8F0]'
+                              ? 'bg-blue-50/95 border-blue-600 ring-2 ring-blue-500/30 shadow-xs'
+                              : 'bg-white hover:bg-slate-50 border-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-[#0F172A]">
+                          <div className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-[#0F172A]">
                             {isCanopy ? (
-                              <Trees className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <Trees className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                             ) : isRespite ? (
-                              <Droplets className="w-3 h-3 text-sky-600 shrink-0" />
+                              <Droplets className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                             ) : (
-                              <Sun className="w-3 h-3 text-amber-500 shrink-0" />
+                              <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             )}
                             <span className="truncate">
                               {isCanopy ? 'Coolest' : isRespite ? 'Respite' : 'Fastest'}
                             </span>
                           </div>
-                          <div className="text-[10px] text-[#64748B] font-semibold mt-0.5">
+                          <div className="text-xs font-bold text-slate-800 mt-1">
                             {r.formatted_duration || `${r.duration_minutes} min`}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-medium">
+                            {r.formatted_distance || `${r.distance_km} km`}
+                          </div>
+                          <div className="mt-1">
+                            {isCanopy ? (
+                              <span className="inline-block text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200">
+                                ↓ {Math.max(25, r.shade_coverage_pct || 38)}% less heat
+                              </span>
+                            ) : isRespite ? (
+                              <span className="inline-block text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.5 rounded border border-sky-200">
+                                {Math.max(1, r.cooling_centres_count + r.water_points_count)} cooling stops
+                              </span>
+                            ) : (
+                              <span className="inline-block text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">
+                                Direct arterial
+                              </span>
+                            )}
                           </div>
                         </button>
                       );

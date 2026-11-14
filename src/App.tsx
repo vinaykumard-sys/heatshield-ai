@@ -496,11 +496,11 @@ export function App() {
                   }
                 />
 
-                {/* WhatsApp Gateway & Scanner */}
+                {/* WhatsApp Gateway & Scanner (Admin-only) */}
                 <Route
                   path="/whatsapp"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={['admin']}>
                       <WhatsAppGatewayPage />
                     </ProtectedRoute>
                   }
@@ -508,7 +508,7 @@ export function App() {
                 <Route
                   path="/whatsapp-gateway"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={['admin']}>
                       <WhatsAppGatewayPage />
                     </ProtectedRoute>
                   }

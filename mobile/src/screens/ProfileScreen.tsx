@@ -140,7 +140,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
         {/* Notification & Safety Alert Preferences */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="notifications-outline" size={18} color="#06B6D4" />
+            <Ionicons name="notifications-outline" size={18} color="#0284C7" />
             <Text style={styles.sectionTitle}>HEAT ALERT PREFERENCES</Text>
           </View>
 
@@ -152,7 +152,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <Switch
               value={extremeHeatAlerts}
               onValueChange={setExtremeHeatAlerts}
-              trackColor={{ false: '#334155', true: '#06B6D4' }}
+              trackColor={{ false: '#E2E8F0', true: '#0284C7' }}
               thumbColor={extremeHeatAlerts ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
@@ -165,7 +165,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <Switch
               value={uvWarning}
               onValueChange={setUvWarning}
-              trackColor={{ false: '#334155', true: '#06B6D4' }}
+              trackColor={{ false: '#E2E8F0', true: '#0284C7' }}
               thumbColor={uvWarning ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
@@ -178,7 +178,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <Switch
               value={smsFallbacks}
               onValueChange={setSmsFallbacks}
-              trackColor={{ false: '#334155', true: '#06B6D4' }}
+              trackColor={{ false: '#E2E8F0', true: '#0284C7' }}
               thumbColor={smsFallbacks ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
@@ -191,7 +191,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <Switch
               value={vulnerableSeniorMode}
               onValueChange={setVulnerableSeniorMode}
-              trackColor={{ false: '#334155', true: '#10B981' }}
+              trackColor={{ false: '#E2E8F0', true: '#059669' }}
               thumbColor={vulnerableSeniorMode ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
@@ -200,7 +200,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
         {/* Emergency SOS Contact List */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>
-            <MaterialCommunityIcons name="shield-account" size={18} color="#EF4444" />
+            <MaterialCommunityIcons name="shield-account" size={18} color="#DC2626" />
             <Text style={styles.sectionTitle}>EMERGENCY NOTIFICATION CONTACTS</Text>
           </View>
 
@@ -231,7 +231,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
                   onPress={() => handleDeleteContact(contact.id)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="trash-2" size={16} color="#EF4444" />
+                  <Feather name="trash-2" size={16} color="#DC2626" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -244,7 +244,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <TextInput
               style={styles.textInput}
               placeholder="Full Name"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#94A3B8"
               value={newName}
               onChangeText={setNewName}
             />
@@ -252,7 +252,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
             <TextInput
               style={styles.textInput}
               placeholder="Phone Number (+91 ...)"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#94A3B8"
               keyboardType="phone-pad"
               value={newPhone}
               onChangeText={setNewPhone}
@@ -272,7 +272,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
               ))}
             </View>
 
-            <TouchableOpacity style={styles.addBtn} onPress={handleAddContact} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.addBtn} onPress={handleAddContact} activeOpacity={0.88}>
               <Feather name="plus" size={16} color="#FFFFFF" />
               <Text style={styles.addBtnText}>Save Emergency Contact</Text>
             </TouchableOpacity>
@@ -281,18 +281,18 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
 
         {/* System & Version Information */}
         <View style={styles.systemCard}>
-          <Text style={styles.systemText}>HeatShield AI v2.4 (Android Mobile Build)</Text>
+          <Text style={styles.systemText}>HeatShield AI v1.2.0 (Android Mobile Native)</Text>
           <Text style={styles.systemSub}>
             Integrated with IMD Synoptic Radar, BBMP Disaster Relief & OpenStreetMap
           </Text>
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-            <Feather name="log-out" size={16} color="#EF4444" />
+            <Feather name="log-out" size={16} color="#DC2626" />
             <Text style={styles.logoutBtnText}>Sign Out of Device</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 36 }} />
       </ScrollView>
     </View>
   );
@@ -301,7 +301,7 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   scrollContent: {
     flex: 1,
@@ -309,12 +309,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   profileCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -325,10 +330,15 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#06B6D4',
+    backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   avatarText: {
     fontSize: 20,
@@ -341,22 +351,22 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   userPhone: {
     fontSize: 12,
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '600',
     marginTop: 2,
   },
   userCity: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   roleContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#F1F5F9',
     paddingTop: 12,
   },
   sectionMiniLabel: {
@@ -372,33 +382,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roleChip: {
-    backgroundColor: '#1E293B60',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   roleChipActive: {
-    backgroundColor: '#06B6D420',
-    borderColor: '#06B6D4',
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7',
   },
   roleChipText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '600',
   },
   roleChipTextActive: {
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '700',
   },
   sectionCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -409,7 +424,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
   },
   subtext: {
@@ -424,7 +439,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B60',
+    borderBottomColor: '#F1F5F9',
   },
   prefTextCol: {
     flex: 1,
@@ -433,19 +448,21 @@ const styles = StyleSheet.create({
   prefLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   prefDesc: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B40',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 12,
     marginBottom: 8,
   },
@@ -455,11 +472,11 @@ const styles = StyleSheet.create({
   contactName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   contactPhone: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   contactActions: {
@@ -471,10 +488,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   notifyToggleActive: {
-    backgroundColor: '#10B98125',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   notifyToggleText: {
     fontSize: 10,
@@ -482,31 +502,31 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   notifyToggleTextActive: {
-    color: '#10B981',
+    color: '#059669',
   },
   deleteContactBtn: {
     padding: 4,
   },
   addContactCard: {
     marginTop: 12,
-    backgroundColor: '#1E293B30',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#33415550',
+    borderColor: '#E2E8F0',
   },
   addContactHeading: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#CBD5E1',
+    color: '#475569',
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
-    color: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    color: '#0F172A',
     fontSize: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -522,31 +542,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   relChipActive: {
-    borderColor: '#06B6D4',
-    backgroundColor: '#06B6D420',
+    borderColor: '#0284C7',
+    backgroundColor: '#E0F2FE',
   },
   relChipText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '600',
   },
   relChipTextActive: {
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '700',
   },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#06B6D4',
+    backgroundColor: '#0284C7',
     borderRadius: 8,
     paddingVertical: 10,
     gap: 6,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   addBtnText: {
     fontSize: 12,
@@ -554,21 +579,26 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   systemCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   systemText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   systemSub: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 14,
@@ -584,6 +614,6 @@ const styles = StyleSheet.create({
   logoutBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#DC2626',
   },
 });

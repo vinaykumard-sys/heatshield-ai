@@ -16,6 +16,7 @@ declare module 'react-native' {
   export const SafeAreaView: any;
   export const Platform: any;
   export const Image: any;
+  export const Keyboard: any;
   export const KeyboardAvoidingView: any;
   export const Dimensions: any;
   export const Share: any;

@@ -58,7 +58,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
         <View style={styles.emergencyCard}>
           <View style={styles.emergencyCardHeader}>
             <View style={styles.alertPill}>
-              <MaterialCommunityIcons name="alert-decagram" size={16} color="#EF4444" />
+              <MaterialCommunityIcons name="alert-decagram" size={16} color="#DC2626" />
               <Text style={styles.alertPillText}>HEATSTROKE & RAPID RESCUE</Text>
             </View>
             <Text style={styles.gpsLabel}>
@@ -76,10 +76,10 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
             <TouchableOpacity
               style={styles.callCardRed}
               onPress={() => handleDial('1070', 'State Disaster Heat Helpline')}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
               <View style={styles.callIconWrap}>
-                <Ionicons name="call" size={24} color="#FFFFFF" />
+                <Ionicons name="call" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.callNumber}>1070</Text>
               <Text style={styles.callDesc}>State Heatwave Control</Text>
@@ -88,10 +88,10 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
             <TouchableOpacity
               style={styles.callCardOrange}
               onPress={() => handleDial('1077', 'District Disaster Line')}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
               <View style={styles.callIconWrap}>
-                <Ionicons name="call" size={24} color="#FFFFFF" />
+                <Ionicons name="call" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.callNumber}>1077</Text>
               <Text style={styles.callDesc}>District Emergency Hub</Text>
@@ -100,10 +100,10 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
             <TouchableOpacity
               style={styles.callCardBlue}
               onPress={() => handleDial('108', 'Emergency Ambulance Service')}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
               <View style={styles.callIconWrap}>
-                <MaterialCommunityIcons name="ambulance" size={24} color="#FFFFFF" />
+                <MaterialCommunityIcons name="ambulance" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.callNumber}>108</Text>
               <Text style={styles.callDesc}>Medical Ambulance</Text>
@@ -114,9 +114,9 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
           <TouchableOpacity
             style={styles.smsButton}
             onPress={handleDispatchEmergencySMS}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
-            <MaterialCommunityIcons name="message-alert" size={20} color="#FFFFFF" />
+            <MaterialCommunityIcons name="message-alert" size={18} color="#FFFFFF" />
             <Text style={styles.smsButtonText}>
               {smsSending ? 'Broadcasting...' : 'Broadcast SOS SMS with GPS Coordinates'}
             </Text>
@@ -131,7 +131,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
             activeOpacity={0.85}
           >
             <View style={styles.requestAidIcon}>
-              <MaterialCommunityIcons name="truck-delivery" size={24} color="#06B6D4" />
+              <MaterialCommunityIcons name="truck-delivery" size={22} color="#0284C7" />
             </View>
             <View style={styles.requestAidText}>
               <Text style={styles.requestAidTitle}>Request Water Tanker or First Aid Aid</Text>
@@ -139,7 +139,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
                 Submit a field assistance ticket with live tracker
               </Text>
             </View>
-            <Feather name="arrow-right" size={20} color="#06B6D4" />
+            <Feather name="arrow-right" size={18} color="#0284C7" />
           </TouchableOpacity>
         )}
 
@@ -147,7 +147,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
         <View style={styles.sectionWrap}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderLeft}>
-              <MaterialCommunityIcons name="snowflake" size={18} color="#06B6D4" />
+              <MaterialCommunityIcons name="snowflake" size={18} color="#0284C7" />
               <Text style={styles.sectionTitle}>NEARBY PUBLIC COOLING SHELTERS</Text>
             </View>
             <Text style={styles.sectionCount}>{COOLING_CENTRES.length} active</Text>
@@ -175,7 +175,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
 
               <View style={styles.shelterFooter}>
                 <View style={styles.shelterMetaRow}>
-                  <Feather name="clock" size={12} color="#94A3B8" />
+                  <Feather name="clock" size={12} color="#64748B" />
                   <Text style={styles.shelterHours}>{shelter.operatingHours}</Text>
                   <Text style={styles.shelterDist}>• {shelter.distanceKm} km away</Text>
                 </View>
@@ -185,7 +185,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
                   onPress={() => handleDial(shelter.contactPhone, shelter.name)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="call" size={14} color="#10B981" />
+                  <Ionicons name="call" size={13} color="#059669" />
                   <Text style={styles.shelterCallText}>Direct Call</Text>
                 </TouchableOpacity>
               </View>
@@ -196,7 +196,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
         {/* Heatstroke First Aid Warning Card */}
         <View style={styles.firstAidCard}>
           <View style={styles.firstAidHeader}>
-            <MaterialCommunityIcons name="medical-bag" size={20} color="#EF4444" />
+            <MaterialCommunityIcons name="medical-bag" size={20} color="#DC2626" />
             <Text style={styles.firstAidTitle}>CRITICAL FIRST AID CHECKLIST</Text>
           </View>
 
@@ -226,7 +226,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
           </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 36 }} />
       </ScrollView>
     </View>
   );
@@ -235,7 +235,7 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   scrollContent: {
     flex: 1,
@@ -243,12 +243,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   emergencyCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FEF2F2',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#EF4444',
+    borderColor: '#FCA5A5',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   emergencyCardHeader: {
     flexDirection: 'row',
@@ -259,7 +264,7 @@ const styles = StyleSheet.create({
   alertPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EF444420',
+    backgroundColor: '#FEE2E2',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 14,
@@ -268,7 +273,7 @@ const styles = StyleSheet.create({
   alertPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#EF4444',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   gpsLabel: {
@@ -279,46 +284,61 @@ const styles = StyleSheet.create({
   emergencyTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginTop: 2,
   },
   emergencySubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#475569',
     marginTop: 4,
     lineHeight: 17,
   },
   callGrid: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 16,
+    marginTop: 14,
   },
   callCardRed: {
     flex: 1,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   callCardOrange: {
     flex: 1,
-    backgroundColor: '#F97316',
+    backgroundColor: '#EA580C',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: '#EA580C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   callCardBlue: {
     flex: 1,
     backgroundColor: '#0284C7',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   callIconWrap: {
     marginBottom: 4,
   },
   callNumber: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: '#FFFFFF',
   },
@@ -334,13 +354,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7F1D1D',
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    backgroundColor: '#991B1B',
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 14,
     gap: 8,
+    shadowColor: '#991B1B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   smsButtonText: {
     fontSize: 12,
@@ -350,18 +373,23 @@ const styles = StyleSheet.create({
   requestAidCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#06B6D450',
+    borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   requestAidIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#06B6D420',
+    backgroundColor: '#E0F2FE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -372,11 +400,11 @@ const styles = StyleSheet.create({
   requestAidTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   requestAidSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   sectionWrap: {
@@ -396,21 +424,26 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
   },
   sectionCount: {
     fontSize: 11,
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '700',
   },
   shelterCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   shelterTop: {
     flexDirection: 'row',
@@ -424,15 +457,15 @@ const styles = StyleSheet.create({
   shelterName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   shelterAddress: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 3,
   },
   openTag: {
-    backgroundColor: '#10B98125',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -440,7 +473,7 @@ const styles = StyleSheet.create({
   openText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#059669',
   },
   amenitiesWrap: {
     flexDirection: 'row',
@@ -449,14 +482,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   amenityChip: {
-    backgroundColor: '#1E293B80',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   amenityText: {
     fontSize: 10,
-    color: '#CBD5E1',
+    color: '#475569',
     fontWeight: '600',
   },
   shelterFooter: {
@@ -465,7 +498,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#F1F5F9',
   },
   shelterMetaRow: {
     flexDirection: 'row',
@@ -474,18 +507,18 @@ const styles = StyleSheet.create({
   },
   shelterHours: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   shelterDist: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#94A3B8',
   },
   shelterCallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B98115',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: '#A7F3D0',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -494,14 +527,19 @@ const styles = StyleSheet.create({
   shelterCallText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#059669',
   },
   firstAidCard: {
-    backgroundColor: '#1E1B2E',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#EF444450',
+    borderColor: '#E2E8F0',
     padding: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   firstAidHeader: {
     flexDirection: 'row',
@@ -512,7 +550,7 @@ const styles = StyleSheet.create({
   firstAidTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#EF4444',
+    color: '#DC2626',
     letterSpacing: 0.8,
   },
   firstAidItem: {
@@ -522,20 +560,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   firstAidNum: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#EF444425',
-    color: '#EF4444',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FEE2E2',
+    color: '#DC2626',
     textAlign: 'center',
     fontSize: 11,
     fontWeight: '800',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   firstAidText: {
     flex: 1,
-    fontSize: 11,
-    color: '#E2E8F0',
-    lineHeight: 16,
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 17,
   },
 });

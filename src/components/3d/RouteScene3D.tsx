@@ -8,14 +8,14 @@ import {
   Droplets, 
   Flame, 
   MapPin, 
-  Layers, 
   Crosshair, 
   Building2, 
-  ShieldCheck, 
-  Clock, 
   Navigation,
   Eye,
-  Info
+  Info,
+  Layers,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { HeatSafeRoute, CoolingCentre, PublicWaterPoint } from '../../types';
 
@@ -38,14 +38,7 @@ export interface RouteScene3DProps {
   showHeatIslandsDefault?: boolean;
   showBuildingsDefault?: boolean;
   onSelectStation?: (station: CoolingCentre | PublicWaterPoint) => void;
-}
-
-interface ProjectedPoint {
-  x: number;
-  y: number;
-  z: number;
-  lat: number;
-  lon: number;
+  isLoading?: boolean;
 }
 
 const SCENE_SPAN = 38; // Target bounding scale in 3D units
@@ -63,34 +56,34 @@ function projectGps(
   return [x, 0, z];
 }
 
-// Route profile styling configuration
-const PROFILE_COLORS = {
+// Daylight Route Profile Styling (High contrast, modern navigation feel)
+const PROFILE_STYLES = {
   low_heat_exposure: {
-    primary: '#10B981', // Emerald
-    emissive: '#059669',
-    glow: '#34D399',
+    primary: '#059669', // Emerald
+    casing: '#FFFFFF',
+    highlight: '#34D399',
+    pulse: '#10B981',
     label: 'Coolest Corridor (Canopy)',
-    badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     icon: Trees,
-    shadowColor: '#064E3B'
   },
   shortest: {
-    primary: '#F97316', // Amber / Flame
-    emissive: '#EA580C',
-    glow: '#FB923C',
-    label: 'Fastest Direct (Arterial)',
-    badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    primary: '#D97706', // Warm Amber
+    casing: '#FFFFFF',
+    highlight: '#FBBF24',
+    pulse: '#F59E0B',
+    label: 'Fastest Direct',
+    badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
     icon: Flame,
-    shadowColor: '#7C2D12'
   },
   respite_optimized: {
-    primary: '#06B6D4', // Cyan / Aqua
-    emissive: '#0891B2',
-    glow: '#38BDF8',
-    label: 'Water & Respite Corridor',
-    badgeBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    primary: '#0284C7', // Sky Blue
+    casing: '#FFFFFF',
+    highlight: '#38BDF8',
+    pulse: '#0EA5E9',
+    label: 'Respite & Water Corridor',
+    badgeBg: 'bg-sky-50 text-sky-700 border-sky-200',
     icon: Droplets,
-    shadowColor: '#164E63'
   }
 };
 
@@ -119,14 +112,12 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
     const safeRadius = Math.max(10, Math.min(65, radius));
 
     if (viewPreset === 'top') {
-      // Top Down: bird's-eye 90 degree plan view directly above the route
-      targetCamPos.current.set(cx, cy + safeRadius * 2.3, cz + 0.001);
+      targetCamPos.current.set(cx, cy + safeRadius * 2.1, cz + 0.001);
     } else if (viewPreset === 'horizon') {
-      // Horizon: street-level forward horizon framing the route
-      targetCamPos.current.set(cx, cy + Math.max(2.5, safeRadius * 0.28), cz + safeRadius * 1.05);
+      targetCamPos.current.set(cx, cy + Math.max(2.5, safeRadius * 0.32), cz + safeRadius * 1.05);
     } else {
-      // 3D Iso: cinematic perspective isometric framing
-      targetCamPos.current.set(cx + safeRadius * 1.15, cy + safeRadius * 1.35, cz + safeRadius * 1.25);
+      // 3D Iso: Daylight perspective isometric framing
+      targetCamPos.current.set(cx + safeRadius * 1.1, cy + safeRadius * 1.3, cz + safeRadius * 1.2);
     }
 
     isTransitioning.current = true;
@@ -135,7 +126,7 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
   useFrame((_, delta) => {
     if (!isTransitioning.current) return;
 
-    const lerpFactor = Math.min(1, delta * 3.8);
+    const lerpFactor = Math.min(1, delta * 4.0);
     camera.position.lerp(targetCamPos.current, lerpFactor);
 
     if (controlsRef.current) {
@@ -156,9 +147,9 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
       }}
       enableDamping={true}
       dampingFactor={0.08}
-      minDistance={5}
-      maxDistance={140}
-      maxPolarAngle={Math.PI / 2.05} // prevent going underneath ground
+      minDistance={6}
+      maxDistance={130}
+      maxPolarAngle={Math.PI / 2.08}
       autoRotate={false}
       makeDefault
     />
@@ -166,7 +157,7 @@ function CameraController({ bounds, viewPreset, resetSignal }: CameraControllerP
 }
 
 // ============================================================================
-// 2. Animated Glowing Route Polyline with Flowing Energy Particle
+// 2. High-Contrast Daylight Route Polyline with Navigation Progress Indicator
 // ============================================================================
 
 interface RouteMeshProps {
@@ -178,7 +169,7 @@ interface RouteMeshProps {
   centerLon: number;
 }
 
-function GlowingRoutePolyline({
+const DaylightRoutePolyline = React.memo(function DaylightRoutePolyline({
   route,
   isSelected,
   onSelect,
@@ -187,20 +178,17 @@ function GlowingRoutePolyline({
   centerLon
 }: RouteMeshProps) {
   const pulseRef = useRef<THREE.Mesh>(null);
-  const glowOuterRef = useRef<THREE.Mesh>(null);
 
-  // Generate 3D Vector3 points from real road geometry
+  // Convert GPS coordinates into 3D points
   const points = useMemo(() => {
     if (!route.coordinates || route.coordinates.length < 2) return [];
 
     const pts: THREE.Vector3[] = [];
     route.coordinates.forEach(([lat, lon]) => {
       const [x, , z] = projectGps(lat, lon, centerLat, centerLon, scaleFactor);
-      // Strictly hug road level (no artificial upward parabolic dome)
       pts.push(new THREE.Vector3(x, 0.08, z));
     });
 
-    // Remove microscopic duplicate points
     const filtered: THREE.Vector3[] = [pts[0]];
     for (let i = 1; i < pts.length; i++) {
       if (pts[i].distanceTo(filtered[filtered.length - 1]) > 0.02) {
@@ -210,7 +198,6 @@ function GlowingRoutePolyline({
     return filtered;
   }, [route.coordinates, scaleFactor, centerLat, centerLon]);
 
-  // Construct piecewise linear curve path following actual street turns and intersections
   const curve = useMemo(() => {
     if (points.length < 2) return null;
     const path = new THREE.CurvePath<THREE.Vector3>();
@@ -220,96 +207,73 @@ function GlowingRoutePolyline({
     return path;
   }, [points]);
 
-  // Styling based on route profile
-  const style = PROFILE_COLORS[route.route_type] || PROFILE_COLORS.shortest;
+  const style = PROFILE_STYLES[route.route_type] || PROFILE_STYLES.shortest;
 
-  // Animate the traveling energy pulse bead along the curve
+  // Animate progress navigation bead along selected route
   useFrame((state) => {
-    if (!curve) return;
-
-    if (isSelected && pulseRef.current) {
-      const t = (state.clock.elapsedTime * (route.route_type === 'shortest' ? 0.25 : 0.18)) % 1;
-      const pos = curve.getPointAt(t);
-      pulseRef.current.position.copy(pos);
-      pulseRef.current.position.y += 0.08;
-
-      // Pulsing scale
-      const s = 1 + Math.sin(state.clock.elapsedTime * 8) * 0.18;
-      pulseRef.current.scale.set(s, s, s);
-    }
-
-    if (glowOuterRef.current && isSelected) {
-      const p = 0.35 + Math.sin(state.clock.elapsedTime * 3) * 0.12;
-      (glowOuterRef.current.material as THREE.MeshStandardMaterial).opacity = p;
-    }
+    if (!curve || !isSelected || !pulseRef.current) return;
+    const t = (state.clock.elapsedTime * 0.16) % 1;
+    const pos = curve.getPointAt(t);
+    pulseRef.current.position.copy(pos);
+    pulseRef.current.position.y += 0.08;
   });
 
   if (!curve) return null;
 
   return (
     <group onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
-      {/* 1. Underlying Dark Road Bed Ribbon */}
-      <mesh position={[0, -0.04, 0]}>
-        <tubeGeometry args={[curve, Math.min(300, points.length * 4), isSelected ? 0.36 : 0.22, 6, false]} />
-        <meshStandardMaterial
-          color="#0B1329"
-          roughness={0.9}
-          metalness={0.2}
+      {/* 1. Outer Road Casing (White border casing for high contrast on light ground) */}
+      <mesh position={[0, -0.02, 0]}>
+        <tubeGeometry args={[curve, Math.min(260, points.length * 3), isSelected ? 0.28 : 0.16, 8, false]} />
+        <meshBasicMaterial
+          color="#FFFFFF"
           transparent={true}
-          opacity={isSelected ? 0.85 : 0.4}
+          opacity={isSelected ? 0.95 : 0.6}
         />
       </mesh>
 
-      {/* 2. Core Glowing Neon Tube */}
-      <mesh position={[0, 0.02, 0]}>
-        <tubeGeometry args={[curve, Math.min(300, points.length * 4), isSelected ? 0.18 : 0.10, 8, false]} />
-        <meshStandardMaterial
+      {/* 2. Core Navigation Route Line */}
+      <mesh position={[0, 0.04, 0]}>
+        <tubeGeometry args={[curve, Math.min(260, points.length * 3), isSelected ? 0.18 : 0.10, 8, false]} />
+        <meshBasicMaterial
           color={style.primary}
-          emissive={style.emissive}
-          emissiveIntensity={isSelected ? 2.2 : 0.6}
-          roughness={0.15}
-          metalness={0.8}
           transparent={!isSelected}
           opacity={isSelected ? 1 : 0.45}
         />
       </mesh>
 
-      {/* 3. Outer Volumetric Atmosphere Glow Tube (Selected Only) */}
+      {/* 3. Subtle Highlight Glow on Selected Route */}
       {isSelected && (
-        <mesh ref={glowOuterRef} position={[0, 0.02, 0]}>
-          <tubeGeometry args={[curve, Math.min(240, points.length * 3), 0.42, 6, false]} />
-          <meshStandardMaterial
-            color={style.glow}
-            emissive={style.primary}
-            emissiveIntensity={0.8}
+        <mesh position={[0, 0.05, 0]}>
+          <tubeGeometry args={[curve, Math.min(200, points.length * 2), 0.24, 6, false]} />
+          <meshBasicMaterial
+            color={style.highlight}
             transparent={true}
-            opacity={0.35}
+            opacity={0.3}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
       )}
 
-      {/* 4. Moving Energy Drone Bead (Selected Only) */}
+      {/* 4. Animated Navigation Bead / Arrow Progress Dot */}
       {isSelected && (
         <mesh ref={pulseRef}>
-          <sphereGeometry args={[0.38, 16, 16]} />
+          <sphereGeometry args={[0.3, 16, 16]} />
           <meshStandardMaterial
             color="#FFFFFF"
-            emissive={style.glow}
-            emissiveIntensity={4}
-            roughness={0.1}
+            emissive={style.primary}
+            emissiveIntensity={1.5}
+            roughness={0.2}
           />
-          {/* Inner Light Source */}
-          <pointLight color={style.primary} intensity={2.5} distance={4} />
         </mesh>
       )}
     </group>
   );
-}
+});
 
 // ============================================================================
-// 3. Stylized Procedural City Block Terrain & Heat Islands
+// 3. Clean Daylight City Blocks & Terrain (Light Architectural Aesthetic)
 // ============================================================================
 
 interface CityTerrainProps {
@@ -322,7 +286,7 @@ interface CityTerrainProps {
   centerLon: number;
 }
 
-function CityTerrain({
+const CityTerrain = React.memo(function CityTerrain({
   bounds,
   activeRoute,
   showBuildings,
@@ -334,7 +298,7 @@ function CityTerrain({
   const [cx, , cz] = bounds.center;
   const radius = Math.max(14, bounds.radius);
 
-  // Pre-project route line segments for accurate road corridor clearance calculation
+  // Pre-project route line segments to guarantee buildings NEVER cover or clip the road
   const routeSegments = useMemo(() => {
     if (!activeRoute.coordinates || activeRoute.coordinates.length < 2) return [];
     const pts = activeRoute.coordinates.map(([lat, lon]) => {
@@ -354,7 +318,7 @@ function CityTerrain({
     return segs;
   }, [activeRoute.coordinates, centerLat, centerLon, scaleFactor]);
 
-  // Generate procedural city blocks flanking the route area
+  // Generate lightweight, clean architectural buildings (NOT black monoliths!)
   const buildings = useMemo(() => {
     if (!showBuildings) return [];
 
@@ -366,28 +330,28 @@ function CityTerrain({
       d: number;
       h: number;
       color: string;
-      hasAntenna: boolean;
     }> = [];
 
-    // Deterministic pseudo-random based on grid coordinate
-    const gridSize = Math.ceil(radius * 1.5);
-    const step = 4.2;
-    const CLEARANCE_THRESHOLD_SQ = 1.4 * 1.4; // Strict 1.4 units minimum clearance to route segments
+    const gridSize = Math.ceil(radius * 1.3);
+    const step = 4.0;
+    const CLEARANCE_SQ = 1.8 * 1.8; // Generous 1.8 unit setback from any route road segment
+
+    // Light modern architectural palette (clean white, off-white, soft stone, slate accent)
+    const palette = ['#FFFFFF', '#F8FAFC', '#F1F5F9', '#E2E8F0', '#E0F2FE'];
 
     let id = 0;
     for (let x = cx - gridSize; x <= cx + gridSize; x += step) {
       for (let z = cz - gridSize; z <= cz + gridSize; z += step) {
-        // Jitter position
         const seed = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
-        const rand = (seed - Math.floor(seed));
+        const rand = seed - Math.floor(seed);
 
-        if (rand < 0.38) continue; // create realistic street corridors / open spaces
+        if (rand < 0.42) continue; // open courtyards / avenues
 
-        const jx = x + (rand - 0.5) * 1.8;
-        const jz = z + ((rand * 3.1) % 1 - 0.5) * 1.8;
+        const jx = x + (rand - 0.5) * 1.6;
+        const jz = z + ((rand * 3.1) % 1 - 0.5) * 1.6;
 
-        // Ensure procedural buildings are not rendered within 1.4 units of any route segment points
-        let isTooCloseToRoad = false;
+        // Check clearance against route
+        let isTooClose = false;
         for (let s = 0; s < routeSegments.length; s++) {
           const seg = routeSegments[s];
           const dx = seg.x2 - seg.x1;
@@ -396,220 +360,79 @@ function CityTerrain({
 
           let distSq: number;
           if (l2 === 0) {
-            const ex = jx - seg.x1;
-            const ez = jz - seg.z1;
-            distSq = ex * ex + ez * ez;
+            distSq = (jx - seg.x1) ** 2 + (jz - seg.z1) ** 2;
           } else {
             let t = ((jx - seg.x1) * dx + (jz - seg.z1) * dz) / l2;
             t = Math.max(0, Math.min(1, t));
-            const projX = seg.x1 + t * dx;
-            const projZ = seg.z1 + t * dz;
-            const ex = jx - projX;
-            const ez = jz - projZ;
-            distSq = ex * ex + ez * ez;
+            distSq = (jx - (seg.x1 + t * dx)) ** 2 + (jz - (seg.z1 + t * dz)) ** 2;
           }
 
-          if (distSq < CLEARANCE_THRESHOLD_SQ) {
-            isTooCloseToRoad = true;
+          if (distSq < CLEARANCE_SQ) {
+            isTooClose = true;
             break;
           }
         }
 
-        if (isTooCloseToRoad) continue;
+        if (isTooClose) continue;
 
-        // Height variation
-        const heightMultiplier = 1 - Math.min(1, Math.hypot(jx - cx, jz - cz) / (gridSize * 1.2));
-        const h = Math.max(1.2, (rand * 6.5 + 1.2) * (0.6 + heightMultiplier * 0.8));
-        const w = 1.6 + ((rand * 1.7) % 1) * 1.4;
-        const d = 1.6 + ((rand * 2.3) % 1) * 1.4;
-
-        // Subtle color tones: sleek dark slate glass, metallic navy
-        const palette = ['#0F172A', '#1E293B', '#111E38', '#172554'];
+        // Moderate, realistic building heights (1.2 to 3.2 units max) so they never dwarf navigation
+        const h = Math.max(0.8, (rand * 2.4 + 0.8));
+        const w = 1.4 + ((rand * 1.5) % 1) * 1.2;
+        const d = 1.4 + ((rand * 2.1) % 1) * 1.2;
         const color = palette[Math.floor(rand * palette.length)];
 
-        blocks.push({
-          id: id++,
-          x: jx,
-          z: jz,
-          w,
-          d,
-          h,
-          color,
-          hasAntenna: rand > 0.85 && h > 4.5
-        });
-
-        if (blocks.length > 120) break; // performance limit
+        blocks.push({ id: id++, x: jx, z: jz, w, d, h, color });
+        if (blocks.length > 80) break; // performance limit
       }
-      if (blocks.length > 120) break;
+      if (blocks.length > 80) break;
     }
 
     return blocks;
   }, [cx, cz, radius, showBuildings, routeSegments]);
 
-  // Heat island zones (areas along unshaded arterial sectors)
-  const heatIslandLocations = useMemo(() => {
-    if (!showHeatIslands || !activeRoute.coordinates) return [];
-    const zones: Array<{ x: number; z: number; temp: string; radius: number }> = [];
-
-    // Sample midpoints of route with high heat score
-    if (activeRoute.heat_exposure_score > 55) {
-      const step = Math.max(6, Math.floor(activeRoute.coordinates.length / 3));
-      for (let i = step; i < activeRoute.coordinates.length - 2; i += step) {
-        const [x, , z] = projectGps(
-          activeRoute.coordinates[i][0],
-          activeRoute.coordinates[i][1],
-          centerLat,
-          centerLon,
-          scaleFactor
-        );
-        zones.push({
-          x: x + 1.2,
-          z: z - 0.8,
-          temp: `${(42.5 + (i % 3) * 1.8).toFixed(1)}°C`,
-          radius: 3.5 + (i % 2) * 1.5
-        });
-      }
-    }
-    return zones;
-  }, [showHeatIslands, activeRoute, centerLat, centerLon, scaleFactor]);
-
-  // Shaded canopy zones (along coolest routes)
-  const canopyZones = useMemo(() => {
-    if (activeRoute.shade_coverage_pct < 50 || !activeRoute.coordinates) return [];
-    const zones: Array<{ x: number; z: number; text: string; radius: number }> = [];
-
-    const step = Math.max(5, Math.floor(activeRoute.coordinates.length / 3));
-    for (let i = step; i < activeRoute.coordinates.length - 2; i += step) {
-      const [x, , z] = projectGps(
-        activeRoute.coordinates[i][0],
-        activeRoute.coordinates[i][1],
-        centerLat,
-        centerLon,
-        scaleFactor
-      );
-      zones.push({
-        x: x - 0.9,
-        z: z + 0.6,
-        text: '-4.5°C Canopy',
-        radius: 3.2
-      });
-    }
-    return zones;
-  }, [activeRoute, centerLat, centerLon, scaleFactor]);
-
   return (
     <group>
-      {/* 1. Reflective Dark Ground Plane with Subtle Grid */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.1, cz]} receiveShadow>
-        <planeGeometry args={[180, 180]} />
-        <meshStandardMaterial
-          color="#060A14"
-          roughness={0.7}
-          metalness={0.3}
-        />
+      {/* Daylight Ground Surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.04, cz]}>
+        <planeGeometry args={[radius * 4, radius * 4]} />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} metalness={0.05} />
       </mesh>
 
-      {/* 2. Neon Coordinate Grid Helper */}
+      {/* Subtle Road Network Grid Floor */}
       <gridHelper
-        args={[180, 90, '#1E3A8A', '#0F1E36']}
-        position={[cx, -0.05, cz]}
+        args={[radius * 3.5, 32, '#CBD5E1', '#E2E8F0']}
+        position={[cx, -0.03, cz]}
       />
 
-      {/* 3. Procedural City Block Buildings */}
-      {showBuildings && buildings.map((b) => (
-        <group key={b.id} position={[b.x, b.h / 2, b.z]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[b.w, b.h, b.d]} />
-            <meshStandardMaterial
-              color={b.color}
-              roughness={0.25}
-              metalness={0.8}
-            />
-          </mesh>
-          {/* Glowing Rooftop Rim Edge */}
-          <lineSegments position={[0, b.h / 2 + 0.02, 0]}>
-            <edgesGeometry args={[new THREE.BoxGeometry(b.w, 0.05, b.d)]} />
-            <lineBasicMaterial color="#38BDF8" transparent opacity={0.35} />
-          </lineSegments>
-          {/* Spire / Antenna on high towers */}
-          {b.hasAntenna && (
-            <mesh position={[0, b.h / 2 + 0.7, 0]}>
-              <cylinderGeometry args={[0.04, 0.06, 1.4, 6]} />
-              <meshStandardMaterial color="#EF4444" emissive="#EF4444" emissiveIntensity={2} />
+      {/* Light Architectural Buildings */}
+      {buildings.map((b) => (
+        <mesh key={`bld-${b.id}`} position={[b.x, b.h / 2, b.z]}>
+          <boxGeometry args={[b.w, b.h, b.d]} />
+          <meshStandardMaterial
+            color={b.color}
+            roughness={0.4}
+            metalness={0.1}
+          />
+        </mesh>
+      ))}
+
+      {/* Subtle Heat Island Zones (if toggled) */}
+      {showHeatIslands && (
+        <group>
+          {[-8, 8].map((offset, idx) => (
+            <mesh key={`heat-${idx}`} rotation={[-Math.PI / 2, 0, 0]} position={[cx + offset, 0.01, cz + offset]}>
+              <ringGeometry args={[2, 6, 24]} />
+              <meshBasicMaterial color="#F97316" transparent opacity={0.12} />
             </mesh>
-          )}
+          ))}
         </group>
-      ))}
-
-      {/* 4. Thermal Heat Island Domes */}
-      {showHeatIslands && heatIslandLocations.map((zone, idx) => (
-        <group key={`heat-${idx}`} position={[zone.x, 0.1, zone.z]}>
-          {/* Pulsing Thermal Disc on Ground */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[zone.radius, 32]} />
-            <meshStandardMaterial
-              color="#EF4444"
-              emissive="#DC2626"
-              emissiveIntensity={0.8}
-              transparent
-              opacity={0.32}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-          {/* Volumetric Thermal Dome */}
-          <mesh position={[0, zone.radius * 0.35, 0]}>
-            <sphereGeometry args={[zone.radius * 0.7, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshStandardMaterial
-              color="#F97316"
-              emissive="#EA580C"
-              emissiveIntensity={0.5}
-              transparent
-              opacity={0.2}
-              depthWrite={false}
-              side={THREE.DoubleSide}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-          {/* 3D Thermal Label */}
-          <Html position={[0, zone.radius * 0.65, 0]} center distanceFactor={28} occlude={false}>
-            <div className="pointer-events-none px-2 py-0.5 rounded-full bg-red-950/80 border border-red-500/50 backdrop-blur-md text-[10px] font-bold text-red-300 flex items-center gap-1 shadow-lg whitespace-nowrap">
-              <Flame className="w-3 h-3 text-red-400 animate-pulse" />
-              <span>Heat Island: {zone.temp}</span>
-            </div>
-          </Html>
-        </group>
-      ))}
-
-      {/* 5. Tree Canopy Respite Corridors */}
-      {canopyZones.map((canopy, idx) => (
-        <group key={`canopy-${idx}`} position={[canopy.x, 0.1, canopy.z]}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[canopy.radius, 28]} />
-            <meshStandardMaterial
-              color="#10B981"
-              emissive="#059669"
-              emissiveIntensity={0.6}
-              transparent
-              opacity={0.28}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-          <Html position={[0, 1.4, 0]} center distanceFactor={28} occlude={false}>
-            <div className="pointer-events-none px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 backdrop-blur-md text-[10px] font-bold text-emerald-300 flex items-center gap-1 shadow-lg whitespace-nowrap">
-              <Trees className="w-3 h-3 text-emerald-400" />
-              <span>{canopy.text}</span>
-            </div>
-          </Html>
-        </group>
-      ))}
+      )}
     </group>
   );
-}
+});
 
 // ============================================================================
-// 4. Origin & Destination 3D Beacons
+// 4. Origin & Destination Waypoint Beacons (Daylight Pins with Anti-Collision LOD)
 // ============================================================================
 
 interface WaypointBeaconsProps {
@@ -619,115 +442,66 @@ interface WaypointBeaconsProps {
   endPlace: string;
 }
 
-function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: WaypointBeaconsProps) {
-  const startRingRef = useRef<THREE.Mesh>(null);
-  const endRingRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    if (startRingRef.current) {
-      startRingRef.current.rotation.z = t * 0.8;
-      const s = 1 + Math.sin(t * 3) * 0.15;
-      startRingRef.current.scale.set(s, s, s);
-    }
-    if (endRingRef.current) {
-      endRingRef.current.rotation.z = -t * 0.8;
-      const s = 1 + Math.cos(t * 3) * 0.15;
-      endRingRef.current.scale.set(s, s, s);
-    }
-  });
-
+const WaypointBeacons = React.memo(function WaypointBeacons({ startPoint, endPoint, startPlace, endPlace }: WaypointBeaconsProps) {
   return (
     <group>
-      {/* --- ORIGIN (START) BEACON --- */}
+      {/* Origin Pin (Emerald) */}
       {startPoint && (
         <group position={startPoint}>
-          {/* Concentric Pulsing Base Ring */}
-          <mesh ref={startRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-            <ringGeometry args={[0.5, 1.0, 32]} />
-            <meshStandardMaterial
-              color="#10B981"
-              emissive="#10B981"
-              emissiveIntensity={2.5}
-              transparent
-              opacity={0.8}
-              side={THREE.DoubleSide}
-            />
+          <mesh position={[0, 0.6, 0]}>
+            <cylinderGeometry args={[0.06, 0.06, 1.2, 12]} />
+            <meshStandardMaterial color="#059669" />
           </mesh>
-
-          {/* Vertical Laser Pillar */}
-          <mesh position={[0, 2.0, 0]}>
-            <cylinderGeometry args={[0.08, 0.15, 4.0, 16]} />
-            <meshStandardMaterial
-              color="#34D399"
-              emissive="#10B981"
-              emissiveIntensity={3}
-              transparent
-              opacity={0.5}
-            />
+          <mesh position={[0, 1.3, 0]}>
+            <sphereGeometry args={[0.26, 16, 16]} />
+            <meshStandardMaterial color="#059669" />
           </mesh>
-
-          {/* Floating Origin Pin / 3D HTML Badge */}
-          <Html position={[0, 4.4, 0]} center distanceFactor={26}>
-            <div className="flex flex-col items-center pointer-events-auto select-none">
-              <div className="px-3 py-1.5 rounded-xl bg-slate-900/95 border-2 border-emerald-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">START:</span>
-                <span className="text-xs font-semibold text-slate-200 max-w-[140px] truncate">{startPlace}</span>
-              </div>
-              <div className="w-0.5 h-3 bg-emerald-400" />
+          {/* Ground pulse ring */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.3, 0.7, 24]} />
+            <meshBasicMaterial color="#10B981" transparent opacity={0.5} />
+          </mesh>
+          <Html position={[0, 2.2, 0]} center distanceFactor={24}>
+            <div className="pointer-events-none select-none px-3 py-1.5 rounded-xl bg-white/95 border-2 border-emerald-500 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">ORIGIN:</span>
+              <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{startPlace}</span>
             </div>
           </Html>
         </group>
       )}
 
-      {/* --- DESTINATION (GOAL) BEACON --- */}
+      {/* Destination Pin (Royal Blue) */}
       {endPoint && (
         <group position={endPoint}>
-          {/* Concentric Pulsing Base Ring */}
-          <mesh ref={endRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-            <ringGeometry args={[0.5, 1.0, 32]} />
-            <meshStandardMaterial
-              color="#F59E0B"
-              emissive="#D97706"
-              emissiveIntensity={2.5}
-              transparent
-              opacity={0.8}
-              side={THREE.DoubleSide}
-            />
+          <mesh position={[0, 0.6, 0]}>
+            <cylinderGeometry args={[0.06, 0.06, 1.2, 12]} />
+            <meshStandardMaterial color="#0284C7" />
           </mesh>
-
-          {/* Vertical Laser Pillar */}
-          <mesh position={[0, 2.0, 0]}>
-            <cylinderGeometry args={[0.08, 0.15, 4.0, 16]} />
-            <meshStandardMaterial
-              color="#FBBF24"
-              emissive="#F59E0B"
-              emissiveIntensity={3}
-              transparent
-              opacity={0.5}
-            />
+          <mesh position={[0, 1.3, 0]}>
+            <sphereGeometry args={[0.26, 16, 16]} />
+            <meshStandardMaterial color="#0284C7" />
           </mesh>
-
-          {/* Floating Destination Pin / 3D HTML Badge */}
-          <Html position={[0, 4.4, 0]} center distanceFactor={26}>
-            <div className="flex flex-col items-center pointer-events-auto select-none">
-              <div className="px-3 py-1.5 rounded-xl bg-slate-900/95 border-2 border-amber-400 backdrop-blur-md shadow-2xl flex items-center gap-1.5 text-white whitespace-nowrap">
-                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">DESTINATION:</span>
-                <span className="text-xs font-semibold text-slate-200 max-w-[140px] truncate">{endPlace}</span>
-              </div>
-              <div className="w-0.5 h-3 bg-amber-400" />
+          {/* Ground pulse ring */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.3, 0.7, 24]} />
+            <meshBasicMaterial color="#0284C7" transparent opacity={0.5} />
+          </mesh>
+          <Html position={[0, 2.2, 0]} center distanceFactor={24}>
+            <div className="pointer-events-none select-none px-3 py-1.5 rounded-xl bg-white/95 border-2 border-sky-500 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+              <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+              <span className="text-[10px] font-black text-sky-700 uppercase tracking-wide">DESTINATION:</span>
+              <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{endPlace}</span>
             </div>
           </Html>
         </group>
       )}
     </group>
   );
-}
+});
 
 // ============================================================================
-// 5. 3D Cooling Shelters & Water Station Markers
+// 5. Verified Cooling Centres & Hydration Points along Route Corridor
 // ============================================================================
 
 interface StationMarkersProps {
@@ -740,7 +514,7 @@ interface StationMarkersProps {
   onSelectStation?: (station: CoolingCentre | PublicWaterPoint) => void;
 }
 
-function StationMarkers({
+const StationMarkers = React.memo(function StationMarkers({
   coolingCentres = [],
   waterPoints = [],
   bounds,
@@ -749,236 +523,90 @@ function StationMarkers({
   centerLon,
   onSelectStation
 }: StationMarkersProps) {
-  const [selectedStation, setSelectedStation] = useState<CoolingCentre | PublicWaterPoint | null>(null);
-
-  // Filter stations within 3D bounding box radius
-  const visibleCooling = useMemo(() => {
-    return coolingCentres.slice(0, 10).map((c) => {
+  // Render shelters and water points near the corridor with distinct 3D landmarks
+  const visibleShelters = useMemo(() => {
+    return coolingCentres.slice(0, 3).map((c) => {
       const [x, , z] = projectGps(c.latitude, c.longitude, centerLat, centerLon, scaleFactor);
-      return { data: c, pos: [x, 0.4, z] as [number, number, number] };
+      return { data: c, pos: [x, 0.1, z] as [number, number, number] };
     });
   }, [coolingCentres, centerLat, centerLon, scaleFactor]);
 
   const visibleWater = useMemo(() => {
-    return waterPoints.slice(0, 12).map((w) => {
+    return waterPoints.slice(0, 3).map((w) => {
       const [x, , z] = projectGps(w.latitude, w.longitude, centerLat, centerLon, scaleFactor);
-      return { data: w, pos: [x, 0.35, z] as [number, number, number] };
+      return { data: w, pos: [x, 0.1, z] as [number, number, number] };
     });
   }, [waterPoints, centerLat, centerLon, scaleFactor]);
 
   return (
     <group>
-      {/* Cooling Shelter Domes */}
-      {visibleCooling.map(({ data, pos }, idx) => (
-        <group
-          key={`cc-${data.id || idx}`}
-          position={pos}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedStation(data);
-            onSelectStation?.(data);
-          }}
-        >
-          {/* 3D Shelter Dome Mesh */}
-          <Float speed={2} rotationIntensity={0.2} floatIntensity={0.4}>
-            <mesh position={[0, 0.6, 0]}>
-              <octahedronGeometry args={[0.5, 0]} />
-              <meshStandardMaterial
-                color="#0284C7"
-                emissive="#0EA5E9"
-                emissiveIntensity={2}
-                roughness={0.2}
-                metalness={0.8}
-              />
-            </mesh>
-          </Float>
-
-          {/* Pulsing Ground Halo */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.3, 0]}>
-            <ringGeometry args={[0.4, 0.8, 16]} />
-            <meshBasicMaterial color="#38BDF8" transparent opacity={0.4} />
+      {/* 3D Cooling Centre Landmarks (Pavilion with Base Ring & Badge) */}
+      {visibleShelters.map(({ data, pos }, idx) => (
+        <group key={`cc-${data.id || idx}`} position={pos}>
+          {/* 3D Pavilion Shelter Geometry */}
+          <mesh position={[0, 0.35, 0]}>
+            <cylinderGeometry args={[0.28, 0.36, 0.45, 8]} />
+            <meshStandardMaterial color="#0284C7" roughness={0.25} metalness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.65, 0]}>
+            <coneGeometry args={[0.42, 0.3, 8]} />
+            <meshStandardMaterial color="#0EA5E9" roughness={0.2} metalness={0.4} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.3, 0.65, 20]} />
+            <meshBasicMaterial color="#38BDF8" transparent opacity={0.45} />
           </mesh>
 
-          {/* Interactive Tag */}
-          <Html position={[0, 1.6, 0]} center distanceFactor={24}>
+          {/* Clean Daylighting Pill Badge */}
+          <Html position={[0, 1.45, 0]} center distanceFactor={22}>
             <button
-              onClick={() => {
-                setSelectedStation(data);
-                onSelectStation?.(data);
-              }}
-              className="px-2 py-0.5 rounded-lg bg-sky-950/85 hover:bg-sky-900 border border-sky-400/60 backdrop-blur-md shadow-lg flex items-center gap-1 text-[10px] font-bold text-sky-200 transition-transform hover:scale-110"
+              onClick={() => onSelectStation?.(data)}
+              className="pointer-events-auto select-none px-2.5 py-1 rounded-xl bg-white/95 hover:bg-sky-50 border border-sky-300 shadow-sm flex items-center gap-1.5 text-[10px] font-bold text-sky-900 cursor-pointer transition-transform hover:scale-105 whitespace-nowrap"
             >
-              <Building2 className="w-3 h-3 text-sky-400" />
-              <span className="max-w-[90px] truncate">{data.name}</span>
+              <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+              <span className="text-[9px] uppercase font-black text-sky-700">Cooling:</span>
+              <span className="max-w-[85px] truncate">{data.name}</span>
             </button>
           </Html>
         </group>
       ))}
 
-      {/* Water Kiosks */}
+      {/* 3D Water Point Landmarks (Crystal Droplet with Base Ring & Badge) */}
       {visibleWater.map(({ data, pos }, idx) => (
-        <group
-          key={`wp-${data.id || idx}`}
-          position={pos}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedStation(data);
-            onSelectStation?.(data);
-          }}
-        >
-          {/* 3D Water Droplet / Crystal */}
-          <Float speed={3} rotationIntensity={0.3} floatIntensity={0.5}>
-            <mesh position={[0, 0.5, 0]}>
-              <coneGeometry args={[0.3, 0.7, 8]} />
-              <meshStandardMaterial
-                color="#06B6D4"
-                emissive="#22D3EE"
-                emissiveIntensity={2.5}
-                roughness={0.1}
-                metalness={0.9}
-              />
-            </mesh>
-          </Float>
+        <group key={`wp-${data.id || idx}`} position={pos}>
+          {/* 3D Water Crystal / Teardrop Geometry */}
+          <mesh position={[0, 0.32, 0]}>
+            <cylinderGeometry args={[0.08, 0.12, 0.35, 8]} />
+            <meshStandardMaterial color="#0891B2" roughness={0.3} metalness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.58, 0]}>
+            <octahedronGeometry args={[0.26, 0]} />
+            <meshStandardMaterial color="#06B6D4" roughness={0.15} metalness={0.7} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <ringGeometry args={[0.25, 0.55, 20]} />
+            <meshBasicMaterial color="#22D3EE" transparent opacity={0.45} />
+          </mesh>
 
-          {/* Interactive Tag */}
-          <Html position={[0, 1.4, 0]} center distanceFactor={24}>
+          {/* Clean Daylighting Pill Badge */}
+          <Html position={[0, 1.4, 0]} center distanceFactor={22}>
             <button
-              onClick={() => {
-                setSelectedStation(data);
-                onSelectStation?.(data);
-              }}
-              className="px-1.5 py-0.5 rounded-lg bg-cyan-950/85 hover:bg-cyan-900 border border-cyan-400/60 backdrop-blur-md shadow-lg flex items-center gap-1 text-[9px] font-bold text-cyan-200 transition-transform hover:scale-110"
+              onClick={() => onSelectStation?.(data)}
+              className="pointer-events-auto select-none px-2.5 py-1 rounded-xl bg-white/95 hover:bg-cyan-50 border border-cyan-300 shadow-sm flex items-center gap-1.5 text-[10px] font-bold text-cyan-900 cursor-pointer transition-transform hover:scale-105 whitespace-nowrap"
             >
-              <Droplets className="w-2.5 h-2.5 text-cyan-300" />
+              <Droplets className="w-3 h-3 text-cyan-600 shrink-0" />
+              <span className="text-[9px] uppercase font-black text-cyan-700">Water:</span>
               <span className="max-w-[80px] truncate">{data.name}</span>
             </button>
           </Html>
         </group>
       ))}
-
-      {/* Detail Popover Card when clicked */}
-      {selectedStation && (
-        <Html position={[0, 4, 0]} center>
-          <div className="w-64 p-3 rounded-2xl bg-slate-900/95 border border-sky-400/60 backdrop-blur-xl shadow-2xl text-white select-none">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-sky-400 font-bold text-xs uppercase tracking-wider">
-                {'capacity_estimate' in selectedStation ? (
-                  <>
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>Cooling Respite Centre</span>
-                  </>
-                ) : (
-                  <>
-                    <Droplets className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Public Water Kiosk</span>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedStation(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold px-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-1.5 font-bold text-sm text-slate-100">{selectedStation.name}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">
-              {'address' in selectedStation ? (selectedStation as any).address : selectedStation.locality_name}
-            </div>
-
-            <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
-              {'air_conditioned' in selectedStation && (selectedStation as any).air_conditioned && (
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold text-[10px]">
-                  ✓ Air Conditioned
-                </span>
-              )}
-              {'water_quality_verified' in selectedStation && (
-                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold text-[10px]">
-                  ✓ Clean Drinking Water
-                </span>
-              )}
-              <span className="text-slate-400 text-[10px] ml-auto">
-                {('operating_hours' in selectedStation ? (selectedStation as any).operating_hours : null) || 'Open Daily'}
-              </span>
-            </div>
-          </div>
-        </Html>
-      )}
     </group>
   );
-}
+});
 
 // ============================================================================
-// 6. Dynamic Sunlight & Atmosphere based on Departure Time
-// ============================================================================
-
-interface DynamicLightingProps {
-  departureHour: number; // 0 - 23
-}
-
-function DynamicLighting({ departureHour }: DynamicLightingProps) {
-  const lightConfig = useMemo(() => {
-    // 06:00 - 11:00 Morning Sun
-    if (departureHour >= 6 && departureHour < 11) {
-      return {
-        sunPos: [25, 20, -15] as [number, number, number],
-        sunColor: '#FED7AA',
-        sunIntensity: 2.2,
-        ambientColor: '#1E293B',
-        ambientIntensity: 0.8
-      };
-    }
-    // 11:00 - 15:30 Peak Midday Sun (Intense overhead solar radiation)
-    if (departureHour >= 11 && departureHour < 16) {
-      return {
-        sunPos: [5, 45, 5] as [number, number, number],
-        sunColor: '#FFFBEB',
-        sunIntensity: 3.5,
-        ambientColor: '#334155',
-        ambientIntensity: 1.1
-      };
-    }
-    // 16:00 - 19:00 Golden Hour / Late Afternoon
-    if (departureHour >= 16 && departureHour < 19) {
-      return {
-        sunPos: [-30, 16, 20] as [number, number, number],
-        sunColor: '#F59E0B',
-        sunIntensity: 2.5,
-        ambientColor: '#1E1B4B',
-        ambientIntensity: 0.75
-      };
-    }
-    // Night (19:00 - 05:00): Midnight Cool Mood with Streetlight Beacons
-    return {
-      sunPos: [0, 30, -20] as [number, number, number],
-      sunColor: '#60A5FA',
-      sunIntensity: 0.9,
-      ambientColor: '#090D16',
-      ambientIntensity: 0.55
-    };
-  }, [departureHour]);
-
-  return (
-    <>
-      <ambientLight color={lightConfig.ambientColor} intensity={lightConfig.ambientIntensity} />
-      <directionalLight
-        position={lightConfig.sunPos}
-        color={lightConfig.sunColor}
-        intensity={lightConfig.sunIntensity}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-bias={-0.0001}
-      />
-      {/* Cyan Rim Light for Cyber-Modern Contrast */}
-      <pointLight position={[-25, -5, -25]} color="#06B6D4" intensity={1.2} />
-    </>
-  );
-}
-
-// ============================================================================
-// MAIN COMPONENT: RouteScene3D
+// MAIN COMPONENT: RouteScene3D (Daylight Navigation Architecture)
 // ============================================================================
 
 export const RouteScene3D: React.FC<RouteScene3DProps> = ({
@@ -993,17 +621,16 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
   departureTimeHour = 13,
   className = '',
   height = '620px',
-  showHeatIslandsDefault = true,
+  showHeatIslandsDefault = false,
   showBuildingsDefault = true,
-  onSelectStation
+  onSelectStation,
+  isLoading = false
 }) => {
-  // Scene HUD & View State
   const [viewPreset, setViewPreset] = useState<'iso' | 'top' | 'horizon'>('iso');
   const [showHeatIslands, setShowHeatIslands] = useState(showHeatIslandsDefault);
   const [showBuildings, setShowBuildings] = useState(showBuildingsDefault);
   const [resetSignal, setResetSignal] = useState(0);
 
-  // Active route reference
   const activeRoute = useMemo(() => {
     return routes.find((r) => r.id === selectedRouteId) || routes[0] || null;
   }, [routes, selectedRouteId]);
@@ -1040,7 +667,6 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
 
     const scaleFactor = SCENE_SPAN / maxSpanMeters;
 
-    // Calculate 3D bounding sphere
     let maxDist3D = 5;
     routes.forEach((r) => {
       r.coordinates?.forEach(([lat, lon]) => {
@@ -1058,7 +684,6 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
     };
   }, [routes]);
 
-  // Dynamically calculate camera bounds framing origin, entire road route, and destination
   const activeBounds = useMemo(() => {
     if (!activeRoute || !activeRoute.coordinates || activeRoute.coordinates.length === 0) {
       return geoBounds.bounds3D;
@@ -1084,7 +709,6 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
     };
   }, [activeRoute, geoBounds]);
 
-  // Start & End Point in 3D (positioned at exact projected road level y=0.08)
   const { start3D, end3D } = useMemo(() => {
     if (!activeRoute || !activeRoute.coordinates || activeRoute.coordinates.length < 2) {
       return { start3D: null, end3D: null };
@@ -1101,32 +725,49 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
     };
   }, [activeRoute, geoBounds]);
 
-  const handleResetCamera = () => {
-    setResetSignal((s) => s + 1);
-  };
-
   return (
     <div
-      className={`relative w-full rounded-3xl overflow-hidden bg-gradient-to-b from-slate-950 via-[#060D1E] to-slate-950 border border-slate-800 shadow-2xl select-none ${className}`}
+      className={`relative w-full rounded-2xl overflow-hidden bg-[#F8FAFC] border border-slate-200 shadow-sm select-none ${className}`}
       style={{ height }}
     >
-      {/* 3D Canvas Viewport */}
+      {/* Progressive Loading State */}
+      {isLoading && (
+        <div className="absolute inset-0 z-30 bg-slate-50/85 backdrop-blur-xs flex flex-col items-center justify-center p-4 transition-all duration-300">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white border border-slate-200 shadow-xl max-w-xs text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative flex items-center justify-center">
+              <Loader2 className="w-9 h-9 text-blue-600 animate-spin" />
+              <Trees className="w-4 h-4 text-emerald-600 absolute" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Preparing heat-safe map...</h4>
+              <p className="text-xs text-slate-500 mt-1">Analyzing shade corridors, cooling shelters & safe road segments</p>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-500 via-blue-500 to-sky-500 h-1.5 rounded-full animate-pulse w-3/4" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3D Daylight Viewport */}
       <Canvas
-        camera={{ position: [18, 22, 22], fov: 45 }}
+        camera={{ position: [16, 20, 20], fov: 45 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
-        {/* Dynamic Sun & Atmosphere */}
-        <DynamicLighting departureHour={departureTimeHour} />
+        {/* Soft Daylight Lighting */}
+        <ambientLight color="#F1F5F9" intensity={1.2} />
+        <directionalLight position={[20, 35, 15]} color="#FFFBEB" intensity={1.5} />
+        <directionalLight position={[-15, 20, -10]} color="#E0F2FE" intensity={0.6} />
 
-        {/* Camera Framer & OrbitControls - bounds fitting to active route */}
+        {/* Camera Framer & OrbitControls */}
         <CameraController
           bounds={activeBounds}
           viewPreset={viewPreset}
           resetSignal={resetSignal}
         />
 
-        {/* Stylized Urban Terrain, City Blocks & Heat Islands */}
+        {/* Clean Architectural City Terrain */}
         {activeRoute && (
           <CityTerrain
             bounds={geoBounds.bounds3D}
@@ -1139,9 +780,9 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
           />
         )}
 
-        {/* 3D Route Polylines (Renders all 3 profiles; active is highlighted) */}
+        {/* High-Contrast Navigation Route Polylines */}
         {routes.map((route) => (
-          <GlowingRoutePolyline
+          <DaylightRoutePolyline
             key={route.id}
             route={route}
             isSelected={route.id === selectedRouteId}
@@ -1172,146 +813,60 @@ export const RouteScene3D: React.FC<RouteScene3DProps> = ({
         />
       </Canvas>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 3D HUD OVERLAY: Profile Switcher & Viewport Controls           */}
-      {/* ------------------------------------------------------------- */}
-
-      {/* Top Left: 3D City Route Mode Badge */}
-      <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-2 pointer-events-none">
-        <div className="px-3 py-1.5 rounded-2xl bg-slate-900/85 backdrop-blur-md border border-cyan-500/30 shadow-xl flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-xs font-black tracking-wide text-white">3D City Route Canvas</span>
-          <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold">
-            Interactive
+      {/* Top Left: Daylight Clean HUD */}
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+        <div className="px-3 py-1.5 rounded-xl bg-white/95 border border-slate-200 shadow-sm flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs font-bold text-slate-800">Safe Route 3D</span>
+          <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold">
+            Daylight View
           </span>
         </div>
       </div>
 
-      {/* Top Right: View Controls & Toggles */}
-      <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5">
-        {/* Reset Camera to Route Bounds */}
+      {/* Top Right: View Controls */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
         <button
-          onClick={handleResetCamera}
-          className="p-2 rounded-xl bg-slate-900/85 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 backdrop-blur-md shadow-lg transition-all"
-          title="Reset Camera to Route Center"
+          onClick={() => setResetSignal((s) => s + 1)}
+          className="p-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm transition-all cursor-pointer"
+          title="Reset Camera"
         >
-          <Crosshair className="w-4 h-4 text-cyan-400" />
+          <Crosshair className="w-4 h-4 text-blue-600" />
         </button>
 
-        {/* View Angle Preset Pills */}
-        <div className="hidden sm:flex items-center gap-0.5 p-0.5 bg-slate-900/85 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg">
-          <button
-            onClick={() => setViewPreset('iso')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-              viewPreset === 'iso'
-                ? 'bg-cyan-500 text-slate-950 shadow-xs'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            3D Iso
-          </button>
-          <button
-            onClick={() => setViewPreset('top')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-              viewPreset === 'top'
-                ? 'bg-cyan-500 text-slate-950 shadow-xs'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            Top Down
-          </button>
-          <button
-            onClick={() => setViewPreset('horizon')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-              viewPreset === 'horizon'
-                ? 'bg-cyan-500 text-slate-950 shadow-xs'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            Horizon
-          </button>
+        {/* Angle Presets */}
+        <div className="flex items-center gap-0.5 p-0.5 bg-white border border-slate-200 rounded-xl shadow-sm">
+          {(['iso', 'top', 'horizon'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setViewPreset(p)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                viewPreset === p
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {p === 'iso' ? '3D Iso' : p === 'top' ? 'Top' : 'Horizon'}
+            </button>
+          ))}
         </div>
 
-        {/* Toggle 3D City Buildings */}
+        {/* Building Toggle */}
         <button
           onClick={() => setShowBuildings(!showBuildings)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md shadow-lg transition-all ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border shadow-sm transition-all cursor-pointer ${
             showBuildings
-              ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-              : 'bg-slate-900/85 text-slate-400 border-slate-700/80 hover:text-slate-200'
+              ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900'
           }`}
-          title="Toggle 3D City Block Buildings"
+          title="Toggle 3D Buildings"
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Blocks</span>
+          <span className="hidden sm:inline">Buildings</span>
         </button>
-
-        {/* Toggle Heat Island Thermal Domes */}
-        <button
-          onClick={() => setShowHeatIslands(!showHeatIslands)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md shadow-lg transition-all ${
-            showHeatIslands
-              ? 'bg-red-500/20 text-red-300 border-red-500/40'
-              : 'bg-slate-900/85 text-slate-400 border-slate-700/80 hover:text-slate-200'
-          }`}
-          title="Toggle Asphalt Heat Island Thermal Zones"
-        >
-          <Flame className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Heat Islands</span>
-        </button>
-      </div>
-
-      {/* Bottom Center: Quick Route Multi-Modal Profile Switcher Strip */}
-      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl">
-        <div className="p-1.5 rounded-2xl bg-slate-950/90 border border-slate-800/90 backdrop-blur-xl shadow-2xl flex items-center justify-between gap-1 sm:gap-2">
-          {routes.map((route) => {
-            const isSelected = route.id === selectedRouteId;
-            const style = PROFILE_COLORS[route.route_type] || PROFILE_COLORS.shortest;
-            const Icon = style.icon;
-
-            return (
-              <button
-                key={route.id}
-                onClick={() => onSelectRoute?.(route.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-left transition-all ${
-                  isSelected
-                    ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-                }`}
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: style.primary }}
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] sm:text-xs font-bold truncate">
-                      {route.route_type === 'low_heat_exposure'
-                        ? 'Coolest'
-                        : route.route_type === 'shortest'
-                        ? 'Fastest'
-                        : 'Water Stops'}
-                    </span>
-                    {route.route_type === 'low_heat_exposure' && (
-                      <span className="hidden lg:inline text-[9px] font-black uppercase text-emerald-400">
-                        (-4.2°C)
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400 truncate">
-                    {route.duration_minutes} min • {route.distance_km} km
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Interaction Help Hint (Bottom Right) */}
-      <div className="hidden lg:flex absolute bottom-4 right-4 z-10 items-center gap-1.5 text-[10px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-xl border border-slate-800 backdrop-blur-md pointer-events-none">
-        <span>Drag to rotate • Scroll to zoom • Click route to inspect</span>
       </div>
     </div>
   );
 };
+
+export default RouteScene3D;

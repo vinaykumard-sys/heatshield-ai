@@ -36,20 +36,40 @@ export default function DashboardScreen({
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [waterModalVisible, setWaterModalVisible] = useState(false);
 
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
+  const getRiskColors = (risk: string) => {
+    switch (risk?.toUpperCase()) {
       case 'EXTREME':
-        return '#EF4444';
+        return {
+          primary: '#DC2626',
+          bg: '#FEF2F2',
+          border: '#FECACA',
+          pillBg: '#FEE2E2',
+        };
       case 'HIGH':
-        return '#F97316';
+        return {
+          primary: '#EA580C',
+          bg: '#FFF7ED',
+          border: '#FED7AA',
+          pillBg: '#FFEDD5',
+        };
       case 'MODERATE':
-        return '#F59E0B';
+        return {
+          primary: '#D97706',
+          bg: '#FFFBEB',
+          border: '#FDE68A',
+          pillBg: '#FEF3C7',
+        };
       default:
-        return '#10B981';
+        return {
+          primary: '#059669',
+          bg: '#ECFDF5',
+          border: '#A7F3D0',
+          pillBg: '#D1FAE5',
+        };
     }
   };
 
-  const riskColor = getRiskColor(selectedLocality.riskLevel);
+  const riskColors = getRiskColors(selectedLocality.riskLevel);
   const safety = evaluateHeatSafety(
     selectedLocality.currentTemp,
     selectedLocality.humidity,
@@ -58,20 +78,56 @@ export default function DashboardScreen({
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollInner}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Header / Locality Switcher */}
+        <View style={styles.topHeader}>
+          <View style={styles.topHeaderLeft}>
+            <Text style={styles.topSubLabel}>CURRENT DEFENSE ZONE</Text>
+            <TouchableOpacity
+              style={styles.localityPickerBtn}
+              onPress={() => setSelectorVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="location" size={18} color="#0284C7" />
+              <Text style={styles.localityPickerText} numberOfLines={1}>
+                {selectedLocality.name}
+              </Text>
+              <Feather name="chevron-down" size={16} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.assistantBadgeBtn}
+            onPress={onNavigateToAssistant}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="robot" size={18} color="#0284C7" />
+            <Text style={styles.assistantBadgeText}>AI Consult</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Active Heat Hazard Banner */}
-        <View style={[styles.alertBanner, { borderColor: riskColor, backgroundColor: `${riskColor}12` }]}>
+        <View
+          style={[
+            styles.alertBanner,
+            { backgroundColor: riskColors.bg, borderColor: riskColors.border },
+          ]}
+        >
           <View style={styles.alertHeaderRow}>
-            <View style={[styles.pulseDot, { backgroundColor: riskColor }]} />
-            <Text style={[styles.alertBadgeText, { color: riskColor }]}>
-              {selectedLocality.riskLevel} HEAT DEFENSE ACTIVE
+            <View style={[styles.pulseDot, { backgroundColor: riskColors.primary }]} />
+            <Text style={[styles.alertBadgeText, { color: riskColors.primary }]}>
+              {selectedLocality.riskLevel} HEAT DEFENSE PROTOCOL ACTIVE
             </Text>
             <View style={styles.spacer} />
             <Text style={styles.alertCity}>{selectedLocality.city}</Text>
           </View>
           <Text style={styles.alertDesc}>
             {selectedLocality.riskLevel === 'EXTREME'
-              ? 'IMD Red Alert: Peak thermal radiation active between 12:00 PM and 04:30 PM. Restrict non-essential outdoor travel.'
+              ? 'IMD Red Alert: Peak thermal radiation active between 12:00 PM and 04:30 PM. Restrict non-essential outdoor travel and keep hydrated.'
               : 'IMD Orange Warning: High heat strain on outdoor workers and vulnerable groups. Regular electrolyte hydration advised.'}
           </Text>
         </View>
@@ -81,18 +137,21 @@ export default function DashboardScreen({
           <View style={styles.heroTopRow}>
             <Text style={styles.heroLabel}>FEELS LIKE HEAT INDEX</Text>
             <TouchableOpacity
-              style={[styles.riskTag, { backgroundColor: `${riskColor}25`, borderColor: riskColor }]}
+              style={[
+                styles.riskTag,
+                { backgroundColor: riskColors.pillBg, borderColor: riskColors.border },
+              ]}
               onPress={() => setSelectorVisible(true)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.riskTagText, { color: riskColor }]}>
+              <Text style={[styles.riskTagText, { color: riskColors.primary }]}>
                 {selectedLocality.riskLevel}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.tempRow}>
-            <Text style={[styles.heroTemp, { color: riskColor }]}>
+            <Text style={[styles.heroTemp, { color: riskColors.primary }]}>
               {selectedLocality.heatIndex.toFixed(1)}°
             </Text>
             <View style={styles.tempSubCol}>
@@ -113,7 +172,7 @@ export default function DashboardScreen({
                 styles.gaugeFill,
                 {
                   width: `${Math.min(100, Math.max(12, ((selectedLocality.heatIndex - 25) / 30) * 100))}%`,
-                  backgroundColor: riskColor,
+                  backgroundColor: riskColors.primary,
                 },
               ]}
             />
@@ -133,27 +192,32 @@ export default function DashboardScreen({
         >
           <View style={styles.snapshotHeader}>
             <View style={styles.snapshotTitleWrap}>
-              <Feather name="cloud-sun" size={18} color="#06B6D4" />
+              <Ionicons name="partly-sunny" size={18} color="#0284C7" />
               <Text style={styles.snapshotTitle}>TODAY'S WEATHER SNAPSHOT</Text>
             </View>
             <View style={styles.viewFullRow}>
               <Text style={styles.viewFullText}>Full Forecast</Text>
-              <Feather name="arrow-right" size={14} color="#06B6D4" />
+              <Feather name="arrow-right" size={14} color="#0284C7" />
             </View>
           </View>
 
           <View style={styles.vitalsRow}>
             <View style={styles.vitalCard}>
-              <MaterialCommunityIcons name="water-thermometer" size={20} color="#06B6D4" />
+              <MaterialCommunityIcons name="water-thermometer" size={20} color="#0284C7" />
               <Text style={styles.vitalLabel}>Wet Bulb</Text>
               <Text style={styles.vitalValue}>{selectedLocality.wetBulb}°C</Text>
-              <Text style={styles.vitalHint}>
+              <Text
+                style={[
+                  styles.vitalHint,
+                  selectedLocality.wetBulb >= 29 && { color: '#DC2626', fontWeight: '700' },
+                ]}
+              >
                 {selectedLocality.wetBulb >= 29 ? 'Hazardous' : 'Elevated'}
               </Text>
             </View>
 
             <View style={styles.vitalCard}>
-              <Feather name="sun" size={20} color="#F59E0B" />
+              <Feather name="sun" size={20} color="#EA580C" />
               <Text style={styles.vitalLabel}>UV Index</Text>
               <Text style={styles.vitalValue}>{selectedLocality.uvIndex}</Text>
               <Text style={styles.vitalHint}>
@@ -162,7 +226,7 @@ export default function DashboardScreen({
             </View>
 
             <View style={styles.vitalCard}>
-              <Ionicons name="water-outline" size={20} color="#38BDF8" />
+              <Ionicons name="water" size={20} color="#0284C7" />
               <Text style={styles.vitalLabel}>Humidity</Text>
               <Text style={styles.vitalValue}>{selectedLocality.humidity}%</Text>
               <Text style={styles.vitalHint}>High Moisture</Text>
@@ -180,8 +244,8 @@ export default function DashboardScreen({
               onPress={onNavigateToRoute}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconCircle, { backgroundColor: '#10B98120' }]}>
-                <MaterialCommunityIcons name="map-marker-path" size={24} color="#10B981" />
+              <View style={[styles.actionIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <MaterialCommunityIcons name="map-marker-path" size={22} color="#059669" />
               </View>
               <Text style={styles.actionGridTitle}>Safe Route</Text>
               <Text style={styles.actionGridSub}>Canopy Shade</Text>
@@ -193,8 +257,8 @@ export default function DashboardScreen({
               onPress={onNavigateToSOS}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconCircle, { backgroundColor: '#06B6D420' }]}>
-                <Ionicons name="snow" size={22} color="#06B6D4" />
+              <View style={[styles.actionIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="snow" size={22} color="#0284C7" />
               </View>
               <Text style={styles.actionGridTitle}>Cool Shelter</Text>
               <Text style={styles.actionGridSub}>Air-Cooled Hubs</Text>
@@ -206,8 +270,8 @@ export default function DashboardScreen({
               onPress={() => setWaterModalVisible(true)}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconCircle, { backgroundColor: '#3B82F620' }]}>
-                <Ionicons name="water" size={22} color="#3B82F6" />
+              <View style={[styles.actionIconCircle, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="water" size={22} color="#2563EB" />
               </View>
               <Text style={styles.actionGridTitle}>Water Point</Text>
               <Text style={styles.actionGridSub}>Purified Kiosks</Text>
@@ -219,8 +283,8 @@ export default function DashboardScreen({
               onPress={onNavigateToAssistance}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconCircle, { backgroundColor: '#EF444420' }]}>
-                <MaterialCommunityIcons name="hand-heart" size={24} color="#EF4444" />
+              <View style={[styles.actionIconCircle, { backgroundColor: '#FEF2F2' }]}>
+                <MaterialCommunityIcons name="hand-heart" size={22} color="#DC2626" />
               </View>
               <Text style={styles.actionGridTitle}>Request Aid</Text>
               <Text style={styles.actionGridSub}>Tanker / Medic</Text>
@@ -231,7 +295,7 @@ export default function DashboardScreen({
         {/* Live Active Heat Alerts Cards */}
         <View style={styles.alertsCard}>
           <View style={styles.alertCardHeader}>
-            <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#F59E0B" />
+            <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#EA580C" />
             <Text style={styles.alertCardTitle}>LIVE HEAT ADVISORIES</Text>
           </View>
 
@@ -246,7 +310,7 @@ export default function DashboardScreen({
           </View>
 
           <View style={styles.advisoryItem}>
-            <View style={[styles.advisoryBullet, { backgroundColor: '#06B6D4' }]} />
+            <View style={[styles.advisoryBullet, { backgroundColor: '#0284C7' }]} />
             <View style={styles.advisoryBody}>
               <Text style={styles.advisoryHeading}>School & Elderly Respite Priority</Text>
               <Text style={styles.advisoryText}>
@@ -267,23 +331,23 @@ export default function DashboardScreen({
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hourlyList}>
             {HOURLY_FORECASTS.slice(0, 8).map((hour, idx) => {
-              const hColor = getRiskColor(hour.riskLevel);
+              const hColors = getRiskColors(hour.riskLevel);
               return (
                 <View key={idx} style={styles.hourlyItem}>
                   <Text style={styles.hourlyTime}>{hour.time.split(' ')[0]}</Text>
-                  <View style={[styles.hourlyBarWrap, { backgroundColor: `${hColor}22` }]}>
+                  <View style={[styles.hourlyBarWrap, { backgroundColor: '#F1F5F9' }]}>
                     <View
                       style={[
                         styles.hourlyBar,
                         {
                           height: `${Math.min(100, Math.max(25, ((hour.heatIndex - 30) / 20) * 100))}%`,
-                          backgroundColor: hColor,
+                          backgroundColor: hColors.primary,
                         },
                       ]}
                     />
                   </View>
                   <Text style={styles.hourlyTemp}>{hour.temp.toFixed(0)}°</Text>
-                  <Text style={[styles.hourlyRisk, { color: hColor }]}>
+                  <Text style={[styles.hourlyRisk, { color: hColors.primary }]}>
                     {hour.riskLevel.slice(0, 3)}
                   </Text>
                 </View>
@@ -296,10 +360,10 @@ export default function DashboardScreen({
         <TouchableOpacity
           style={styles.aiBanner}
           onPress={onNavigateToAssistant}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
           <View style={styles.aiBannerIcon}>
-            <MaterialCommunityIcons name="robot" size={26} color="#38BDF8" />
+            <MaterialCommunityIcons name="robot" size={24} color="#0284C7" />
           </View>
           <View style={styles.aiBannerText}>
             <Text style={styles.aiBannerTitle}>Heat Health AI Assistant</Text>
@@ -307,10 +371,10 @@ export default function DashboardScreen({
               Ask: "Signs of heatstroke vs exhaustion" or "ORS dosage"
             </Text>
           </View>
-          <Feather name="chevron-right" size={20} color="#38BDF8" />
+          <Feather name="chevron-right" size={20} color="#0284C7" />
         </TouchableOpacity>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 28 }} />
       </ScrollView>
 
       {/* Locality Selector Modal */}
@@ -323,18 +387,22 @@ export default function DashboardScreen({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Active Locality</Text>
-              <TouchableOpacity onPress={() => setSelectorVisible(false)}>
-                <Ionicons name="close-circle" size={24} color="#94A3B8" />
+              <View>
+                <Text style={styles.modalTitle}>Select Active Locality</Text>
+                <Text style={styles.modalSubTitle}>Switch microclimate monitoring zone</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectorVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={LOCALITIES}
               keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => {
                 const isSelected = item.id === selectedLocality.id;
-                const rCol = getRiskColor(item.riskLevel);
+                const rColors = getRiskColors(item.riskLevel);
                 return (
                   <TouchableOpacity
                     style={[styles.localityItem, isSelected && styles.localityItemSelected]}
@@ -344,13 +412,27 @@ export default function DashboardScreen({
                     }}
                   >
                     <View style={styles.localityItemLeft}>
-                      <Text style={styles.localityItemName}>{item.name}</Text>
+                      <Text
+                        style={[
+                          styles.localityItemName,
+                          isSelected && { color: '#0284C7', fontWeight: '800' },
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
                       <Text style={styles.localityItemCity}>
                         {item.city}, {item.state} • Feels {item.heatIndex.toFixed(1)}°C
                       </Text>
                     </View>
-                    <View style={[styles.localityItemBadge, { backgroundColor: `${rCol}20` }]}>
-                      <Text style={[styles.localityItemRisk, { color: rCol }]}>{item.riskLevel}</Text>
+                    <View
+                      style={[
+                        styles.localityItemBadge,
+                        { backgroundColor: rColors.pillBg, borderColor: rColors.border },
+                      ]}
+                    >
+                      <Text style={[styles.localityItemRisk, { color: rColors.primary }]}>
+                        {item.riskLevel}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -371,17 +453,18 @@ export default function DashboardScreen({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <Ionicons name="water" size={22} color="#38BDF8" />
+                <Ionicons name="water" size={22} color="#0284C7" />
                 <Text style={styles.modalTitle}>Purified Water Kiosks</Text>
               </View>
-              <TouchableOpacity onPress={() => setWaterModalVisible(false)}>
-                <Ionicons name="close-circle" size={24} color="#94A3B8" />
+              <TouchableOpacity onPress={() => setWaterModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={WATER_POINTS}
               keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <View style={styles.waterPointItem}>
                   <View style={styles.waterPointTop}>
@@ -408,21 +491,71 @@ export default function DashboardScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   scrollContent: {
     flex: 1,
+  },
+  scrollInner: {
     paddingHorizontal: 16,
     paddingTop: 12,
   },
   spacer: {
     flex: 1,
   },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  topHeaderLeft: {
+    flex: 1,
+  },
+  topSubLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  localityPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  localityPickerText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    maxWidth: 200,
+  },
+  assistantBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  assistantBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
   alertBanner: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 14,
     marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   alertHeaderRow: {
     flexDirection: 'row',
@@ -438,25 +571,30 @@ const styles = StyleSheet.create({
   alertBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   alertCity: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '600',
   },
   alertDesc: {
     fontSize: 12,
-    color: '#E2E8F0',
-    lineHeight: 17,
+    color: '#334155',
+    lineHeight: 18,
   },
   heroCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 18,
     marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -466,7 +604,7 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
     letterSpacing: 0.8,
   },
   riskTag: {
@@ -490,36 +628,37 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   tempSubCol: {
-    marginLeft: 8,
+    marginLeft: 10,
     justifyContent: 'center',
   },
   celsius: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: '#64748B',
   },
   ambientText: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: 12,
+    color: '#475569',
     marginTop: 2,
+    fontWeight: '500',
   },
   islandText: {
     fontSize: 11,
-    color: '#F59E0B',
+    color: '#EA580C',
     fontWeight: '600',
-    marginTop: 1,
+    marginTop: 2,
   },
   gaugeTrack: {
-    height: 6,
-    backgroundColor: '#1E293B',
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
     overflow: 'hidden',
-    marginTop: 6,
+    marginTop: 8,
     marginBottom: 8,
   },
   gaugeFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   gaugeLabels: {
     flexDirection: 'row',
@@ -528,14 +667,20 @@ const styles = StyleSheet.create({
   gaugeSubText: {
     fontSize: 10,
     color: '#64748B',
+    fontWeight: '500',
   },
   weatherSnapshotCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   snapshotHeader: {
     flexDirection: 'row',
@@ -551,7 +696,7 @@ const styles = StyleSheet.create({
   snapshotTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
   },
   viewFullRow: {
@@ -562,7 +707,7 @@ const styles = StyleSheet.create({
   viewFullText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
   },
   vitalsRow: {
     flexDirection: 'row',
@@ -570,24 +715,27 @@ const styles = StyleSheet.create({
   },
   vitalCard: {
     flex: 1,
-    backgroundColor: '#1E293B50',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   vitalLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 4,
+    fontWeight: '500',
   },
   vitalValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginVertical: 2,
   },
   vitalHint: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#64748B',
   },
   quickActionsSection: {
@@ -596,7 +744,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
     marginBottom: 10,
   },
@@ -606,13 +754,18 @@ const styles = StyleSheet.create({
   },
   actionGridItem: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     paddingVertical: 14,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   actionIconCircle: {
     width: 44,
@@ -623,9 +776,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionGridTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     textAlign: 'center',
   },
   actionGridSub: {
@@ -635,12 +788,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   alertsCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   alertCardHeader: {
     flexDirection: 'row',
@@ -651,7 +809,7 @@ const styles = StyleSheet.create({
   alertCardTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: '#EA580C',
     letterSpacing: 0.8,
   },
   advisoryItem: {
@@ -659,11 +817,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   advisoryBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F59E0B',
-    marginTop: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EA580C',
+    marginTop: 5,
     marginRight: 10,
   },
   advisoryBody: {
@@ -672,21 +830,26 @@ const styles = StyleSheet.create({
   advisoryHeading: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F1F5F9',
+    color: '#0F172A',
   },
   advisoryText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#475569',
     marginTop: 2,
     lineHeight: 16,
   },
   sectionCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -697,16 +860,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#475569',
     letterSpacing: 0.8,
   },
   sectionSubLink: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#06B6D4',
+    color: '#0284C7',
   },
   hourlyList: {
-    marginHorizontal: -8,
+    marginHorizontal: -4,
   },
   hourlyItem: {
     width: 58,
@@ -715,8 +878,9 @@ const styles = StyleSheet.create({
   },
   hourlyTime: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 6,
+    fontWeight: '500',
   },
   hourlyBarWrap: {
     width: 14,
@@ -733,7 +897,7 @@ const styles = StyleSheet.create({
   hourlyTemp: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   hourlyRisk: {
     fontSize: 9,
@@ -743,17 +907,22 @@ const styles = StyleSheet.create({
   aiBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#E0F2FE',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#38BDF840',
+    borderColor: '#BAE6FD',
     padding: 14,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   aiBannerIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#38BDF820',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -764,26 +933,29 @@ const styles = StyleSheet.create({
   aiBannerTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0369A1',
   },
   aiBannerSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#0284C7',
     marginTop: 2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     maxHeight: '75%',
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -799,46 +971,64 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
+  },
+  modalSubTitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  closeBtn: {
+    padding: 4,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
   },
   localityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   localityItemSelected: {
-    backgroundColor: '#1E293B40',
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7',
   },
   localityItemLeft: {
     flex: 1,
   },
   localityItemName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   localityItemCity: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   localityItemBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
   },
   localityItemRisk: {
     fontSize: 10,
     fontWeight: '800',
   },
   waterPointItem: {
-    backgroundColor: '#1E293B50',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 12,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   waterPointTop: {
     flexDirection: 'row',
@@ -848,37 +1038,40 @@ const styles = StyleSheet.create({
   waterPointName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#0F172A',
     flex: 1,
   },
   operationalTag: {
-    backgroundColor: '#10B98120',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   operationalText: {
     fontSize: 9,
-    fontWeight: '800',
-    color: '#10B981',
+    fontWeight: '700',
+    color: '#059669',
   },
   waterPointAddress: {
     fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 4,
+    color: '#64748B',
+    marginTop: 2,
   },
   waterPointMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   waterType: {
-    fontSize: 11,
-    color: '#38BDF8',
+    fontSize: 10,
     fontWeight: '600',
+    color: '#0284C7',
   },
   waterDistance: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#64748B',
   },
 });

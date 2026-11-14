@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { INITIAL_USERS } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-
-export const OWNER_EMAIL = 'vinaykumard45678@gmail.com';
-
-export function isOwnerAdminEmail(email?: string | null): boolean {
-  if (!email) return false;
-  return email.trim().toLowerCase() === OWNER_EMAIL;
-}
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -20,8 +12,8 @@ interface AuthContextType {
   isResident: boolean;
   needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: (email?: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
-  loginAsDemo: (role?: UserRole) => Promise<void>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginAsDemoResident: () => Promise<void>;
   signup: (
     email: string, 
     password: string, 
@@ -40,11 +32,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Unauthenticated by default; sessions are verified on mount
+  // Unauthenticated by default; sessions verified strictly on mount
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Sync valid user to localStorage only after initial session check completes
+  // Sync valid authenticated user session to secure localStorage
   useEffect(() => {
     if (isLoading) return;
 
@@ -55,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, isLoading]);
 
-  // Supabase OAuth and Session Subscription
+  // Supabase Session Subscription & Lifecycle
   useEffect(() => {
     let mounted = true;
 
@@ -83,13 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else {
-        // Local / Resilient Mode: Only restore if a valid real session was stored
+        // Unconfigured mode: Check for existing session
         try {
           const saved = localStorage.getItem('heatshield_auth_user');
           if (saved) {
             const parsed = JSON.parse(saved);
             if (parsed && parsed.id && parsed.email) {
-              setUser(parsed);
+              // Ensure no local tampered admin role
+              setUser({
+                ...parsed,
+                role: parsed.role === 'admin' ? 'resident' : parsed.role, // Never allow unverified offline admin
+              });
             } else {
               setUser(null);
               localStorage.removeItem('heatshield_auth_user');
@@ -97,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setUser(null);
           }
-        } catch (e) {
+        } catch {
           setUser(null);
           localStorage.removeItem('heatshield_auth_user');
         } finally {
@@ -132,58 +128,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  /**
+   * Strictly reads user role from Supabase database `profiles` table.
+   * A user is ONLY an admin if the database explicitly grants role === 'admin'.
+   */
   const handleSessionUser = async (authUser: any) => {
     if (!supabase) return;
     try {
       const email = authUser.email ? authUser.email.toLowerCase().trim() : '';
-      const isOwner = isOwnerAdminEmail(email);
 
       // Check if profile exists in Supabase PostgreSQL
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single();
 
-      if (profile) {
-        // Enforce owner role as admin; all others retain their granted role or resident
-        const effectiveRole: UserRole = isOwner ? 'admin' : (profile.role || 'resident');
-        const effectiveName = isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : profile.full_name;
+      if (profile && !error) {
+        // Enforce role strictly from Supabase DB record
+        const dbRole: UserRole = profile.role === 'admin' 
+          ? 'admin' 
+          : (profile.role === 'volunteer' ? 'volunteer' : 'resident');
 
-        if (!profile.is_phone_verified && authUser.phone) {
-          const updated = {
-            ...profile,
-            role: effectiveRole,
-            full_name: effectiveName,
-            phone: authUser.phone,
-            is_phone_verified: true,
-            phone_verified_at: new Date().toISOString()
-          };
-          setUser(updated as UserProfile);
-          try {
-            await supabase.from('profiles').update({
-              role: effectiveRole,
-              full_name: effectiveName,
-              phone: authUser.phone,
-              is_phone_verified: true,
-              phone_verified_at: new Date().toISOString()
-            }).eq('id', authUser.id);
-          } catch (e) {
-            console.warn('Profile phone sync notice:', e);
-          }
-        } else {
-          setUser({
-            ...profile,
-            role: effectiveRole,
-            full_name: effectiveName
-          } as UserProfile);
-        }
+        const profileData: UserProfile = {
+          ...profile,
+          role: dbRole,
+          email: profile.email || email,
+          full_name: profile.full_name || authUser.user_metadata?.full_name || 'Citizen Resident',
+        };
+
+        setUser(profileData);
       } else {
-        // Create new profile — owner gets 'admin', all other users get 'resident'
-        const initialRole: UserRole = isOwner ? 'admin' : 'resident';
-        const initialName = isOwner 
-          ? 'Vinay Kumar D (Owner & Platform Admin)' 
-          : (authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident');
+        // New user profile: Defaults strictly to 'resident'
+        const initialRole: UserRole = 'resident';
+        const initialName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Citizen Resident';
 
         const newProfile: UserProfile = {
           id: authUser.id,
@@ -214,56 +192,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  /**
+   * Genuine Supabase password authentication
+   */
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmedEmail = email.trim().toLowerCase();
-    const isOwner = isOwnerAdminEmail(trimmedEmail);
 
-    // 1. If Supabase is configured, attempt authentication
+    if (!password) {
+      return { success: false, error: 'Password is required to sign in.' };
+    }
+
     if (isSupabaseConfigured && supabase) {
-      if (!password) {
-        return { success: false, error: 'Password is required to sign in.' };
-      }
       const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
-      if (!error && data?.user) {
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      if (data?.user) {
         await handleSessionUser(data.user);
         return { success: true };
       }
-
-      console.warn('[AuthContext] Supabase auth notice, activating local session:', error?.message);
+      return { success: false, error: 'User account not found.' };
     }
 
-    // 2. Strict Role Enforcement:
-    // Only vinaykumard45678@gmail.com is owner/admin. All other users are residents.
-    const namePart = trimmedEmail.split('@')[0] || 'Resident';
-    const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, ' ');
-
-    const fallbackUser: UserProfile = {
-      id: isOwner ? 'usr-owner-vinay' : `usr-${Date.now()}`,
-      email: trimmedEmail,
-      full_name: isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : cleanName || 'Verified Citizen Resident',
-      role: isOwner ? 'admin' : 'resident',
-      country_code: '+91',
-      phone: isOwner ? '+91 98450 12345' : '',
-      is_phone_verified: true,
-      is_email_verified: true,
-      hourly_notification_consent: true,
-      preferred_language: 'en',
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    setUser(fallbackUser);
-    localStorage.setItem('heatshield_auth_user', JSON.stringify(fallbackUser));
-    return { success: true };
+    // Offline / Demo verification for resident only
+    return { success: false, error: 'Supabase authentication service unavailable. Check network connection.' };
   };
 
-  const loginAsDemo = async (role: UserRole = 'resident'): Promise<void> => {
-    // If demo is called, only allow admin if explicitly requested or resident
-    const isOwner = role === 'admin';
+  /**
+   * Safe Guest Resident Demo Access (STRICTLY resident role only)
+   */
+  const loginAsDemoResident = async (): Promise<void> => {
     const demoResident: UserProfile = {
-      id: isOwner ? 'usr-owner-vinay' : `usr-${role}-demo`,
-      email: isOwner ? OWNER_EMAIL : `${role}.demo@heatshield.gov.in`,
-      full_name: isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : (role === 'volunteer' ? 'Community Health Volunteer' : 'Verified Citizen Resident'),
-      role: isOwner ? 'admin' : role,
+      id: `usr-resident-demo-${Date.now()}`,
+      email: 'citizen.resident@heatshield.gov.in',
+      full_name: 'Verified Citizen Resident',
+      role: 'resident', // Strictly resident
       country_code: '+91',
       phone: '+91 98450 12345',
       is_phone_verified: true,
@@ -278,33 +241,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Direct, Seamless Google Sign-In:
-   * Avoids unconfigured Supabase OAuth redirect loops.
-   * Recognizes vinaykumard45678@gmail.com as Owner/Admin; all others as Residents.
+   * Google Sign-In via Supabase OAuth
    */
-  const loginWithGoogle = async (googleEmail?: string, fullName?: string): Promise<{ success: boolean; error?: string }> => {
-    const targetEmail = (googleEmail || OWNER_EMAIL).trim().toLowerCase();
-    const isOwner = isOwnerAdminEmail(targetEmail);
-    const targetName = fullName || (isOwner ? 'Vinay Kumar D (Owner & Platform Admin)' : 'Verified Citizen Resident');
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,
+        },
+      });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    }
 
-    const googleUser: UserProfile = {
-      id: isOwner ? 'usr-owner-vinay' : `usr-google-${Date.now()}`,
-      email: targetEmail,
-      full_name: targetName,
-      role: isOwner ? 'admin' : 'resident',
-      country_code: '+91',
-      phone: isOwner ? '+91 98450 12345' : '',
-      is_phone_verified: true,
-      is_email_verified: true,
-      hourly_notification_consent: true,
-      preferred_language: 'en',
-      is_active: true,
-      created_at: new Date().toISOString()
+    return { 
+      success: false, 
+      error: 'Google OAuth requires active Supabase authentication configuration.' 
     };
-
-    setUser(googleUser);
-    localStorage.setItem('heatshield_auth_user', JSON.stringify(googleUser));
-    return { success: true };
   };
 
   const signup = async (
@@ -316,8 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     consentHourly: boolean = true
   ): Promise<{ success: boolean; error?: string; requiresEmailConfirmation?: boolean }> => {
     const trimmedEmail = email.trim().toLowerCase();
-    const isOwner = isOwnerAdminEmail(trimmedEmail);
-    const defaultRole: UserRole = isOwner ? 'admin' : 'resident';
+    const defaultRole: UserRole = 'resident'; // Always defaults to resident
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({
@@ -347,48 +302,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    const newUser: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email: trimmedEmail,
-      full_name: fullName,
-      phone,
-      country_code: countryCode,
-      role: defaultRole,
-      is_phone_verified: false,
-      is_email_verified: false,
-      hourly_notification_consent: consentHourly,
-      notification_consent_at: new Date().toISOString(),
-      preferred_language: 'en',
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
+    return { success: false, error: 'Database authentication service not available.' };
+  };
 
-    // Save profile and credentials
-    try {
-      const savedProfiles = JSON.parse(localStorage.getItem('heatshield_registered_profiles') || '{}');
-      savedProfiles[trimmedEmail] = {
-        ...newUser,
-        password
-      };
-      localStorage.setItem('heatshield_registered_profiles', JSON.stringify(savedProfiles));
-    } catch {
-      // ignore
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`
+      });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
     }
-
-    setUser(newUser);
-    return { success: true, requiresEmailConfirmation: false };
+    return { success: true };
   };
 
   const markPhoneVerified = (verifiedAt: string) => {
     if (!user) return;
-    const updated: UserProfile = {
+    const updated = {
       ...user,
       is_phone_verified: true,
       phone_verified_at: verifiedAt
     };
     setUser(updated);
-
-    // Sync to Supabase
     if (isSupabaseConfigured && supabase) {
       supabase.from('profiles').update({
         is_phone_verified: true,
@@ -399,54 +337,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
-    const updated = { ...user, ...updates };
+    // Security: Prevent users from self-promoting to admin via client profile updates
+    const safeUpdates = { ...updates };
+    delete (safeUpdates as any).role; // Strip role updates from client!
+
+    const updated = { ...user, ...safeUpdates };
     setUser(updated);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('profiles').update(updates).eq('id', user.id);
+        await supabase.from('profiles').update(safeUpdates).eq('id', user.id);
       } catch (e) {
-        console.warn('Profile update warning:', e);
+        console.warn('Profile update notice:', e);
       }
     }
-  };
-
-  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`
-      });
-      if (error) return { success: false, error: error.message };
-      return { success: true };
-    }
-    return { success: true };
   };
 
   const logout = async () => {
-    try {
-      if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured && supabase) {
+      try {
         await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('Logout notice:', e);
       }
-    } catch (e) {
-      console.warn('Supabase signOut notice:', e);
-    } finally {
-      setUser(null);
-      localStorage.removeItem('heatshield_auth_user');
     }
+    setUser(null);
+    localStorage.removeItem('heatshield_auth_user');
   };
 
+  // Strictly enforce role checks
   const role: UserRole = user?.role || 'resident';
-  const isAdmin = role === 'admin';
-  const isVolunteer = role === 'volunteer' || role === 'admin';
-  const isResident = role === 'resident';
-  const needsPhoneVerification = false;
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === 'admin';
+  const isVolunteer = user?.role === 'volunteer';
+  const isResident = user?.role === 'resident' || (!isAdmin && !isVolunteer);
+  const needsPhoneVerification = isAuthenticated && !user.is_phone_verified;
 
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
         isAdmin,
         isVolunteer,
@@ -454,7 +386,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         needsPhoneVerification,
         login,
         loginWithGoogle,
-        loginAsDemo,
+        loginAsDemoResident,
         signup,
         resetPassword,
         markPhoneVerified,
@@ -468,9 +400,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

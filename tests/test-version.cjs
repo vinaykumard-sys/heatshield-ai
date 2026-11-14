@@ -45,6 +45,8 @@ assert(compareSemver('1.1.0', '1.1.0') === 0, '1.1.0 === 1.1.0 -> 0');
 assert(compareSemver('v1.1.0', '1.1.0') === 0, 'v1.1.0 === 1.1.0 -> 0');
 assert(compareSemver('1.1', '1.1.0') === 0, '1.1 === 1.1.0 -> 0');
 assert(compareSemver('1.1.1', '1.1.0') === 1, '1.1.1 > 1.1.0 -> 1');
+assert(compareSemver('1.9.9', '1.10.0') === -1, '1.9.9 < 1.10.0 -> -1 (Section 3 critical requirement)');
+assert(compareSemver('1.10.0', '1.9.9') === 1, '1.10.0 > 1.9.9 -> 1');
 assert(compareSemver('1.2.0', '1.1.0') === 1, '1.2.0 > 1.1.0 -> 1');
 assert(compareSemver('2.0.0', '1.9.9') === 1, '2.0.0 > 1.9.9 -> 1');
 

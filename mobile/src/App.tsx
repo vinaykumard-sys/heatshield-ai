@@ -7,11 +7,13 @@ import {
   SafeAreaView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 import DashboardScreen from './screens/DashboardScreen';
+import WeatherScreen from './screens/WeatherScreen';
 import SafeRouteScreen from './screens/SafeRouteScreen';
 import AssistanceScreen from './screens/AssistanceScreen';
 import SOSScreen from './screens/SOSScreen';
@@ -35,11 +37,15 @@ import {
 import { LOCALITIES } from './data/mockData';
 import { Locality } from './types';
 
-type Tab = 'dashboard' | 'routes' | 'sos' | 'assistant' | 'profile';
+export type Tab = 'dashboard' | 'weather' | 'routes' | 'assistance' | 'profile';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [selectedLocality, setSelectedLocality] = useState<Locality>(LOCALITIES[0]);
+
+  // Sub-screens & modals
+  const [showAssistantModal, setShowAssistantModal] = useState<boolean>(false);
+  const [assistanceSubView, setAssistanceSubView] = useState<'assistance' | 'sos'>('assistance');
 
   // Mandatory App Update State
   const [updateResult, setUpdateResult] = useState<VersionCheckResult | null>(null);
@@ -124,6 +130,11 @@ export default function App() {
         const data = response?.notification?.request?.content?.data;
         if (data?.channelId === 'safe-routes' || data?.type === 'SAFE_ROUTE') {
           setActiveTab('routes');
+        } else if (data?.channelId === 'emergency-sos' || data?.type === 'EMERGENCY_SOS') {
+          setAssistanceSubView('sos');
+          setActiveTab('assistance');
+        } else if (data?.channelId === 'weather-briefings' || data?.type === 'WEATHER_BRIEFING') {
+          setActiveTab('weather');
         } else if (data?.type === 'HEATWAVE_ALERT' || data?.channelId === 'heat-alerts') {
           setActiveTab('dashboard');
         }
@@ -149,18 +160,18 @@ export default function App() {
     };
   }, [session]);
 
-  // Loading Screen while checking Supabase auth
+  // Loading Splash Screen while checking Supabase auth
   if (authLoading) {
     return (
       <SafeAreaView style={styles.splashContainer}>
-        <StatusBar style="light" backgroundColor="#060D1E" />
+        <StatusBar style="dark" backgroundColor="#F0F6FF" />
         <View style={styles.splashContent}>
           <View style={styles.splashIconCircle}>
-            <MaterialCommunityIcons name="shield-sun" size={54} color="#06B6D4" />
+            <MaterialCommunityIcons name="shield-sun" size={54} color="#0284C7" />
           </View>
           <Text style={styles.splashTitle}>HEATSHIELD AI</Text>
           <Text style={styles.splashSub}>Urban Heat Safety & Defense</Text>
-          <ActivityIndicator size="large" color="#06B6D4" style={{ marginTop: 24 }} />
+          <ActivityIndicator size="large" color="#0284C7" style={{ marginTop: 24 }} />
         </View>
       </SafeAreaView>
     );
@@ -170,7 +181,7 @@ export default function App() {
   if (!session) {
     return (
       <SafeAreaView style={styles.safeContainer}>
-        <StatusBar style="light" backgroundColor="#060D1E" />
+        <StatusBar style="dark" backgroundColor="#F0F6FF" />
         <AuthScreen
           onAuthSuccess={(newSession) => {
             setSession(newSession);
@@ -190,10 +201,10 @@ export default function App() {
     );
   }
 
-  // Authenticated Resident/Officer -> Main Tab Navigation
+  // Authenticated Resident/Officer -> Main Tab Navigation (Home, Weather, Safe Route, Alerts & Aid, Profile)
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="light" backgroundColor="#0B1329" />
+      <StatusBar style="dark" backgroundColor="#F0F6FF" />
 
       {/* Screen Body */}
       <View style={styles.screenContainer}>
@@ -201,23 +212,99 @@ export default function App() {
           <DashboardScreen
             selectedLocality={selectedLocality}
             onSelectLocality={setSelectedLocality}
-            onNavigateToWeather={() => setActiveTab('routes')}
+            onNavigateToWeather={() => setActiveTab('weather')}
             onNavigateToRoute={() => setActiveTab('routes')}
-            onNavigateToSOS={() => setActiveTab('sos')}
-            onNavigateToAssistance={() => setActiveTab('sos')}
-            onNavigateToAssistant={() => setActiveTab('assistant')}
+            onNavigateToSOS={() => {
+              setAssistanceSubView('sos');
+              setActiveTab('assistance');
+            }}
+            onNavigateToAssistance={() => {
+              setAssistanceSubView('assistance');
+              setActiveTab('assistance');
+            }}
+            onNavigateToAssistant={() => setShowAssistantModal(true)}
           />
         )}
-        {activeTab === 'routes' && <SafeRouteScreen />}
-        {activeTab === 'sos' && (
-          <SOSScreen
+
+        {activeTab === 'weather' && (
+          <WeatherScreen
             selectedLocality={selectedLocality}
-            onNavigateToAssistance={() => setActiveTab('sos')}
+            onSelectLocality={setSelectedLocality}
+            onNavigateToRoute={() => setActiveTab('routes')}
+            onNavigateToSOS={() => {
+              setAssistanceSubView('sos');
+              setActiveTab('assistance');
+            }}
           />
         )}
-        {activeTab === 'assistant' && (
-          <AssistantScreen selectedLocality={selectedLocality} />
+
+        {activeTab === 'routes' && <SafeRouteScreen />}
+
+        {activeTab === 'assistance' && (
+          <View style={{ flex: 1 }}>
+            {/* Top Sub-Navigation Toggle for Alerts & Assistance Tab */}
+            <View style={styles.subTabHeader}>
+              <TouchableOpacity
+                style={[
+                  styles.subTabButton,
+                  assistanceSubView === 'assistance' && styles.subTabButtonActive,
+                ]}
+                onPress={() => setAssistanceSubView('assistance')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="hand-heart"
+                  size={16}
+                  color={assistanceSubView === 'assistance' ? '#0284C7' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.subTabText,
+                    assistanceSubView === 'assistance' && styles.subTabTextActive,
+                  ]}
+                >
+                  Field Relief Aid
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.subTabButton,
+                  assistanceSubView === 'sos' && styles.subTabButtonActiveSOS,
+                ]}
+                onPress={() => setAssistanceSubView('sos')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="alert-octagon"
+                  size={16}
+                  color={assistanceSubView === 'sos' ? '#DC2626' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.subTabText,
+                    assistanceSubView === 'sos' && styles.subTabTextActiveSOS,
+                  ]}
+                >
+                  Emergency SOS
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {assistanceSubView === 'assistance' ? (
+              <AssistanceScreen
+                selectedLocality={selectedLocality}
+                onBack={() => setAssistanceSubView('sos')}
+              />
+            ) : (
+              <SOSScreen
+                selectedLocality={selectedLocality}
+                onNavigateToAssistance={() => setAssistanceSubView('assistance')}
+              />
+            )}
+          </View>
         )}
+
         {activeTab === 'profile' && (
           <ProfileScreen
             userEmail={session?.user?.email}
@@ -227,6 +314,21 @@ export default function App() {
           />
         )}
       </View>
+
+      {/* AI Assistant Modal Overlay */}
+      <Modal
+        visible={showAssistantModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAssistantModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F6FF' }}>
+          <AssistantScreen
+            selectedLocality={selectedLocality}
+            onBack={() => setShowAssistantModal(false)}
+          />
+        </SafeAreaView>
+      </Modal>
 
       {/* Mandatory App Update Modal (Blocking & Non-dismissible) */}
       {updateResult && updateResult.needsUpdate && (
@@ -249,97 +351,149 @@ export default function App() {
         userId={session?.user?.id}
       />
 
-      {/* Custom Bottom Tab Bar */}
+      {/* Native Bottom Tab Bar: Home | Weather | Safe Route | Alerts / Assistance | Profile */}
       <View style={styles.tabBar}>
+        {/* 1. Home / Dashboard */}
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => setActiveTab('dashboard')}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name={activeTab === 'dashboard' ? 'speedometer' : 'speedometer-outline'}
-            size={22}
-            color={activeTab === 'dashboard' ? '#06B6D4' : '#64748B'}
-          />
+          <View
+            style={[
+              styles.tabIconWrap,
+              activeTab === 'dashboard' && styles.tabIconWrapActive,
+            ]}
+          >
+            <Ionicons
+              name={activeTab === 'dashboard' ? 'home' : 'home-outline'}
+              size={20}
+              color={activeTab === 'dashboard' ? '#0284C7' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
               activeTab === 'dashboard' ? styles.tabLabelActive : styles.tabLabelInactive,
             ]}
           >
-            Dashboard
+            Home
           </Text>
         </TouchableOpacity>
 
+        {/* 2. Weather */}
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => setActiveTab('weather')}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.tabIconWrap,
+              activeTab === 'weather' && styles.tabIconWrapActive,
+            ]}
+          >
+            <Ionicons
+              name={activeTab === 'weather' ? 'partly-sunny' : 'partly-sunny-outline'}
+              size={21}
+              color={activeTab === 'weather' ? '#0284C7' : '#64748B'}
+            />
+          </View>
+          <Text
+            style={[
+              styles.tabLabel,
+              activeTab === 'weather' ? styles.tabLabelActive : styles.tabLabelInactive,
+            ]}
+          >
+            Weather
+          </Text>
+        </TouchableOpacity>
+
+        {/* 3. Safe Route */}
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => setActiveTab('routes')}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name={activeTab === 'routes' ? 'map-marker-path' : 'map-marker-path'}
-            size={22}
-            color={activeTab === 'routes' ? '#10B981' : '#64748B'}
-          />
+          <View
+            style={[
+              styles.tabIconWrap,
+              activeTab === 'routes' && styles.tabIconWrapActiveGreen,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="map-marker-path"
+              size={21}
+              color={activeTab === 'routes' ? '#059669' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
-              activeTab === 'routes' ? { color: '#10B981', fontWeight: '700' } : styles.tabLabelInactive,
+              activeTab === 'routes'
+                ? { color: '#059669', fontWeight: '700' }
+                : styles.tabLabelInactive,
             ]}
           >
             Safe Route
           </Text>
         </TouchableOpacity>
 
-        {/* SOS Central Raised Action */}
-        <TouchableOpacity
-          style={styles.sosTabItem}
-          onPress={() => setActiveTab('sos')}
-          activeOpacity={0.85}
-        >
-          <View style={[styles.sosButtonCircle, activeTab === 'sos' && styles.sosButtonCircleActive]}>
-            <MaterialCommunityIcons name="alert-octagon" size={24} color="#FFF" />
-          </View>
-          <Text style={styles.sosTabLabel}>SOS Relief</Text>
-        </TouchableOpacity>
-
+        {/* 4. Alerts / Assistance */}
         <TouchableOpacity
           style={styles.tabItem}
-          onPress={() => setActiveTab('assistant')}
+          onPress={() => setActiveTab('assistance')}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name={activeTab === 'assistant' ? 'robot' : 'robot-outline'}
-            size={22}
-            color={activeTab === 'assistant' ? '#38BDF8' : '#64748B'}
-          />
+          <View
+            style={[
+              styles.tabIconWrap,
+              activeTab === 'assistance' && styles.tabIconWrapActiveAlert,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={activeTab === 'assistance' ? 'shield-alert' : 'shield-alert-outline'}
+              size={21}
+              color={activeTab === 'assistance' ? '#EA580C' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
-              activeTab === 'assistant' ? { color: '#38BDF8', fontWeight: '700' } : styles.tabLabelInactive,
+              activeTab === 'assistance'
+                ? { color: '#EA580C', fontWeight: '700' }
+                : styles.tabLabelInactive,
             ]}
           >
-            AI Assistant
+            Alerts & Aid
           </Text>
         </TouchableOpacity>
 
+        {/* 5. Profile */}
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => setActiveTab('profile')}
           activeOpacity={0.7}
         >
-          <Feather
-            name="settings"
-            size={20}
-            color={activeTab === 'profile' ? '#F8FAFC' : '#64748B'}
-          />
+          <View
+            style={[
+              styles.tabIconWrap,
+              activeTab === 'profile' && styles.tabIconWrapActive,
+            ]}
+          >
+            <Ionicons
+              name={activeTab === 'profile' ? 'person' : 'person-outline'}
+              size={20}
+              color={activeTab === 'profile' ? '#0284C7' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
-              activeTab === 'profile' ? { color: '#F8FAFC', fontWeight: '700' } : styles.tabLabelInactive,
+              activeTab === 'profile' ? styles.tabLabelActive : styles.tabLabelInactive,
             ]}
           >
-            Settings
+            Profile
           </Text>
         </TouchableOpacity>
       </View>
@@ -350,11 +504,11 @@ export default function App() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
   },
   splashContainer: {
     flex: 1,
-    backgroundColor: '#060D1E',
+    backgroundColor: '#F0F6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -366,81 +520,119 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    backgroundColor: '#E0F2FE',
     borderWidth: 2,
-    borderColor: '#06B6D4',
+    borderColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
   splashTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#F8FAFC',
-    letterSpacing: 2,
+    color: '#0F172A',
+    letterSpacing: 1.5,
     marginBottom: 4,
   },
   splashSub: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#06B6D4',
-    letterSpacing: 0.6,
+    color: '#0284C7',
+    letterSpacing: 0.5,
   },
   screenContainer: {
     flex: 1,
   },
+  subTabHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  subTabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    gap: 6,
+  },
+  subTabButtonActive: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#0284C7',
+  },
+  subTabButtonActiveSOS: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#DC2626',
+  },
+  subTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  subTabTextActive: {
+    color: '#0284C7',
+    fontWeight: '700',
+  },
+  subTabTextActiveSOS: {
+    color: '#DC2626',
+    fontWeight: '700',
+  },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#0B1329',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 22 : 8,
     alignItems: 'center',
     justifyContent: 'space-around',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 6,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  tabIconWrap: {
+    paddingHorizontal: 12,
     paddingVertical: 4,
-  },
-  sosTabItem: {
-    flex: 1,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -8,
   },
-  sosButtonCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 8,
+  tabIconWrapActive: {
+    backgroundColor: '#E0F2FE',
   },
-  sosButtonCircleActive: {
-    backgroundColor: '#DC2626',
-    borderWidth: 2,
-    borderColor: '#FFF',
+  tabIconWrapActiveGreen: {
+    backgroundColor: '#ECFDF5',
   },
-  sosTabLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#EF4444',
-    marginTop: 4,
+  tabIconWrapActiveAlert: {
+    backgroundColor: '#FFF7ED',
   },
   tabLabel: {
     fontSize: 10,
-    marginTop: 4,
+    marginTop: 2,
   },
   tabLabelActive: {
-    color: '#06B6D4',
+    color: '#0284C7',
     fontWeight: '700',
   },
   tabLabelInactive: {

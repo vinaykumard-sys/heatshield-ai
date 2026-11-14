@@ -22,5 +22,5 @@
       "@heatshield/api/*": ["../packages/api/*"]
     }
   },
-  "include": ["src/**/*", "index.js", "../packages/**/*"]
+  "include": ["src/**/*", "index.js", "../packages/**/*", "../src/vite-env.d.ts"]
 }

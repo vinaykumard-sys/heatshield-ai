@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured } from './supabase';
+
 export interface RemoteVersionData {
   version: string;
   minimumRequiredVersion?: string;
@@ -8,6 +10,19 @@ export interface RemoteVersionData {
   releaseDate?: string;
 }
 
+export interface AppUpdateRecord {
+  id?: string;
+  platform: 'android' | 'ios' | 'web';
+  minimum_version: string;
+  latest_version: string;
+  android_version_code?: number;
+  update_type?: 'binary' | 'ota';
+  update_url: string;
+  release_notes?: string;
+  is_required: boolean;
+  published_at?: string;
+}
+
 export interface VersionCheckResult {
   needsUpdate: boolean;
   installedVersion: string;
@@ -16,13 +31,22 @@ export interface VersionCheckResult {
   downloadUrl: string;
   forceUpdate: boolean;
   releaseNotes?: string;
+  versionCode?: number;
+  source?: 'supabase' | 'remote_json' | 'cache' | 'offline_fallback';
 }
 
 export const CURRENT_APP_VERSION = '1.1.0';
+export const CURRENT_VERSION_CODE = 4;
 export const DEFAULT_APK_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
+export const VERSION_JSON_URL = 'https://heatshield-ai-eight.vercel.app/downloads/version.json';
+
+// In-memory cache to prevent infinite re-checking loops
+let memoryCache: { result: VersionCheckResult; timestamp: number } | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
 /**
- * Compares two semantic version strings (e.g., '1.0.2', '1.1.0', 'v1.1.0').
+ * Compares two semantic version strings (e.g., '1.0.2', '1.1.0', 'v1.1.0', '1.9.9' < '1.10.0').
+ * Purely numerical comparison per segment, preventing string comparison pitfalls.
  * Returns:
  *   -1 if v1 < v2
  *    0 if v1 === v2
@@ -55,67 +79,118 @@ export function compareSemver(v1: string, v2: string): number {
 }
 
 /**
- * Checks remote version endpoint and determines if mandatory update is required.
- * If installedVersion < minimumRequiredVersion and forceUpdate === true,
- * needsUpdate is true.
+ * Resets the in-memory version check cache.
+ */
+export function clearVersionCache(): void {
+  memoryCache = null;
+}
+
+/**
+ * Checks for mandatory and optional application updates:
+ * 1. Checks memory cache to avoid tight update loops.
+ * 2. Checks Supabase `app_updates` table (platform='android', minimum_version, latest_version, android_version_code, update_url, is_required).
+ * 3. Falls back to https://heatshield-ai-eight.vercel.app/downloads/version.json if Supabase is offline or table is pending migration.
+ * 4. Fallback gracefully if network is unavailable (never blocks startup with unhandled error).
  */
 export async function checkAppVersion(
-  installedVersion: string = CURRENT_APP_VERSION
+  installedVersion: string = CURRENT_APP_VERSION,
+  forceCheck: boolean = false
 ): Promise<VersionCheckResult> {
-  const url = `https://heatshield-ai-eight.vercel.app/downloads/version.json?t=${Date.now()}`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
-    });
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch version info: HTTP ${response.status}`);
-    }
-
-    const data: RemoteVersionData = await response.json();
-    const latestVersion = data.version || '1.1.0';
-    const minimumRequiredVersion = data.minimumRequiredVersion || data.version || '1.1.0';
-
-    const isForceUpdateRequired =
-      data.forceUpdate !== undefined ? Boolean(data.forceUpdate) : true;
-
-    const isOutdated = compareSemver(installedVersion, minimumRequiredVersion) < 0;
-    const needsUpdate = isOutdated && isForceUpdateRequired;
-
-    let downloadUrl = DEFAULT_APK_URL;
-    if (data.downloadUrl) {
-      downloadUrl = data.downloadUrl.startsWith('http')
-        ? data.downloadUrl
-        : `https://heatshield-ai-eight.vercel.app${data.downloadUrl.startsWith('/') ? '' : '/'}${data.downloadUrl}`;
-    }
-
+  // 1. Check cache first to avoid repeating requests in tight loops
+  if (!forceCheck && memoryCache && (Date.now() - memoryCache.timestamp < CACHE_TTL_MS)) {
     return {
-      needsUpdate,
-      installedVersion,
-      minimumRequiredVersion,
-      latestVersion,
-      downloadUrl,
-      forceUpdate: isForceUpdateRequired,
-      releaseNotes: data.releaseNotes,
-    };
-  } catch {
-    // Graceful fallback if offline or network unavailable - do not crash or block startup
-    return {
-      needsUpdate: false,
-      installedVersion,
-      minimumRequiredVersion: installedVersion,
-      latestVersion: installedVersion,
-      downloadUrl: DEFAULT_APK_URL,
-      forceUpdate: false,
+      ...memoryCache.result,
+      source: 'cache',
     };
   }
+
+  let latestVersion = CURRENT_APP_VERSION;
+  let minimumRequiredVersion = CURRENT_APP_VERSION;
+  let isForceUpdateRequired = true;
+  let downloadUrl = DEFAULT_APK_URL;
+  let releaseNotes =
+    'Critical update: Real-road safe routing, role-based security, offline heat shelters, and push notifications.';
+  let androidVersionCode = CURRENT_VERSION_CODE;
+  let fetchSource: 'supabase' | 'remote_json' | 'offline_fallback' = 'offline_fallback';
+
+  // 2. Query Supabase `app_updates` table (authoritative source)
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('app_updates')
+        .select('platform, minimum_version, latest_version, android_version_code, update_url, is_required, release_notes')
+        .eq('platform', 'android')
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        minimumRequiredVersion = data.minimum_version || CURRENT_APP_VERSION;
+        latestVersion = data.latest_version || minimumRequiredVersion;
+        isForceUpdateRequired = data.is_required !== undefined ? Boolean(data.is_required) : true;
+        downloadUrl = data.update_url || DEFAULT_APK_URL;
+        if (data.release_notes) releaseNotes = data.release_notes;
+        if (data.android_version_code) androidVersionCode = data.android_version_code;
+        fetchSource = 'supabase';
+      }
+    } catch (supabaseErr) {
+      console.warn('[VersionService] Supabase app_updates query skipped/failed:', supabaseErr);
+    }
+  }
+
+  // 3. Fallback to production version.json endpoint if Supabase didn't provide data
+  if (fetchSource === 'offline_fallback') {
+    const url = `https://heatshield-ai-eight.vercel.app/downloads/version.json?t=${Date.now()}`;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const json: RemoteVersionData = await response.json();
+        latestVersion = json.version || CURRENT_APP_VERSION;
+        minimumRequiredVersion = json.minimumRequiredVersion || json.version || CURRENT_APP_VERSION;
+        isForceUpdateRequired = json.forceUpdate !== undefined ? Boolean(json.forceUpdate) : true;
+        if (json.downloadUrl) {
+          downloadUrl = json.downloadUrl.startsWith('http')
+            ? json.downloadUrl
+            : `https://heatshield-ai-eight.vercel.app${json.downloadUrl.startsWith('/') ? '' : '/'}${json.downloadUrl}`;
+        }
+        if (json.releaseNotes) releaseNotes = json.releaseNotes;
+        if (json.versionCode) androidVersionCode = json.versionCode;
+        fetchSource = 'remote_json';
+      }
+    } catch (fetchErr) {
+      console.warn('[VersionService] version.json fallback fetch skipped/failed:', fetchErr);
+    }
+  }
+
+  // 4. Compare installed version with minimum required version
+  const isOutdated = compareSemver(installedVersion, minimumRequiredVersion) < 0;
+  const needsUpdate = isOutdated && isForceUpdateRequired;
+
+  const result: VersionCheckResult = {
+    needsUpdate,
+    installedVersion,
+    minimumRequiredVersion,
+    latestVersion,
+    downloadUrl,
+    forceUpdate: isForceUpdateRequired,
+    releaseNotes,
+    versionCode: androidVersionCode,
+    source: fetchSource,
+  };
+
+  // Cache result
+  memoryCache = { result, timestamp: Date.now() };
+
+  return result;
 }

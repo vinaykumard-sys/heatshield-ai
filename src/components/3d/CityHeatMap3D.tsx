@@ -71,8 +71,8 @@ const RISK_PALETTE = {
     secondary: '#34D399',
     heatGlow: '#059669',
     shimmer: '#A7F3D0',
-    asphalt: '#1E293B',
-    buildingBase: '#94A3B8',
+    asphalt: '#F1F5F9',
+    buildingBase: '#FFFFFF',
     buildingHot: '#F59E0B',
     label: 'Low Risk',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -82,8 +82,8 @@ const RISK_PALETTE = {
     secondary: '#FBBF24',
     heatGlow: '#D97706',
     shimmer: '#FDE68A',
-    asphalt: '#1E293B',
-    buildingBase: '#64748B',
+    asphalt: '#F1F5F9',
+    buildingBase: '#F8FAFC',
     buildingHot: '#EA580C',
     label: 'Moderate Risk',
     badgeClass: 'bg-amber-50 text-amber-800 border-amber-200'
@@ -93,8 +93,8 @@ const RISK_PALETTE = {
     secondary: '#FB923C',
     heatGlow: '#C2410C',
     shimmer: '#FED7AA',
-    asphalt: '#181E29',
-    buildingBase: '#475569',
+    asphalt: '#F1F5F9',
+    buildingBase: '#F1F5F9',
     buildingHot: '#EF4444',
     label: 'High Risk',
     badgeClass: 'bg-orange-50 text-orange-700 border-orange-200'
@@ -104,8 +104,8 @@ const RISK_PALETTE = {
     secondary: '#F87171',
     heatGlow: '#991B1B',
     shimmer: '#FECACA',
-    asphalt: '#0F172A',
-    buildingBase: '#334155',
+    asphalt: '#F1F5F9',
+    buildingBase: '#E2E8F0',
     buildingHot: '#DC2626',
     label: 'Critical Risk',
     badgeClass: 'bg-red-50 text-red-700 border-red-200'
@@ -115,8 +115,8 @@ const RISK_PALETTE = {
     secondary: '#EF4444',
     heatGlow: '#7F1D1D',
     shimmer: '#FECDD3',
-    asphalt: '#090D16',
-    buildingBase: '#1E293B',
+    asphalt: '#F1F5F9',
+    buildingBase: '#CBD5E1',
     buildingHot: '#B91C1C',
     label: 'Extreme Risk',
     badgeClass: 'bg-rose-100 text-rose-800 border-rose-300'
@@ -364,19 +364,19 @@ function CityGroundPlane({
 
   return (
     <group>
-      {/* Base City Asphalt Foundation */}
+      {/* Base City Daylight Urban Ground Foundation */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[36, 36]} />
         <meshStandardMaterial
-          color="#0F172A" // Deep dark slate urban asphalt
+          color="#F1F5F9" // Clean daylight urban ground surface
           roughness={0.8}
-          metalness={0.1}
+          metalness={0.05}
         />
       </mesh>
 
       {/* Road Grid Pattern (Cross streets) */}
       <gridHelper
-        args={[36, 24, '#334155', '#1E293B']}
+        args={[36, 24, '#CBD5E1', '#E2E8F0']}
         position={[0, 0.01, 0]}
       />
 
@@ -576,15 +576,15 @@ function Fallback2DCityMap({
   temperature: number;
   riskCategory: string;
   coolingCentres: CoolingCentre[];
-  onSelectShelter?: (shelter: CoolingCentre) => void;
+  onSelectShelter?: (station: CoolingCentre) => void;
 }) {
   return (
-    <div className="relative w-full h-full min-h-[420px] bg-slate-900 rounded-3xl p-6 flex flex-col justify-between overflow-hidden">
+    <div className="relative w-full h-full min-h-[420px] bg-slate-50 border border-slate-200 rounded-3xl p-6 flex flex-col justify-between overflow-hidden shadow-sm">
       {/* Background Stylized City Grid SVG */}
-      <svg className="absolute inset-0 w-full h-full opacity-25 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" strokeWidth="1" />
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" strokeWidth="1" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid-pattern)" />
@@ -593,19 +593,19 @@ function Fallback2DCityMap({
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">
             2D Neighborhood Heat Overlay
           </span>
-          <h4 className="text-xl font-black text-white">{localityName}, {cityName}</h4>
+          <h4 className="text-xl font-black text-slate-800">{localityName}, {cityName}</h4>
         </div>
-        <div className="px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-black">
+        <div className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-black">
           {temperature}°C · {riskCategory.toUpperCase()} RISK
         </div>
       </div>
 
       {/* Interactive Shelters List */}
       <div className="relative z-10 space-y-2.5 my-4">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
           Nearby Cooling Shelters & Relief Hubs
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -613,13 +613,13 @@ function Fallback2DCityMap({
             <div
               key={c.id}
               onClick={() => onSelectShelter?.(c)}
-              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 cursor-pointer transition-all flex items-center justify-between group"
+              className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer transition-all flex items-center justify-between group shadow-xs"
             >
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-white group-hover:text-cyan-400 block transition-colors">
+                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 block transition-colors">
                   {c.name}
                 </span>
-                <span className="text-[11px] text-slate-400 block">{c.address}</span>
+                <span className="text-[11px] text-slate-500 block">{c.address}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -627,7 +627,7 @@ function Fallback2DCityMap({
         </div>
       </div>
 
-      <div className="relative z-10 text-[11px] text-slate-400 text-center border-t border-slate-800 pt-3">
+      <div className="relative z-10 text-[11px] text-slate-500 text-center border-t border-slate-200 pt-3">
         WebGL acceleration disabled or unavailable. Displaying 2D safety fallback.
       </div>
     </div>
@@ -777,7 +777,7 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
 
   return (
     <div
-      className={`relative w-full rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl select-none group ${className}`}
+      className={`relative w-full rounded-3xl overflow-hidden bg-slate-50 border border-slate-200 shadow-sm select-none group ${className}`}
       style={{ height }}
     >
       {/* 3D Canvas */}
@@ -792,10 +792,10 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
         className="w-full h-full"
       >
         {/* Natural & Sun Lighting */}
-        <ambientLight intensity={0.65} color="#E2E8F0" />
+        <ambientLight intensity={1.1} color="#F8FAFC" />
         <directionalLight
           position={[12, 22, 10]}
-          intensity={1.8}
+          intensity={1.6}
           color="#FFFBEB"
           castShadow
           shadow-mapSize-width={1024}
@@ -804,7 +804,7 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
         {/* Warm thermal accent light over the hotspot */}
         <pointLight
           position={[3.5, 6, 3.0]}
-          intensity={1.5}
+          intensity={1.2}
           color={palette.primary}
           distance={16}
         />
@@ -863,17 +863,17 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
 
       {/* TOP HUD BAR: Locality & Live Risk Status */}
       <div className="absolute top-4 left-4 right-4 pointer-events-none flex flex-wrap items-center justify-between gap-3">
-        <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-700/80 shadow-lg flex items-center gap-2.5">
+        <div className="bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full animate-ping" style={{ backgroundColor: palette.primary }} />
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-white tracking-tight">
+              <span className="text-xs font-black text-slate-800 tracking-tight">
                 {localityName}
               </span>
               <span className="text-slate-400 text-[10px]">·</span>
-              <span className="text-slate-400 text-xs font-semibold">{cityName}</span>
+              <span className="text-slate-500 text-xs font-semibold">{cityName}</span>
             </div>
-            <span className="text-[10px] font-bold text-slate-300 block">
+            <span className="text-[10px] font-bold text-slate-500 block">
               3D Procedural Digital Twin & Heat Risk Model
             </span>
           </div>
@@ -881,9 +881,9 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
 
         {/* Risk Badge & Heat Index */}
         <div className="flex items-center gap-2">
-          <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-slate-700/80 shadow-lg flex items-center gap-2 text-xs font-black">
-            <span className="text-white">{temperature}°C</span>
-            <span className="text-slate-400 font-medium">Feels {feelsLike}°C</span>
+          <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-black">
+            <span className="text-slate-800">{temperature}°C</span>
+            <span className="text-slate-500 font-medium">Feels {feelsLike}°C</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-black ${palette.badgeClass}`}>
               {palette.label}
             </span>
@@ -894,58 +894,58 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
       {/* FLOATING CONTROLS: Camera Presets & Layer Toggles */}
       <div className="absolute bottom-4 left-4 right-4 pointer-events-none flex flex-wrap items-end justify-between gap-3">
         {/* Layer Filters */}
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/80 shadow-lg text-[11px] font-bold">
+        <div className="pointer-events-auto flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-sm text-[11px] font-bold">
           <button
             onClick={() => setActiveLayer('all')}
-            className={`px-2.5 py-1 rounded-xl transition-colors ${
+            className={`px-2.5 py-1 rounded-xl transition-colors cursor-pointer ${
               activeLayer === 'all'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             All Points
           </button>
           <button
             onClick={() => setActiveLayer('cooling')}
-            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 cursor-pointer ${
               activeLayer === 'cooling'
                 ? 'bg-cyan-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <ShieldAlert className="w-3 h-3 text-cyan-400" />
+            <ShieldAlert className="w-3 h-3 text-cyan-600" />
             <span>Cooling</span>
           </button>
           <button
             onClick={() => setActiveLayer('hotspots')}
-            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 cursor-pointer ${
               activeLayer === 'hotspots'
                 ? 'bg-red-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Flame className="w-3 h-3 text-red-400" />
+            <Flame className="w-3 h-3 text-red-500" />
             <span>Hotspots</span>
           </button>
           <button
             onClick={() => setActiveLayer('greenery')}
-            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 cursor-pointer ${
               activeLayer === 'greenery'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Trees className="w-3 h-3 text-emerald-400" />
+            <Trees className="w-3 h-3 text-emerald-600" />
             <span>Parks</span>
           </button>
         </div>
 
         {/* Camera Views & Shimmer Toggle */}
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/80 shadow-lg text-[11px] font-bold text-slate-300">
+        <div className="pointer-events-auto flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-sm text-[11px] font-bold text-slate-700">
           <button
             onClick={() => setCameraPreset('isometric')}
-            className={`px-2 py-1 rounded-xl transition-colors ${
-              cameraPreset === 'isometric' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800'
+            className={`px-2 py-1 rounded-xl transition-colors cursor-pointer ${
+              cameraPreset === 'isometric' ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-600'
             }`}
             title="3D Isometric Orbit View"
           >
@@ -953,8 +953,8 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
           </button>
           <button
             onClick={() => setCameraPreset('topdown')}
-            className={`px-2 py-1 rounded-xl transition-colors ${
-              cameraPreset === 'topdown' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800'
+            className={`px-2 py-1 rounded-xl transition-colors cursor-pointer ${
+              cameraPreset === 'topdown' ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-600'
             }`}
             title="Overhead Heatmap Grid"
           >
@@ -962,21 +962,21 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
           </button>
           <button
             onClick={() => setCameraPreset('street')}
-            className={`px-2 py-1 rounded-xl transition-colors ${
-              cameraPreset === 'street' ? 'bg-slate-700 text-white' : 'hover:bg-slate-800'
+            className={`px-2 py-1 rounded-xl transition-colors cursor-pointer ${
+              cameraPreset === 'street' ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-600'
             }`}
             title="Ground Street Horizon"
           >
             Street
           </button>
 
-          <span className="w-px h-3.5 bg-slate-700 mx-0.5" />
+          <span className="w-px h-3.5 bg-slate-200 mx-0.5" />
 
           {/* Shimmer Toggle */}
           <button
             onClick={() => setShowShimmer(!showShimmer)}
-            className={`px-2 py-1 rounded-xl transition-colors flex items-center gap-1 ${
-              showShimmer ? 'text-amber-400' : 'text-slate-500'
+            className={`px-2 py-1 rounded-xl transition-colors flex items-center gap-1 cursor-pointer ${
+              showShimmer ? 'text-amber-600' : 'text-slate-400'
             }`}
             title="Toggle Heat Shimmer Particles"
           >
@@ -987,7 +987,7 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
           {/* Reset Camera Button */}
           <button
             onClick={handleResetCamera}
-            className="p-1 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-1 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
             title="Reset Orbit Camera"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -997,7 +997,7 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
 
       {/* POI HOVER / CLICK DETAIL CARD */}
       {(hoveredPOI || selectedPOI) && (
-        <div className="absolute top-20 right-4 w-72 pointer-events-auto bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-700 p-3.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute top-20 right-4 w-72 pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 p-3.5 shadow-xl animate-in fade-in zoom-in-95 duration-150">
           {(() => {
             const item = selectedPOI || hoveredPOI!;
             const isCooling = item.type === 'cooling';
@@ -1012,19 +1012,19 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
                       className="w-6 h-6 rounded-lg flex items-center justify-center text-xs"
                       style={{
                         backgroundColor: isCooling
-                          ? 'rgba(6, 182, 212, 0.2)'
+                          ? 'rgba(6, 182, 212, 0.15)'
                           : isHot
-                          ? 'rgba(239, 68, 68, 0.2)'
+                          ? 'rgba(239, 68, 68, 0.15)'
                           : isWater
-                          ? 'rgba(59, 130, 246, 0.2)'
-                          : 'rgba(16, 185, 129, 0.2)',
+                          ? 'rgba(59, 130, 246, 0.15)'
+                          : 'rgba(16, 185, 129, 0.15)',
                         color: isCooling
-                          ? '#06B6D4'
+                          ? '#0284C7'
                           : isHot
-                          ? '#EF4444'
+                          ? '#DC2626'
                           : isWater
-                          ? '#3B82F6'
-                          : '#10B981'
+                          ? '#2563EB'
+                          : '#059669'
                       }}
                     >
                       {isCooling && <ShieldAlert className="w-3.5 h-3.5" />}
@@ -1033,10 +1033,10 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
                       {item.type === 'park' && <Trees className="w-3.5 h-3.5" />}
                     </span>
                     <div>
-                      <h5 className="text-xs font-bold text-white leading-tight">
+                      <h5 className="text-xs font-bold text-slate-800 leading-tight">
                         {item.name}
                       </h5>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                         {item.type}
                       </span>
                     </div>
@@ -1045,27 +1045,27 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
                   {selectedPOI && (
                     <button
                       onClick={() => setSelectedPOI(null)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-slate-400 hover:text-slate-700 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
 
-                <div className="text-[11px] text-slate-300 bg-slate-800/60 p-2 rounded-xl border border-slate-700/60">
+                <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100">
                   <p>{item.details}</p>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
-                  <span className="text-slate-400 text-[11px]">Surface Temp:</span>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                  <span className="text-slate-500 text-[11px]">Surface Temp:</span>
                   <span
                     className="font-extrabold"
                     style={{
                       color: isCooling
-                        ? '#06B6D4'
+                        ? '#0284C7'
                         : isHot
-                        ? '#EF4444'
-                        : '#10B981'
+                        ? '#DC2626'
+                        : '#059669'
                     }}
                   >
                     {item.temperature}°C
@@ -1075,7 +1075,7 @@ export const CityHeatMap3D: React.FC<CityHeatMap3DProps> = ({
                 {item.sourceData && onSelectShelter && (
                   <button
                     onClick={() => onSelectShelter(item.sourceData!)}
-                    className="w-full mt-1 py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    className="w-full mt-1 py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <span>View Shelter Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />
