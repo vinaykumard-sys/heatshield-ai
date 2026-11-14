@@ -123,16 +123,16 @@ public class MainActivity extends Activity {
         // Expose synchronous Native Bridge Interface for immediate version detection
         mWebView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
-            public String getVersion() { return "1.2.0"; }
+            public String getVersion() { return "1.3.0"; }
             @android.webkit.JavascriptInterface
-            public int getVersionCode() { return 5; }
+            public int getVersionCode() { return 6; }
             @android.webkit.JavascriptInterface
             public boolean isNative() { return true; }
         }, "HeatShieldNative");
 
         // Custom User-Agent suffix for HeatShield AI Native App
         String defaultUA = settings.getUserAgentString();
-        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.2.0 (Android; versionCode 5)");
+        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.3.0 (Android; versionCode 6)");
 
         // Set DownloadListener to handle downloads via system intent
         mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
@@ -160,7 +160,7 @@ public class MainActivity extends Activity {
                         return;
                     }
                 }
-                callback.invoke(origin, true, false);
+                callback.invoke(origin, true, true);
             }
 
             @Override
@@ -189,11 +189,63 @@ public class MainActivity extends Activity {
                     }
                 }
 
+                // Handle phone dialing (tel:)
+                if (url.startsWith("tel:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception ex) {
+                            Toast.makeText(MainActivity.this, "Calling unavailable", Toast.LENGTH_SHORT).show();
+                            return true;
+                        }
+                    }
+                }
+
+                // Handle map coordinate views (geo:)
+                if (url.startsWith("geo:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Map application not found", Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                }
+
+                // Handle email composition (mailto:)
+                if (url.startsWith("mailto:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+
+                // Handle SMS (sms:)
+                if (url.startsWith("sms:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+
                 if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://")) {
                     return false;
                 }
 
-                // Handle external intent schemes: tel:, mailto:, geo:, whatsapp:
+                // Handle external intent schemes: whatsapp:, intent:, etc.
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
@@ -344,7 +396,7 @@ public class MainActivity extends Activity {
         if (requestCode == PERMISSION_REQUEST_LOCATION) {
             boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (mGeoCallback != null && mGeoOrigin != null) {
-                mGeoCallback.invoke(mGeoOrigin, granted, false);
+                mGeoCallback.invoke(mGeoOrigin, granted, true);
                 mGeoCallback = null;
                 mGeoOrigin = null;
             }

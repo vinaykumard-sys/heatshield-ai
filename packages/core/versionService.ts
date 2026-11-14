@@ -4,8 +4,8 @@
  * and enforcement of mandatory version updates.
  */
 
-export const CURRENT_APP_VERSION = '1.2.0';
-export const CURRENT_VERSION_CODE = 5;
+export const CURRENT_APP_VERSION = '1.3.0';
+export const CURRENT_VERSION_CODE = 6;
 export const DEFAULT_DOWNLOAD_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
 
 export interface RemoteVersionConfig {

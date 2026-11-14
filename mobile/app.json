@@ -2,7 +2,7 @@
   "expo": {
     "name": "HeatShield AI",
     "slug": "heatshield-ai",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.heatshield.ai",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B1329"
@@ -26,6 +26,7 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "POST_NOTIFICATIONS",
+        "CALL_PHONE",
         "INTERNET",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"

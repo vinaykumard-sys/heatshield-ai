@@ -1,12 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.heatshield.ai"
-    android:versionCode="4"
-    android:versionName="1.1.0">
+    android:versionCode="6"
+    android:versionName="1.3.0">
 
     <uses-sdk
         android:minSdkVersion="21"
         android:targetSdkVersion="34" />
+
+    <!-- Modern Android Intent Queries (API 30+) for Dialing, Maps & Messaging -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="sms" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 
     <!-- Screen and Form Factor Compatibility (Phones, Foldables, Tablets, Desktops) -->
     <supports-screens
@@ -39,7 +67,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Alert Feedback & Notifications -->
+    <!-- Emergency Telephony & Alert Feedback -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 

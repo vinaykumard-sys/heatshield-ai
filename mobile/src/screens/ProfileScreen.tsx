@@ -9,11 +9,14 @@ import {
   TextInput,
   Alert,
   Platform,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { INITIAL_EMERGENCY_CONTACTS, MOCK_USER_PROFILE } from '../data/mockData';
 import { EmergencyContact, UserProfile } from '../types';
 import { supabase } from '../services/supabase';
+import { checkAppVersion, CURRENT_APP_VERSION, DEFAULT_APK_URL } from '../services/versionService';
 
 interface ProfileScreenProps {
   userEmail?: string | null;
@@ -69,6 +72,41 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
   const handleRoleChange = (newRole: UserProfile['role']) => {
     setProfile((prev) => ({ ...prev, role: newRole }));
     Alert.alert('Role Updated', `Active profile role switched to ${newRole}.`);
+  };
+
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const res = await checkAppVersion(CURRENT_APP_VERSION, true);
+      if (res.needsUpdate) {
+        Alert.alert(
+          'Update Available',
+          `A new version of HeatShield AI (v${res.latestVersion}) is available. Would you like to download and upgrade now?`,
+          [
+            { text: 'Later', style: 'cancel' },
+            {
+              text: 'Download & Install APK',
+              onPress: () => {
+                Linking.openURL(res.downloadUrl || DEFAULT_APK_URL).catch(() => {
+                  Alert.alert('Download Error', 'Could not open browser to download APK.');
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Up to Date',
+          `You are using the latest version of HeatShield AI (v${CURRENT_APP_VERSION}). All emergency dispatch & heat radar protocols are operational.`
+        );
+      }
+    } catch (err) {
+      Alert.alert('Update Check Failed', 'Unable to reach the update server. Please verify your connection.');
+    } finally {
+      setCheckingUpdate(false);
+    }
   };
 
   const handleLogout = () => {
@@ -281,10 +319,59 @@ export default function ProfileScreen({ userEmail, onLogout }: ProfileScreenProp
 
         {/* System & Version Information */}
         <View style={styles.systemCard}>
-          <Text style={styles.systemText}>HeatShield AI v1.2.0 (Android Mobile Native)</Text>
+          <Text style={styles.systemText}>HeatShield AI v1.3.0 (Android Mobile Native)</Text>
           <Text style={styles.systemSub}>
             Integrated with IMD Synoptic Radar, BBMP Disaster Relief & OpenStreetMap
           </Text>
+
+          {/* Update Action Row */}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 8 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#2563EB',
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                gap: 8,
+              }}
+              onPress={handleCheckUpdate}
+              activeOpacity={0.85}
+              disabled={checkingUpdate}
+            >
+              {checkingUpdate ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Feather name="refresh-cw" size={16} color="#FFFFFF" />
+              )}
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                {checkingUpdate ? 'Checking...' : 'Check Updates'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#EFF6FF',
+                borderWidth: 1,
+                borderColor: '#BFDBFE',
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                gap: 6,
+              }}
+              onPress={() => Linking.openURL(DEFAULT_APK_URL)}
+              activeOpacity={0.85}
+            >
+              <Feather name="download" size={16} color="#2563EB" />
+              <Text style={{ color: '#2563EB', fontWeight: '700', fontSize: 13 }}>Get APK</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
             <Feather name="log-out" size={16} color="#DC2626" />

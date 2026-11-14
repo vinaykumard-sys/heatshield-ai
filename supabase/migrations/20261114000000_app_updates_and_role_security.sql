@@ -82,12 +82,12 @@ INSERT INTO public.app_updates (
 ),
 (
     'android',
-    '1.1.0',
     '1.2.0',
-    5,
+    '1.3.0',
+    6,
     'binary',
     'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk',
-    'Production Release: High-contrast daylight Safe Route navigation, role-based database security, offline shelter caching, and Android notification channels.',
+    'Version 1.3.0: Enhanced GPS location tracking, quick-dial emergency calling, updated daylight 3D heat routes, and improved connectivity.',
     true,
     NOW()
 )
