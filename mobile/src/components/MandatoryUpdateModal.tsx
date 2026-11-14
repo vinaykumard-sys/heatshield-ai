@@ -9,25 +9,34 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 
 export interface MandatoryUpdateModalProps {
   visible: boolean;
   installedVersion?: string;
   requiredVersion?: string;
   downloadUrl?: string;
+  onCheckAgain?: () => Promise<boolean>;
+  onDismiss?: () => void;
 }
 
 export default function MandatoryUpdateModal({
   visible,
   installedVersion = '1.0.2',
-  requiredVersion = '1.1.0',
+  requiredVersion = '1.5.0',
   downloadUrl = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk',
+  onCheckAgain,
+  onDismiss,
 }: MandatoryUpdateModalProps) {
   const [downloading, setDownloading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | null>(null);
 
   const handleUpdatePress = async () => {
     setDownloading(true);
+    setStatusType('info');
+    setStatusMessage('Starting APK download... Once downloaded, tap the notification to install.');
     try {
       const targetUrl = downloadUrl || 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
       const supported = await Linking.canOpenURL(targetUrl);
@@ -41,6 +50,41 @@ export default function MandatoryUpdateModal({
       Linking.openURL('https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk').catch(() => {});
     } finally {
       setTimeout(() => setDownloading(false), 2000);
+    }
+  };
+
+  const handleCheckAgainPress = async () => {
+    if (checking) return;
+    setChecking(true);
+    setStatusType('info');
+    setStatusMessage('Checking installed version against latest release...');
+
+    try {
+      if (onCheckAgain) {
+        const isNowUpdated = await onCheckAgain();
+        if (isNowUpdated) {
+          setStatusType('success');
+          setStatusMessage(`Verified! HeatShield AI is up to date (v${requiredVersion}). Launching normal mode...`);
+          setTimeout(() => {
+            if (onDismiss) {
+              onDismiss();
+            }
+          }, 1200);
+          return;
+        } else {
+          setStatusType('warning');
+          setStatusMessage(`Currently detected v${installedVersion}. Please complete installing the APK, then tap Check Again.`);
+        }
+      } else {
+        setStatusType('info');
+        setStatusMessage('Re-checking version...');
+      }
+    } catch (err) {
+      console.warn('[MandatoryUpdateModal] Check again error:', err);
+      setStatusType('warning');
+      setStatusMessage('Network check timed out. Please verify your connection and try again.');
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -87,16 +131,46 @@ export default function MandatoryUpdateModal({
               </Text>
             </View>
 
+            {/* Live Status Feedback Banner if present */}
+            {statusMessage && (
+              <View
+                style={[
+                  styles.statusBanner,
+                  statusType === 'success' && styles.statusBannerSuccess,
+                  statusType === 'warning' && styles.statusBannerWarning,
+                ]}
+              >
+                {checking ? (
+                  <ActivityIndicator size="small" color="#0284C7" style={{ marginRight: 8 }} />
+                ) : statusType === 'success' ? (
+                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" style={{ marginRight: 8 }} />
+                ) : statusType === 'warning' ? (
+                  <Ionicons name="alert-circle" size={18} color="#D97706" style={{ marginRight: 8 }} />
+                ) : (
+                  <Ionicons name="information-circle" size={18} color="#0284C7" style={{ marginRight: 8 }} />
+                )}
+                <Text
+                  style={[
+                    styles.statusText,
+                    statusType === 'success' && styles.statusTextSuccess,
+                    statusType === 'warning' && styles.statusTextWarning,
+                  ]}
+                >
+                  {statusMessage}
+                </Text>
+              </View>
+            )}
+
             {/* What's New Release Notes */}
             <View style={styles.releaseNotesBox}>
               <Text style={styles.releaseNotesHeader}>What's new in v{requiredVersion}:</Text>
               <View style={styles.bulletItem}>
                 <Text style={styles.bulletEmoji}>⚡</Text>
-                <Text style={styles.bulletText}>Mobile-first React Native UI</Text>
+                <Text style={styles.bulletText}>Mobile-first React Native UI & responsive layout</Text>
               </View>
               <View style={styles.bulletItem}>
                 <Text style={styles.bulletEmoji}>🔒</Text>
-                <Text style={styles.bulletText}>Secure Supabase authentication</Text>
+                <Text style={styles.bulletText}>Secure Supabase authentication & role-based security</Text>
               </View>
               <View style={styles.bulletItem}>
                 <Text style={styles.bulletEmoji}>📲</Text>
@@ -127,7 +201,7 @@ export default function MandatoryUpdateModal({
                 <View style={styles.stepNumberBadge}>
                   <Text style={styles.stepNumberText}>3</Text>
                 </View>
-                <Text style={styles.stepDesc}>Tap Install to update HeatShield AI without losing data</Text>
+                <Text style={styles.stepDesc}>Tap Install, then reopen or tap 'Check Again' below</Text>
               </View>
             </View>
 
@@ -136,7 +210,7 @@ export default function MandatoryUpdateModal({
               Due to safety-critical urban heat wave telemetry and emergency protocols, this update cannot be postponed.
             </Text>
 
-            {/* Primary Blue Action Button */}
+            {/* Action Buttons: 1. Update Now (APK) */}
             <TouchableOpacity
               style={styles.updateButton}
               onPress={handleUpdatePress}
@@ -149,6 +223,23 @@ export default function MandatoryUpdateModal({
                 <Feather name="download" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
               )}
               <Text style={styles.updateButtonText}>UPDATE NOW (APK)</Text>
+            </TouchableOpacity>
+
+            {/* Action Buttons: 2. Re-check / I've Updated */}
+            <TouchableOpacity
+              style={styles.checkAgainButton}
+              onPress={handleCheckAgainPress}
+              activeOpacity={0.8}
+              disabled={checking}
+            >
+              {checking ? (
+                <ActivityIndicator color="#0284C7" size="small" style={{ marginRight: 8 }} />
+              ) : (
+                <Ionicons name="refresh" size={16} color="#0284C7" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.checkAgainButtonText}>
+                {checking ? 'VERIFYING VERSION...' : "I'VE UPDATED / CHECK AGAIN"}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -347,11 +438,65 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 6,
+    marginBottom: 10,
   },
   updateButtonText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
     letterSpacing: 0.8,
+  },
+  checkAgainButton: {
+    width: '100%',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    paddingVertical: 13,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  checkAgainButtonText: {
+    color: '#0284C7',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.6,
+  },
+  statusBanner: {
+    width: '100%',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  statusBannerSuccess: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  statusBannerWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  statusText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#0369A1',
+    fontWeight: '600',
+  },
+  statusTextSuccess: {
+    color: '#15803D',
+    fontWeight: '700',
+  },
+  statusTextWarning: {
+    color: '#B45309',
+    fontWeight: '600',
   },
 });

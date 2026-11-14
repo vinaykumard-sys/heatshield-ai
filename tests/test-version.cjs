@@ -66,4 +66,10 @@ const installedWebViewCurrent = '1.1.0';
 const isOutdatedCurrent = compareSemver(installedWebViewCurrent, minimumRequiredVersion) < 0;
 assert(isOutdatedCurrent === false, 'Installed 1.1.0 must NOT be flagged outdated when min is 1.1.0');
 
-console.log('\nAll 13 semver and version update tests PASSED!');
+// Section 1.5.0 mandatory update assertions:
+const minRequiredV15 = '1.5.0';
+assert(compareSemver('1.4.0', minRequiredV15) < 0 === true, 'Installed 1.4.0 must be flagged outdated when min is 1.5.0');
+assert(compareSemver('1.5.0', minRequiredV15) < 0 === false, 'Installed 1.5.0 must NOT be flagged outdated when min is 1.5.0');
+assert(compareSemver('1.5.1', minRequiredV15) < 0 === false, 'Installed 1.5.1 must NOT be flagged outdated when min is 1.5.0');
+
+console.log('\nAll semver and version update tests PASSED!');

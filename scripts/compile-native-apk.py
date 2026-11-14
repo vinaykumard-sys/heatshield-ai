@@ -244,7 +244,7 @@ def main():
     version_info = {
         "version": "1.5.0",
         "versionCode": 8,
-        "minimumRequiredVersion": "1.3.0",
+        "minimumRequiredVersion": "1.5.0",
         "forceUpdate": True,
         "releaseDate": time.strftime("%Y-%m-%d"),
         "releaseNotes": "Version 1.5.0: Native mobile architecture isolation, offline Expo mobile application bundling, dynamic user profile mapping, and enhanced OAuth session handoff.",

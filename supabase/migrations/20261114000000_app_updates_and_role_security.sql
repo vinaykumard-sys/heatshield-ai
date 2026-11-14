@@ -82,7 +82,7 @@ INSERT INTO public.app_updates (
 ),
 (
     'android',
-    '1.3.0',
+    '1.5.0',
     '1.5.0',
     8,
     'binary',

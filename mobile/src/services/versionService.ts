@@ -86,6 +86,42 @@ export function clearVersionCache(): void {
 }
 
 /**
+ * Detects the currently installed version:
+ * 1. Native JavascriptInterface: window.HeatShieldNative.getVersion()
+ * 2. Injected window global: window.__HEATSHIELD_NATIVE_VERSION__
+ * 3. User-Agent parsing for HeatShieldApp/X.Y.Z
+ * 4. Fallback: CURRENT_APP_VERSION (1.5.0)
+ */
+export function getInstalledVersion(): string {
+  if (typeof window !== 'undefined') {
+    try {
+      const nativeBridge = (window as any).HeatShieldNative;
+      if (nativeBridge && typeof nativeBridge.getVersion === 'function') {
+        const v = nativeBridge.getVersion();
+        if (v && String(v).trim().length > 0) {
+          return String(v).trim();
+        }
+      }
+    } catch (e) {}
+
+    const nativeVer = (window as any).__HEATSHIELD_NATIVE_VERSION__;
+    if (typeof nativeVer === 'string' && nativeVer.trim().length > 0) {
+      return nativeVer.trim();
+    }
+
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      const match = ua.match(/HeatShieldApp\/([0-9.]+)/i);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+  }
+
+  return CURRENT_APP_VERSION;
+}
+
+/**
  * Checks for mandatory and optional application updates:
  * 1. Checks memory cache to avoid tight update loops.
  * 2. Checks Supabase `app_updates` table (platform='android', minimum_version, latest_version, android_version_code, update_url, is_required).
@@ -93,7 +129,7 @@ export function clearVersionCache(): void {
  * 4. Fallback gracefully if network is unavailable (never blocks startup with unhandled error).
  */
 export async function checkAppVersion(
-  installedVersion: string = CURRENT_APP_VERSION,
+  installedVersion: string = getInstalledVersion(),
   forceCheck: boolean = false
 ): Promise<VersionCheckResult> {
   // 1. Check cache first to avoid repeating requests in tight loops

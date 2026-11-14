@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -26,6 +26,8 @@ import NotificationPermissionModal from './components/NotificationPermissionModa
 import { supabase } from './services/supabase';
 import {
   checkAppVersion,
+  getInstalledVersion,
+  clearVersionCache,
   CURRENT_APP_VERSION,
   VersionCheckResult,
 } from './services/versionService';
@@ -57,25 +59,52 @@ export default function App() {
   // Notification Permission Modal
   const [showPermissionModal, setShowPermissionModal] = useState<boolean>(false);
 
-  // 1. Mandatory Update Check on startup
-  useEffect(() => {
-    let isMounted = true;
-    const verifyAppVersion = async () => {
-      try {
-        const result = await checkAppVersion(CURRENT_APP_VERSION);
-        if (isMounted && result.needsUpdate) {
-          setUpdateResult(result);
-        }
-      } catch (err) {
-        console.warn('[App] Version check failed (offline or network error):', err);
+  // 1. Mandatory Update Verification (Lifecycle & Recheck Engine)
+  const runVersionCheck = useCallback(async (force: boolean = false): Promise<boolean> => {
+    try {
+      if (force) {
+        clearVersionCache();
       }
+      const installed = getInstalledVersion();
+      const result = await checkAppVersion(installed, force);
+      if (result.needsUpdate) {
+        setUpdateResult(result);
+        return false;
+      } else {
+        // App is up to date! Close the update screen and resume normal operations
+        setUpdateResult(null);
+        return true;
+      }
+    } catch (err) {
+      console.warn('[App] Version check failed (offline or network error):', err);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial verification on startup
+    runVersionCheck();
+
+    // Re-verify automatically when app/window returns from background or installer
+    const handleResume = () => {
+      runVersionCheck(true);
     };
 
-    verifyAppVersion();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleResume);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          handleResume();
+        }
+      });
+    }
+
     return () => {
-      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleResume);
+      }
     };
-  }, []);
+  }, [runVersionCheck]);
 
   // 2. Real Supabase Session Lifecycle (Login-first with zero bypass)
   useEffect(() => {
@@ -234,6 +263,8 @@ export default function App() {
             installedVersion={updateResult.installedVersion}
             requiredVersion={updateResult.minimumRequiredVersion}
             downloadUrl={updateResult.downloadUrl}
+            onCheckAgain={() => runVersionCheck(true)}
+            onDismiss={() => setUpdateResult(null)}
           />
         )}
       </SafeAreaView>
@@ -389,6 +420,8 @@ export default function App() {
           installedVersion={updateResult.installedVersion}
           requiredVersion={updateResult.minimumRequiredVersion}
           downloadUrl={updateResult.downloadUrl}
+          onCheckAgain={() => runVersionCheck(true)}
+          onDismiss={() => setUpdateResult(null)}
         />
       )}
 
