@@ -36,9 +36,13 @@ export default function MandatoryUpdateModal({
   const handleUpdatePress = async () => {
     setDownloading(true);
     setStatusType('info');
-    setStatusMessage('Starting APK download... Once downloaded, tap the notification to install.');
+    setStatusMessage('Downloading latest HeatShield AI APK (v1.5.0)... Check notifications to install.');
     try {
-      const targetUrl = downloadUrl || 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
+      const baseUrl = downloadUrl || 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.0.apk';
+      const targetUrl = baseUrl.includes('?') 
+        ? `${baseUrl}&v=1.5.0&t=${Date.now()}` 
+        : `${baseUrl}?v=1.5.0&t=${Date.now()}`;
+
       const supported = await Linking.canOpenURL(targetUrl);
       if (supported) {
         await Linking.openURL(targetUrl);
@@ -239,6 +243,26 @@ export default function MandatoryUpdateModal({
               )}
               <Text style={styles.checkAgainButtonText}>
                 {checking ? 'VERIFYING VERSION...' : "I'VE UPDATED / CHECK AGAIN"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Action Buttons: 3. Close & Continue (Dismiss Screen & Function Normally) */}
+            <TouchableOpacity
+              style={styles.dismissButton}
+              onPress={() => {
+                setStatusType('success');
+                setStatusMessage('Update confirmed. Launching HeatShield AI...');
+                setTimeout(() => {
+                  if (onDismiss) {
+                    onDismiss();
+                  }
+                }, 400);
+              }}
+              activeOpacity={0.75}
+            >
+              <Feather name="check-circle" size={15} color="#0369A1" style={{ marginRight: 6 }} />
+              <Text style={styles.dismissButtonText}>
+                I've Updated / Continue to HeatShield AI
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -463,6 +487,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
     letterSpacing: 0.6,
+  },
+  dismissButton: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingVertical: 12,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  dismissButtonText: {
+    color: '#0369A1',
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   statusBanner: {
     width: '100%',

@@ -255,9 +255,13 @@ def main():
         "fileSize": f"{apk_stat.st_size / (1024 * 1024):.2f} MB",
         "sizeBytes": apk_stat.st_size,
         "sha256": apk_sha256,
-        "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk",
+        "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.0.apk",
         "verifiedSchemes": ["v1", "v2", "v3"]
     }
+
+    # Also save explicitly versioned APK copy
+    versioned_apk_path = os.path.join(ROOT_DIR, "public", "downloads", "HeatShield-AI-v1.5.0.apk")
+    shutil.copy2(OUTPUT_APK, versioned_apk_path)
 
     version_path = os.path.join(ROOT_DIR, "public", "downloads", "version.json")
     with open(version_path, "w", encoding="utf-8") as f:

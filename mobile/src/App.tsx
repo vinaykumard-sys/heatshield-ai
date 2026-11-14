@@ -49,8 +49,26 @@ export default function App() {
   const [showAssistantModal, setShowAssistantModal] = useState<boolean>(false);
   const [assistanceSubView, setAssistanceSubView] = useState<'assistance' | 'sos'>('assistance');
 
-  // Mandatory App Update State
+  // Mandatory App Update State & Session Dismissal Flag
   const [updateResult, setUpdateResult] = useState<VersionCheckResult | null>(null);
+  const [updateDismissed, setUpdateDismissed] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        return window.sessionStorage.getItem('hs_update_dismissed') === 'true';
+      }
+    } catch (e) {}
+    return false;
+  });
+
+  const handleDismissUpdate = useCallback(() => {
+    setUpdateDismissed(true);
+    setUpdateResult(null);
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('hs_update_dismissed', 'true');
+      }
+    } catch (e) {}
+  }, []);
 
   // Authentication State - Login First! Zero mock bypass
   const [session, setSession] = useState<any>(null);
@@ -73,6 +91,7 @@ export default function App() {
       } else {
         // App is up to date! Close the update screen and resume normal operations
         setUpdateResult(null);
+        setUpdateDismissed(true);
         return true;
       }
     } catch (err) {
@@ -257,14 +276,14 @@ export default function App() {
         />
 
         {/* Mandatory Update Modal is displayed over AuthScreen if update is required */}
-        {updateResult && updateResult.needsUpdate && (
+        {updateResult && updateResult.needsUpdate && !updateDismissed && (
           <MandatoryUpdateModal
             visible={true}
             installedVersion={updateResult.installedVersion}
             requiredVersion={updateResult.minimumRequiredVersion}
             downloadUrl={updateResult.downloadUrl}
             onCheckAgain={() => runVersionCheck(true)}
-            onDismiss={() => setUpdateResult(null)}
+            onDismiss={handleDismissUpdate}
           />
         )}
       </SafeAreaView>
@@ -414,14 +433,14 @@ export default function App() {
       </Modal>
 
       {/* Mandatory App Update Modal (Blocking & Non-dismissible) */}
-      {updateResult && updateResult.needsUpdate && (
+      {updateResult && updateResult.needsUpdate && !updateDismissed && (
         <MandatoryUpdateModal
           visible={true}
           installedVersion={updateResult.installedVersion}
           requiredVersion={updateResult.minimumRequiredVersion}
           downloadUrl={updateResult.downloadUrl}
           onCheckAgain={() => runVersionCheck(true)}
-          onDismiss={() => setUpdateResult(null)}
+          onDismiss={handleDismissUpdate}
         />
       )}
 
