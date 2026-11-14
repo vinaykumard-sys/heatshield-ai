@@ -325,6 +325,20 @@ h1, h2, h3, h4, h5, h6 {
   animation: dropdown-slide-down 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes bottom-sheet-up {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-bottom-sheet {
+  animation: bottom-sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Page entrance */
 @keyframes page-fade-up {
   0% {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,7 +13,12 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '../services/supabase';
+
+// Completes any pending auth session when redirected back on web or native
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthScreenProps {
   onAuthSuccess?: (session: any) => void;
@@ -25,8 +30,141 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Intercept OAuth deep link callback when app is running
+    const subscription = Linking.addEventListener('url', (event) => {
+      if (event.url) {
+        processAuthUrl(event.url);
+      }
+    });
+
+    // Intercept OAuth deep link callback on cold-start launch
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        processAuthUrl(url);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const processAuthUrl = async (url: string) => {
+    try {
+      if (!url.includes('auth/callback') && !url.includes('code=') && !url.includes('access_token=')) {
+        return;
+      }
+
+      const parsed = Linking.parse(url);
+
+      // 1. Authorization code exchange (PKCE flow)
+      const code = parsed.queryParams?.code as string | undefined;
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          // If exchangeCodeForSession failed, check if session is already active
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user) {
+            if (onAuthSuccess) onAuthSuccess(sessionData.session);
+            return;
+          }
+          setErrorMessage(error.message || 'Authentication session exchange failed.');
+          return;
+        }
+
+        if (data?.session && onAuthSuccess) {
+          onAuthSuccess(data.session);
+          return;
+        }
+      }
+
+      // 2. Direct tokens in query params or URL hash fragment
+      let accessToken = parsed.queryParams?.access_token as string | undefined;
+      let refreshToken = parsed.queryParams?.refresh_token as string | undefined;
+
+      if (!accessToken && url.includes('#')) {
+        const hashPart = url.substring(url.indexOf('#') + 1);
+        const hashParams = new URLSearchParams(hashPart);
+        accessToken = hashParams.get('access_token') || undefined;
+        refreshToken = hashParams.get('refresh_token') || undefined;
+      }
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          setErrorMessage(error.message || 'Failed to establish authentication session.');
+          return;
+        }
+
+        if (data?.session && onAuthSuccess) {
+          onAuthSuccess(data.session);
+          return;
+        }
+      }
+
+      // 3. Fallback verification: check if active session exists
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user && onAuthSuccess) {
+        onAuthSuccess(sessionData.session);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to parse authentication response.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      setErrorMessage(null);
+      setInfoMessage(null);
+
+      // Create proper redirect URL for deep linking (heatshield://auth/callback)
+      const redirectUrl = Linking.createURL('auth/callback');
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message || 'Google sign-in could not be initiated.');
+        return;
+      }
+
+      if (!data?.url) {
+        setErrorMessage('Unable to initialize Google authentication endpoint.');
+        return;
+      }
+
+      // Open external authentication session (Custom Tabs / System Browser)
+      // Google never blocks system browser user agents
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (result.type === 'success' && result.url) {
+        await processAuthUrl(result.url);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Google authentication encountered an unexpected error.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const validate = (): boolean => {
     setErrorMessage(null);
@@ -267,6 +405,30 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                     {mode === 'signin' ? 'Sign In to HeatShield' : 'Create Protected Account'}
                   </Text>
                   <Feather name="arrow-right" size={18} color="#060D1E" style={{ marginLeft: 8 }} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR SECURE ACCESS WITH</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Native Google OAuth Button */}
+            <TouchableOpacity
+              style={[styles.googleButton, googleLoading && styles.submitButtonDisabled]}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              activeOpacity={0.85}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color="#F8FAFC" size="small" />
+              ) : (
+                <View style={styles.googleButtonInner}>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.googleIcon} />
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -522,6 +684,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
     lineHeight: 16,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#1E293B',
+  },
+  dividerText: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginHorizontal: 10,
+  },
+  googleButton: {
+    backgroundColor: '#0A1128',
+    borderColor: '#1E293B',
+    borderWidth: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  googleButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   demoButton: {
     backgroundColor: '#064E3B',

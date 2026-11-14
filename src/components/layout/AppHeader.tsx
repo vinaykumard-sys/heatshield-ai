@@ -109,7 +109,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const currentTemperature = currentReading ? Math.round(currentReading.temperature_c) : 32;
 
   return (
-    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-4 z-[1020] max-w-full overflow-hidden">
+    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-4 z-[1020] max-w-full overflow-visible">
       
       {/* Left: Mobile Toggle & Ward Pin Switcher with GPS Status */}
       <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">

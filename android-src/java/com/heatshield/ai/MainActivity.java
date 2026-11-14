@@ -80,8 +80,12 @@ public class MainActivity extends Activity {
         // Build Splash screen
         createSplashScreen();
 
-        // Load application
-        mWebView.loadUrl(APP_URL);
+        // Load application or process initial deep link redirect
+        if (getIntent() != null && getIntent().getData() != null) {
+            handleDeepLink(getIntent());
+        } else {
+            mWebView.loadUrl(APP_URL);
+        }
 
         // Check runtime location permission upfront for smooth UX
         requestLocationPermissionsIfNeeded();
@@ -123,16 +127,16 @@ public class MainActivity extends Activity {
         // Expose synchronous Native Bridge Interface for immediate version detection
         mWebView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
-            public String getVersion() { return "1.3.0"; }
+            public String getVersion() { return "1.4.0"; }
             @android.webkit.JavascriptInterface
-            public int getVersionCode() { return 6; }
+            public int getVersionCode() { return 7; }
             @android.webkit.JavascriptInterface
             public boolean isNative() { return true; }
         }, "HeatShieldNative");
 
         // Custom User-Agent suffix for HeatShield AI Native App
         String defaultUA = settings.getUserAgentString();
-        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.3.0 (Android; versionCode 6)");
+        settings.setUserAgentString((defaultUA != null ? defaultUA : "") + " HeatShieldApp/1.4.0 (Android; versionCode 7)");
 
         // Set DownloadListener to handle downloads via system intent
         mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
@@ -186,6 +190,21 @@ public class MainActivity extends Activity {
                     } catch (Exception e) {
                         Toast.makeText(MainActivity.this, "Opening download...", Toast.LENGTH_SHORT).show();
                         return false;
+                    }
+                }
+
+                // Handle OAuth / external authentication providers in system browser
+                // Google explicitly blocks internal WebViews with 403 (disallowed_useragent)
+                if (isOAuthOrExternalAuthUrl(url)) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Opening external browser...", Toast.LENGTH_SHORT).show();
+                        return true;
                     }
                 }
 
@@ -292,8 +311,8 @@ public class MainActivity extends Activity {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(
                     "window.__HEATSHIELD_NATIVE_APP__ = true; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.2.0'; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 5;",
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.4.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 7;",
                     null
                 );
             }
@@ -303,8 +322,8 @@ public class MainActivity extends Activity {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
                     "window.__HEATSHIELD_NATIVE_APP__ = true; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.2.0'; " +
-                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 5;",
+                    "window.__HEATSHIELD_NATIVE_VERSION__ = '1.4.0'; " +
+                    "window.__HEATSHIELD_NATIVE_VERSION_CODE__ = 7;",
                     null
                 );
                 dismissSplash();
@@ -432,6 +451,78 @@ public class MainActivity extends Activity {
         super.onPause();
         if (mWebView != null) {
             mWebView.onPause();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleDeepLink(intent);
+    }
+
+    /**
+     * Detects OAuth authentication URLs and identity provider authorization endpoints.
+     * These must be launched in the default system browser rather than inside an internal WebView.
+     */
+    private boolean isOAuthOrExternalAuthUrl(String url) {
+        if (url == null) return false;
+        String lower = url.toLowerCase();
+        return lower.contains("accounts.google.com")
+            || lower.contains("supabase.co/auth/v1/authorize")
+            || lower.contains("/auth/v1/authorize")
+            || lower.contains("accounts.youtube.com")
+            || lower.contains("appleid.apple.com")
+            || lower.contains("github.com/login/oauth");
+    }
+
+    /**
+     * Intercepts deep link intents (e.g. 'heatshield://' scheme or '/auth/callback' host links)
+     * and forwards the authentication parameters, tokens, or codes to mWebView.
+     */
+    private void handleDeepLink(Intent intent) {
+        if (intent == null) return;
+        Uri uri = intent.getData();
+        if (uri == null) return;
+
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        String path = uri.getPath();
+
+        // 1. Custom scheme: heatshield:// (e.g. heatshield://auth/callback?code=... or heatshield://callback...)
+        if ("heatshield".equalsIgnoreCase(scheme)) {
+            String query = uri.getEncodedQuery();
+            String fragment = uri.getEncodedFragment();
+            StringBuilder redirectUrl = new StringBuilder("https://heatshield-ai-eight.vercel.app/auth/callback");
+            if (query != null && !query.isEmpty()) {
+                redirectUrl.append("?").append(query);
+            }
+            if (fragment != null && !fragment.isEmpty()) {
+                redirectUrl.append("#").append(fragment);
+            }
+
+            if (mWebView != null) {
+                mWebView.loadUrl(redirectUrl.toString());
+            }
+            dismissSplash();
+            return;
+        }
+
+        // 2. Web callback: https://heatshield-ai-eight.vercel.app/auth/callback
+        if ("https".equalsIgnoreCase(scheme) && "heatshield-ai-eight.vercel.app".equalsIgnoreCase(host) && path != null && path.contains("/auth/callback")) {
+            if (mWebView != null) {
+                mWebView.loadUrl(uri.toString());
+            }
+            dismissSplash();
+            return;
+        }
+
+        // 3. Fallback for other app URLs within domain
+        if (uri.toString().startsWith("https://heatshield-ai-eight.vercel.app")) {
+            if (mWebView != null) {
+                mWebView.loadUrl(uri.toString());
+            }
+            dismissSplash();
         }
     }
 

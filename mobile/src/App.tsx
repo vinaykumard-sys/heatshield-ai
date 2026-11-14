@@ -223,6 +223,11 @@ export default function App() {
               setActiveTab('assistance');
             }}
             onNavigateToAssistant={() => setShowAssistantModal(true)}
+            onNavigateToProfile={() => setActiveTab('profile')}
+            userEmail={session?.user?.email}
+            onLogout={() => {
+              setSession(null);
+            }}
           />
         )}
 

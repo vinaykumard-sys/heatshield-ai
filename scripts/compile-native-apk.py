@@ -74,8 +74,8 @@ def main():
         "--manifest", manifest,
         "--min-sdk-version", "21",
         "--target-sdk-version", "34",
-        "--version-code", "6",
-        "--version-name", "1.3.0",
+        "--version-code", "7",
+        "--version-name", "1.4.0",
         "-o", base_apk,
         "--java", gen_dir,
         "--auto-add-overlay",
@@ -229,12 +229,12 @@ def main():
         apk_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     version_info = {
-        "version": "1.3.0",
-        "versionCode": 6,
+        "version": "1.4.0",
+        "versionCode": 7,
         "minimumRequiredVersion": "1.3.0",
         "forceUpdate": True,
         "releaseDate": time.strftime("%Y-%m-%d"),
-        "releaseNotes": "Version 1.3.0: Enhanced GPS location tracking, quick-dial emergency calling, updated daylight 3D heat routes, and improved connectivity.",
+        "releaseNotes": "Version 1.4.0: Native Google OAuth system browser support, deep linking authentication handling, responsive mobile profile bottom sheet, and emergency heat response updates.",
         "minAndroidVersion": "7.0 (API 24)+",
         "targetAndroidVersion": "14.0 (API 34)",
         "supportedAbis": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],

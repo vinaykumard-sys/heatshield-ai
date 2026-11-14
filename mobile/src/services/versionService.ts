@@ -35,8 +35,8 @@ export interface VersionCheckResult {
   source?: 'supabase' | 'remote_json' | 'cache' | 'offline_fallback';
 }
 
-export const CURRENT_APP_VERSION = '1.3.0';
-export const CURRENT_VERSION_CODE = 6;
+export const CURRENT_APP_VERSION = '1.4.0';
+export const CURRENT_VERSION_CODE = 7;
 export const DEFAULT_APK_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
 export const VERSION_JSON_URL = 'https://heatshield-ai-eight.vercel.app/downloads/version.json';
 

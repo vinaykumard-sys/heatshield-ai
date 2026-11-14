@@ -8,11 +8,13 @@ import {
   Modal,
   FlatList,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { LOCALITIES, HOURLY_FORECASTS, WATER_POINTS } from '../data/mockData';
 import { Locality } from '../types';
 import { evaluateHeatSafety } from '../services/actionEngine';
+import { supabase } from '../services/supabase';
 
 interface Props {
   selectedLocality: Locality;
@@ -22,6 +24,9 @@ interface Props {
   onNavigateToSOS: () => void;
   onNavigateToAssistance: () => void;
   onNavigateToAssistant: () => void;
+  onNavigateToProfile?: () => void;
+  userEmail?: string | null;
+  onLogout?: () => void;
 }
 
 export default function DashboardScreen({
@@ -32,9 +37,39 @@ export default function DashboardScreen({
   onNavigateToSOS,
   onNavigateToAssistance,
   onNavigateToAssistant,
+  onNavigateToProfile,
+  userEmail,
+  onLogout,
 }: Props) {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [waterModalVisible, setWaterModalVisible] = useState(false);
+  const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+
+  const handleLogout = () => {
+    setProfileSheetVisible(false);
+    Alert.alert(
+      'Sign Out Confirmation',
+      'Are you sure you want to sign out of HeatShield AI? Active emergency monitoring will continue locally.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase.auth.signOut();
+            } catch (err) {
+              console.warn('[DashboardScreen] Sign out notice:', err);
+            } finally {
+              if (onLogout) {
+                onLogout();
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const getRiskColors = (risk: string) => {
     switch (risk?.toUpperCase()) {
@@ -100,14 +135,37 @@ export default function DashboardScreen({
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.assistantBadgeBtn}
-            onPress={onNavigateToAssistant}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="robot" size={18} color="#0284C7" />
-            <Text style={styles.assistantBadgeText}>AI Consult</Text>
-          </TouchableOpacity>
+          <View style={styles.topHeaderActions}>
+            <TouchableOpacity
+              style={styles.assistantBadgeBtn}
+              onPress={onNavigateToAssistant}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="robot" size={16} color="#0284C7" />
+              <Text style={styles.assistantBadgeText}>AI Consult</Text>
+            </TouchableOpacity>
+
+            {/* Profile Avatar / Touch Target: 'VD / Vinay / Resident / ▼' */}
+            <TouchableOpacity
+              style={styles.headerProfileBtn}
+              onPress={() => setProfileSheetVisible(true)}
+              activeOpacity={0.8}
+              accessibilityLabel="User profile and account settings"
+            >
+              <View style={styles.headerProfileAvatar}>
+                <Text style={styles.headerProfileAvatarText}>VD</Text>
+              </View>
+              <View style={styles.headerProfileTextWrap}>
+                <Text style={styles.headerProfileName} numberOfLines={1}>
+                  Vinay
+                </Text>
+                <Text style={styles.headerProfileRole} numberOfLines={1}>
+                  Resident
+                </Text>
+              </View>
+              <Feather name="chevron-down" size={13} color="#64748B" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Active Heat Hazard Banner */}
@@ -484,6 +542,125 @@ export default function DashboardScreen({
           </View>
         </View>
       </Modal>
+
+      {/* Profile Native Bottom Sheet Modal */}
+      <Modal
+        visible={profileSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setProfileSheetVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Sheet Handle */}
+            <View style={styles.sheetHandleWrap}>
+              <View style={styles.sheetHandleBar} />
+            </View>
+
+            <View style={styles.modalHeader}>
+              <View style={styles.profileModalHeaderLeft}>
+                <View style={styles.profileSheetAvatar}>
+                  <Text style={styles.profileSheetAvatarText}>VD</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.profileSheetName}>Vinay</Text>
+                    <View style={styles.profileSheetRoleBadge}>
+                      <Text style={styles.profileSheetRoleBadgeText}>Resident</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.profileSheetEmail} numberOfLines={1}>
+                    {userEmail || 'vinay@heatshield.gov.in'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setProfileSheetVisible(false)}
+                style={styles.closeBtn}
+                accessibilityLabel="Close profile sheet"
+              >
+                <Ionicons name="close" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Active Shield Indicator */}
+            <View style={styles.profileStatusCard}>
+              <View style={styles.profileStatusLeft}>
+                <View style={styles.profileStatusDot} />
+                <Text style={styles.profileStatusText}>Active Heat Defense Protocol</Text>
+              </View>
+              <Text style={styles.profileStatusZone}>{selectedLocality.name}</Text>
+            </View>
+
+            {/* Menu Options: Profile, Settings, Weather, AI Assistant */}
+            <View style={styles.profileSheetMenu}>
+              <TouchableOpacity
+                style={styles.profileMenuItem}
+                onPress={() => {
+                  setProfileSheetVisible(false);
+                  if (onNavigateToProfile) onNavigateToProfile();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.profileMenuIconWrap, { backgroundColor: '#E0F2FE' }]}>
+                  <Ionicons name="person" size={18} color="#0284C7" />
+                </View>
+                <View style={styles.profileMenuTextWrap}>
+                  <Text style={styles.profileMenuTitle}>Resident Profile & Contacts</Text>
+                  <Text style={styles.profileMenuSub}>Vitals, emergency SMS & senior mode</Text>
+                </View>
+                <Feather name="chevron-right" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.profileMenuItem}
+                onPress={() => {
+                  setProfileSheetVisible(false);
+                  onNavigateToWeather();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.profileMenuIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                  <Ionicons name="partly-sunny" size={18} color="#059669" />
+                </View>
+                <View style={styles.profileMenuTextWrap}>
+                  <Text style={styles.profileMenuTitle}>Weather & Microclimate</Text>
+                  <Text style={styles.profileMenuSub}>24h heat index & UV radiation</Text>
+                </View>
+                <Feather name="chevron-right" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.profileMenuItem}
+                onPress={() => {
+                  setProfileSheetVisible(false);
+                  onNavigateToAssistant();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.profileMenuIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                  <MaterialCommunityIcons name="robot" size={18} color="#2563EB" />
+                </View>
+                <View style={styles.profileMenuTextWrap}>
+                  <Text style={styles.profileMenuTitle}>Heat Health AI Assistant</Text>
+                  <Text style={styles.profileMenuSub}>Immediate cooling triage advice</Text>
+                </View>
+                <Feather name="chevron-right" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Sign Out Button */}
+            <TouchableOpacity
+              style={styles.sheetSignOutBtn}
+              onPress={handleLogout}
+              activeOpacity={0.8}
+            >
+              <Feather name="log-out" size={16} color="#DC2626" />
+              <Text style={styles.sheetSignOutText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -530,6 +707,56 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     maxWidth: 200,
   },
+  topHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 22,
+    gap: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  headerProfileAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#0284C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerProfileAvatarText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  headerProfileTextWrap: {
+    justifyContent: 'center',
+    maxWidth: 62,
+  },
+  headerProfileName: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+    lineHeight: 13,
+  },
+  headerProfileRole: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#0284C7',
+    lineHeight: 11,
+  },
   assistantBadgeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -545,6 +772,141 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#0284C7',
+  },
+  sheetHandleWrap: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sheetHandleBar: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
+  },
+  profileModalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  profileSheetAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#0284C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileSheetAvatarText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  profileSheetName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  profileSheetRoleBadge: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  profileSheetRoleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  profileSheetEmail: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  profileStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 14,
+  },
+  profileStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profileStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  profileStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  profileStatusZone: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  profileSheetMenu: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  profileMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  profileMenuIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  profileMenuTextWrap: {
+    flex: 1,
+  },
+  profileMenuTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  profileMenuSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  sheetSignOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    paddingVertical: 12,
+    gap: 8,
+    marginTop: 4,
+  },
+  sheetSignOutText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   alertBanner: {
     borderRadius: 16,
