@@ -1,0 +1,13 @@
+# Ignored directories for Vercel deployment
+tools/
+build/
+android-src/
+whatsapp-service/
+node_modules/
+mobile/node_modules/
+.agents/
+.gemini/
+tests/
+scratch/
+*.keystore
+*.idsig
