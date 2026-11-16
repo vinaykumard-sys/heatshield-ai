@@ -216,15 +216,25 @@ export const CoolingCentresPage: React.FC = () => {
       <div className="rounded-[28px] border border-[#E5EDF5] bg-white p-4 sm:p-5 shadow-[0_6px_25px_rgba(15,23,42,0.03)]">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search shelter name, locality, or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] text-xs sm:text-sm text-slate-900 pl-10 pr-4 py-2.5 rounded-2xl focus:outline-none focus:bg-white focus:border-[#1E60F2] transition-colors shadow-inner"
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] text-xs sm:text-sm text-slate-900 pl-10 pr-9 py-2.5 rounded-2xl focus:outline-none focus:bg-white focus:border-[#1E60F2] transition-colors shadow-inner"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Facility Filter Pills */}

@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ExternalLink,
   Flame,
-  Stethoscope
+  Stethoscope,
+  X
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { HospitalResource } from '../types';
@@ -141,15 +142,25 @@ export const HospitalDirectoryPage: React.FC = () => {
 
       {/* Search & Filter Bar */}
       <div className="bg-white rounded-[20px] border border-[#E5EDF5] p-4 shadow-xs space-y-3">
-        <div className="relative">
+        <div className="relative min-w-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Search hospitals by name, locality, address or PIN code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-[#E5EDF5] text-xs bg-[#F5F8FC] focus:bg-white focus:outline-none input-interactive"
+            className="w-full pl-10 pr-9 py-2 rounded-xl border border-[#E5EDF5] text-xs bg-[#F5F8FC] focus:bg-white focus:outline-none input-interactive"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              title="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">

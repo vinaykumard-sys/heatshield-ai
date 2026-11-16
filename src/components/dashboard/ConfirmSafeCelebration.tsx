@@ -136,11 +136,11 @@ export const ConfirmSafeCelebration: React.FC<ConfirmSafeCelebrationProps> = ({
       {isSafeConfirmed ? (
         /* Verified Confirmation State (Prevents duplicate check-ins for today) */
         <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 border border-emerald-200/90 rounded-[24px] p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(16,185,129,0.1),0_1px_3px_0_rgba(16,185,129,0.06)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
             <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25">
               <CheckCircle2 className="w-6 h-6 animate-scale-up" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
                   Daily heat safety check
@@ -166,12 +166,12 @@ export const ConfirmSafeCelebration: React.FC<ConfirmSafeCelebrationProps> = ({
       ) : (
         /* Unchecked State: Clean, calm, prominent card */
         <div className="bg-white rounded-[24px] border border-[#E5EDF5] p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.03)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
               <HeartHandshake className="w-6 h-6 animate-pulse" />
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
                   Daily heat safety check
                 </h3>

@@ -3,7 +3,7 @@
   "versionCode": 8,
   "minimumRequiredVersion": "1.5.0",
   "forceUpdate": true,
-  "releaseDate": "2026-11-14",
+  "releaseDate": "2026-11-16",
   "releaseNotes": "Version 1.5.0: Native mobile architecture isolation, offline Expo mobile application bundling, dynamic user profile mapping, and enhanced OAuth session handoff.",
   "minAndroidVersion": "7.0 (API 24)+",
   "targetAndroidVersion": "14.0 (API 34)",
@@ -14,9 +14,9 @@
     "x86"
   ],
   "universal": true,
-  "fileSize": "2.61 MB",
-  "sizeBytes": 2741740,
-  "sha256": "b61378888fad668a3e1d33c5f9227a65d8657b905e972e393572831b8b2c5e4b",
+  "fileSize": "2.62 MB",
+  "sizeBytes": 2745836,
+  "sha256": "76916efca674a70879847d6ea74c80b929069a47381b366e27aef9672ea74626",
   "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.0.apk",
   "verifiedSchemes": [
     "v1",

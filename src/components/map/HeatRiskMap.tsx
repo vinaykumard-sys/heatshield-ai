@@ -1081,9 +1081,9 @@ export const HeatRiskMap: React.FC<HeatRiskMapProps> = ({
           ========================================================================= */}
       <div className="p-3 sm:p-4 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 space-y-3">
         {/* Search row */}
-        <div className="relative">
-          <div className="relative flex items-center">
-            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-[#1E60F2] animate-spin' : 'text-slate-400'}`} />
+        <div className="relative min-w-0">
+          <div className="relative flex items-center min-w-0">
+            <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${isSearching ? 'text-[#1E60F2] animate-spin' : 'text-slate-400'}`} />
             <input
               type="text"
               placeholder="Search any locality, road, city or PIN across India..."

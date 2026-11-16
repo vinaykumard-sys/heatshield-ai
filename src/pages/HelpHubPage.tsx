@@ -25,7 +25,8 @@ import {
   LifeBuoy,
   FileQuestion,
   Users,
-  Compass
+  Compass,
+  X
 } from 'lucide-react';
 import { useLocationTracker } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
@@ -406,15 +407,25 @@ export const HelpHubPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-72 min-w-0">
+              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search safety questions..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-3.5 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2] transition-colors"
+                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2] transition-colors"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -485,15 +496,25 @@ export const HelpHubPage: React.FC = () => {
                 Free community respite centers with cold air, rehydration salts, and seating.
               </p>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-72 min-w-0">
+              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search cooling shelters..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-3.5 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
+                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -549,15 +570,25 @@ export const HelpHubPage: React.FC = () => {
                 Reverse-osmosis chilled drinking water stations and transit hydration booths.
               </p>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-72 min-w-0">
+              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search water ATMs..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-3.5 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
+                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -613,15 +644,25 @@ export const HelpHubPage: React.FC = () => {
                 Hospitals equipped with active ice immersion units and specialized heatstroke ICU beds.
               </p>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-72 min-w-0">
+              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search hospitals..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-3.5 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
+                className="w-full bg-white border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-2 text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E60F2]"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 

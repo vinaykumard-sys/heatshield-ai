@@ -753,7 +753,7 @@ export const SafeRoutesPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Heat-Safe Routes
             </h1>
@@ -834,7 +834,7 @@ export const SafeRoutesPage: React.FC = () => {
 
       {/* Origin / Destination Search Bar with Autocomplete & Presets */}
       <Card padding="md" className="border-[#E2E8F0] bg-white shadow-xs">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 min-w-0">
           {/* Origin Autocomplete */}
           <LocationAutocompleteInput
             label="Origin (Start Location)"
@@ -847,7 +847,7 @@ export const SafeRoutesPage: React.FC = () => {
           />
 
           {/* Swap Button */}
-          <div className="flex items-center justify-center py-0.5 lg:py-0">
+          <div className="flex items-center justify-center py-0.5 lg:py-0 shrink-0">
             <button
               type="button"
               onClick={handleSwapPlaces}
@@ -869,7 +869,7 @@ export const SafeRoutesPage: React.FC = () => {
           />
 
           {/* Quick Presets Strip */}
-          <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#F1F5F9]">
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#F1F5F9] max-w-full">
             <span className="text-[11px] font-bold text-[#64748B] mr-0.5 shrink-0">Presets:</span>
             {presets.map(p => (
               <button
@@ -1368,18 +1368,18 @@ export const SafeRoutesPage: React.FC = () => {
             >
               <div className="w-8 h-1 bg-slate-300 rounded-full mx-auto mb-2" />
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold uppercase">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold uppercase shrink-0">
                     <ShieldCheck className="w-3 h-3 text-emerald-600" />
                     <span>Safe Route</span>
                   </span>
-                  <span className="text-[11px] font-bold text-[#0F172A] truncate max-w-[130px]">
+                  <span className="text-[11px] font-bold text-[#0F172A] truncate">
                     {startPlace.split(' ')[0]} → {endPlace.split(' ')[0]}
                   </span>
                 </div>
 
                 {activeRoute ? (
-                  <div className="flex items-center gap-1 text-[11px] text-[#64748B]">
+                  <div className="flex items-center gap-1 text-[11px] text-[#64748B] shrink-0 ml-2">
                     <span className="font-bold text-[#0F172A]">
                       {activeRoute.formatted_distance || `${activeRoute.distance_km} km`}
                     </span>
@@ -1390,15 +1390,15 @@ export const SafeRoutesPage: React.FC = () => {
                     {isMobileSheetExpanded ? <ChevronDown className="w-4 h-4 ml-1" /> : <ChevronUp className="w-4 h-4 ml-1" />}
                   </div>
                 ) : (
-                  <span className="text-xs text-[#64748B]">Calculating...</span>
+                  <span className="text-xs text-[#64748B] shrink-0">Calculating...</span>
                 )}
               </div>
             </div>
 
             {/* Quick action strip always visible on mobile */}
             {!isMobileSheetExpanded && activeRoute && (
-              <div className="mt-2.5 flex items-center gap-2">
-                <div className="flex-1 text-[10px] text-[#64748B]">
+              <div className="mt-2.5 flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0 text-[10px] text-[#64748B] truncate">
                   <span className="text-emerald-700 font-bold">✓ Safe road path</span> • {activeRoute.shade_coverage_pct}% tree shade
                 </div>
                 {!isNavigating ? (
@@ -1616,12 +1616,12 @@ export const SafeRoutesPage: React.FC = () => {
       </div>
 
       {/* Dynamic Route Comparison Highlights Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
         {/* Coolest Canopy Route Card */}
         <Card 
           padding="md" 
           onClick={() => coolestRoute && setSelectedRouteId(coolestRoute.id)}
-          className={`cursor-pointer transition-all ${
+          className={`cursor-pointer transition-all min-w-0 ${
             selectedRouteId === coolestRoute?.id 
               ? 'ring-2 ring-emerald-500 bg-gradient-to-br from-emerald-500/15 to-transparent border-emerald-300' 
               : 'bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-200 hover:border-emerald-300'

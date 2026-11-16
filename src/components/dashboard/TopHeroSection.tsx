@@ -261,15 +261,15 @@ export const TopHeroSection: React.FC<TopHeroSectionProps> = ({
         </div>
 
         {/* Location Switcher & Refresh Button */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          <div className="relative">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap max-w-full min-w-0">
+          <div className="relative max-w-full min-w-0">
             <select
               value={selectedZone?.id || ''}
               onChange={(e) => {
                 const found = locations.find((l) => l.id === e.target.value);
                 if (found) onSelectLocality(found);
               }}
-              className="appearance-none bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-2xl pl-3.5 pr-8 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#1E60F2] transition-colors cursor-pointer shadow-2xs"
+              className="appearance-none bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-2xl pl-3.5 pr-8 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#1E60F2] transition-colors cursor-pointer shadow-2xs max-w-[210px] xs:max-w-[280px] sm:max-w-none truncate"
               title="Select active monitoring ward"
             >
               {locations.map((loc) => (

@@ -184,7 +184,7 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
                   activeOpacity={0.8}
                 >
                   <View style={[styles.urgencyDot, { backgroundColor: uColor }]} />
-                  <Text style={[styles.urgencyBtnText, isSel && { color: uColor, fontWeight: '800' }]}>
+                  <Text style={[styles.urgencyBtnText, isSel && { color: uColor, fontWeight: '800' }]} numberOfLines={1}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -271,9 +271,9 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
             return (
               <View key={req.id} style={styles.requestCard}>
                 <View style={styles.requestCardTop}>
-                  <View>
-                    <Text style={styles.requestId}>{req.id}</Text>
-                    <Text style={styles.requestCategory}>{req.category}</Text>
+                  <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                    <Text style={styles.requestId} numberOfLines={1}>{req.id}</Text>
+                    <Text style={styles.requestCategory} numberOfLines={1}>{req.category}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: sBg }]}>
                     <Text style={[styles.statusBadgeText, { color: sCol }]}>{req.status}</Text>
@@ -285,12 +285,12 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
                 <View style={styles.requestCardFooter}>
                   <View style={styles.etaRow}>
                     <Feather name="clock" size={12} color="#64748B" />
-                    <Text style={styles.etaText}>
+                    <Text style={styles.etaText} numberOfLines={1}>
                       ETA: {req.etaMinutes} mins • {req.timestamp}
                     </Text>
                   </View>
                   <View style={[styles.urgencyTag, { backgroundColor: uBg }]}>
-                    <Text style={[styles.urgencyTagText, { color: uCol }]}>
+                    <Text style={[styles.urgencyTagText, { color: uCol }]} numberOfLines={1}>
                       {req.urgency.replace('_', ' ')}
                     </Text>
                   </View>
@@ -414,7 +414,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingVertical: 8,
-    gap: 6,
+    paddingHorizontal: 4,
+    gap: 4,
   },
   urgencyDot: {
     width: 6,
@@ -535,6 +536,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
   },
   statusBadgeText: {
     fontSize: 10,
@@ -556,6 +558,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   etaRow: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -563,11 +568,13 @@ const styles = StyleSheet.create({
   etaText: {
     fontSize: 11,
     color: '#64748B',
+    flexShrink: 1,
   },
   urgencyTag: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    flexShrink: 0,
   },
   urgencyTagText: {
     fontSize: 9,

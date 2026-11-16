@@ -5,7 +5,9 @@ import {
   RefreshCw,
   MapPin,
   Compass,
-  CheckCircle2
+  CheckCircle2,
+  X,
+  Loader2
 } from 'lucide-react';
 import { useLocationTracker } from '../../context/LocationContext';
 import { formatTimeAgo } from '../../lib/utils';
@@ -86,16 +88,28 @@ export const LocationTrackerBar: React.FC = () => {
         </div>
 
         {/* Right: Search locality & Detect my GPS */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64 min-w-0">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search area or PIN..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-8.5 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none input-interactive"
+              className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none input-interactive"
             />
+            {isSearching ? (
+              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            ) : searchInput ? (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label="Clear location search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : null}
           </form>
 
           {isAnalyzingDifferentLocation && (

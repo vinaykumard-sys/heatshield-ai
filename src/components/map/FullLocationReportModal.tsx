@@ -79,27 +79,27 @@ export const FullLocationReportModal: React.FC<FullLocationReportModalProps> = (
         aria-modal="true"
       >
         {/* Header */}
-        <div className="px-6 py-5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+        <div className="px-5 py-4 sm:px-6 sm:py-5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200 gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shrink-0">
               <Sparkles className="w-5 h-5 text-blue-600" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E60F2]">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E60F2] shrink-0">
                   HEAT SAFETY REPORT
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100 truncate">
                   {report.data_source.includes('Open-Meteo') ? '● Live weather' : '● Regional model'}
                 </span>
               </div>
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 line-clamp-1">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">
                 {report.location_name}
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleToggleFavorite}
               className={`p-2 rounded-xl border transition-colors ${

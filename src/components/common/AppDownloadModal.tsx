@@ -112,7 +112,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
         aria-hidden="true" 
       />
 
-      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-2xl md:max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 relative m-3 sm:m-0">
+      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-2xl md:max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 relative">
         
         {/* Header with vibrant blue brand gradient */}
         <div className="relative px-5 py-4 sm:px-6 sm:py-5 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white flex items-center justify-between shrink-0 shadow-sm overflow-hidden">

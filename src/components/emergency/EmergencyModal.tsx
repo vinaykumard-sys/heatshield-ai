@@ -185,7 +185,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-[1200] overflow-y-auto bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-xl md:max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] m-3 sm:m-0">
+      <div className="bg-white border border-slate-200 w-full max-w-lg sm:max-w-xl md:max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         {/* Soft, Urgent Header */}
         <div className="p-4 sm:p-6 bg-gradient-to-r from-red-500 to-rose-600 text-white flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center gap-3">

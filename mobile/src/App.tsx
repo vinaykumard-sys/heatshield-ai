@@ -41,7 +41,73 @@ import { Locality } from './types';
 
 export type Tab = 'dashboard' | 'weather' | 'routes' | 'assistance' | 'profile';
 
-export default function App() {
+// ==========================================
+// React Native Error Boundary
+// ==========================================
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary] React Native render error caught:', error, errorInfo);
+  }
+
+  handleReload = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={styles.errorContainer}>
+          <StatusBar style="dark" backgroundColor="#FEF2F2" />
+          <View style={styles.errorContent}>
+            <View style={styles.errorIconCircle}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={52} color="#DC2626" />
+            </View>
+            <Text style={styles.errorTitle}>Something Went Wrong</Text>
+            <Text style={styles.errorSub}>
+              HeatShield AI encountered an unexpected rendering error. Tap below to reload.
+            </Text>
+            {this.state.error?.message ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorDetails} numberOfLines={3}>
+                  {this.state.error.message}
+                </Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={this.handleReload}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.retryButtonText}>Reload Application</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MainApp() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [selectedLocality, setSelectedLocality] = useState<Locality>(LOCALITIES[0]);
 
@@ -100,13 +166,22 @@ export default function App() {
     }
   }, []);
 
+  // Run non-critical version checks asynchronously AFTER auth check finishes
   useEffect(() => {
-    // Initial verification on startup
-    runVersionCheck();
+    if (authLoading) return;
+
+    // Run asynchronously in a non-blocking timeout
+    const versionTimer = setTimeout(() => {
+      runVersionCheck().catch((err) =>
+        console.warn('[App] Version check async error:', err)
+      );
+    }, 150);
 
     // Re-verify automatically when app/window returns from background or installer
     const handleResume = () => {
-      runVersionCheck(true);
+      runVersionCheck(true).catch((err) =>
+        console.warn('[App] Resume version check error:', err)
+      );
     };
 
     if (typeof window !== 'undefined') {
@@ -119,15 +194,34 @@ export default function App() {
     }
 
     return () => {
+      clearTimeout(versionTimer);
       if (typeof window !== 'undefined') {
         window.removeEventListener('focus', handleResume);
       }
     };
-  }, [runVersionCheck]);
+  }, [authLoading, runVersionCheck]);
 
-  // 2. Real Supabase Session Lifecycle (Login-first with zero bypass)
+  // 2. Real Supabase Session Lifecycle (Login-first with 2-second failsafe timeout)
   useEffect(() => {
     let isMounted = true;
+    let authSettled = false;
+
+    const finalizeAuth = (resolvedSession: any) => {
+      if (!isMounted || authSettled) return;
+      authSettled = true;
+      if (authWatchdogTimer) clearTimeout(authWatchdogTimer);
+      setSession(resolvedSession ?? null);
+      setAuthLoading(false);
+    };
+
+    // Failsafe watchdog timer (max 2000ms): guarantee authLoading transitions to false
+    // and defaults session to null (showing AuthScreen) if network or Supabase hangs
+    const authWatchdogTimer = setTimeout(() => {
+      if (isMounted && !authSettled) {
+        console.warn('[App] Supabase session fetch timed out after 2000ms. Forcing authLoading to false.');
+        finalizeAuth(null);
+      }
+    }, 2000);
 
     // Process deep link or OAuth query/hash parameters if returned to app
     if (typeof window !== 'undefined') {
@@ -141,9 +235,8 @@ export default function App() {
           if (code) {
             supabase.auth.exchangeCodeForSession(code)
               .then(({ data }) => {
-                if (isMounted && data?.session) {
-                  setSession(data.session);
-                  setAuthLoading(false);
+                if (data?.session) {
+                  finalizeAuth(data.session);
                 }
               })
               .catch(console.warn);
@@ -155,9 +248,8 @@ export default function App() {
           if (access_token && refresh_token) {
             supabase.auth.setSession({ access_token, refresh_token })
               .then(({ data }) => {
-                if (isMounted && data?.session) {
-                  setSession(data.session);
-                  setAuthLoading(false);
+                if (data?.session) {
+                  finalizeAuth(data.session);
                 }
               })
               .catch(console.warn);
@@ -168,20 +260,20 @@ export default function App() {
       }
     }
 
-    // Fetch initial session
-    supabase.auth.getSession()
-      .then(({ data: { session: initialSession } }) => {
-        if (isMounted) {
-          setSession(initialSession);
-          setAuthLoading(false);
-        }
+    // Fetch initial session with 2000ms timeout failsafe
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise<{ data: { session: null } }>((_, reject) =>
+      setTimeout(() => reject(new Error('Auth check 2000ms timeout')), 2000)
+    );
+
+    Promise.race([sessionPromise, timeoutPromise])
+      .then((res: any) => {
+        const sessionFound = res?.data?.session ?? null;
+        finalizeAuth(sessionFound);
       })
       .catch((err) => {
-        console.warn('[App] Failed to fetch Supabase session:', err);
-        if (isMounted) {
-          setSession(null);
-          setAuthLoading(false);
-        }
+        console.warn('[App] Session check error or timeout:', err?.message || err);
+        finalizeAuth(null);
       });
 
     // Subscribe to auth state updates (sign in, sign out, token refresh)
@@ -190,62 +282,72 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       if (isMounted) {
         setSession(currentSession);
+        if (authLoading) {
+          setAuthLoading(false);
+        }
       }
     });
 
     return () => {
       isMounted = false;
+      if (authWatchdogTimer) clearTimeout(authWatchdogTimer);
       subscription?.unsubscribe();
     };
   }, []);
 
-  // 3. Android Push Notification Channels & Listeners (only once authenticated)
+  // 3. Android Push Notification Channels & Listeners (non-blocking, after auth check)
   useEffect(() => {
-    if (!session) return;
+    if (authLoading || !session) return;
 
-    // Configure notification channels
-    configureAndroidNotificationChannels().catch((err) =>
-      console.warn('[App] Failed to configure notification channels:', err)
-    );
+    let isCancelled = false;
+    let unsubscribeListeners: (() => void) | undefined;
 
-    // Setup foreground listeners
-    const unsubscribeListeners = setupNotificationListeners(
-      (notification) => {
-        console.log('[App] Received push notification:', notification.request.content.title);
-      },
-      (response) => {
-        const data = response?.notification?.request?.content?.data;
-        if (data?.channelId === 'safe-routes' || data?.type === 'SAFE_ROUTE') {
-          setActiveTab('routes');
-        } else if (data?.channelId === 'emergency-sos' || data?.type === 'EMERGENCY_SOS') {
-          setAssistanceSubView('sos');
-          setActiveTab('assistance');
-        } else if (data?.channelId === 'weather-briefings' || data?.type === 'WEATHER_BRIEFING') {
-          setActiveTab('weather');
-        } else if (data?.type === 'HEATWAVE_ALERT' || data?.channelId === 'heat-alerts') {
-          setActiveTab('dashboard');
+    // Run push notification configuration asynchronously in background
+    const pushInitTimer = setTimeout(async () => {
+      try {
+        await configureAndroidNotificationChannels();
+        if (isCancelled) return;
+
+        unsubscribeListeners = setupNotificationListeners(
+          (notification) => {
+            console.log('[App] Received push notification:', notification.request.content.title);
+          },
+          (response) => {
+            const data = response?.notification?.request?.content?.data;
+            if (data?.channelId === 'safe-routes' || data?.type === 'SAFE_ROUTE') {
+              setActiveTab('routes');
+            } else if (data?.channelId === 'emergency-sos' || data?.type === 'EMERGENCY_SOS') {
+              setAssistanceSubView('sos');
+              setActiveTab('assistance');
+            } else if (data?.channelId === 'weather-briefings' || data?.type === 'WEATHER_BRIEFING') {
+              setActiveTab('weather');
+            } else if (data?.type === 'HEATWAVE_ALERT' || data?.channelId === 'heat-alerts') {
+              setActiveTab('dashboard');
+            }
+          }
+        );
+
+        const granted = await checkNotificationPermission();
+        if (!granted && !isCancelled) {
+          setTimeout(() => {
+            if (!isCancelled) {
+              setShowPermissionModal(true);
+            }
+          }, 1500);
         }
+      } catch (err) {
+        console.warn('[App] Non-blocking push notification initialization failed:', err);
       }
-    );
-
-    // Prompt user with friendly modal if permission is not yet decided
-    const checkInitialPermission = async () => {
-      const granted = await checkNotificationPermission();
-      if (!granted) {
-        setTimeout(() => {
-          setShowPermissionModal(true);
-        }, 1200);
-      }
-    };
-
-    checkInitialPermission();
+    }, 250);
 
     return () => {
+      isCancelled = true;
+      clearTimeout(pushInitTimer);
       if (unsubscribeListeners) {
         unsubscribeListeners();
       }
     };
-  }, [session]);
+  }, [authLoading, session]);
 
   // Loading Splash Screen while checking Supabase auth
   if (authLoading) {
@@ -605,7 +707,92 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 400,
+    width: '100%',
+  },
+  errorIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 2,
+    borderColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSub: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  errorBox: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginBottom: 24,
+  },
+  errorDetails: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0284C7',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   safeContainer: {
     flex: 1,
     backgroundColor: '#F0F6FF',

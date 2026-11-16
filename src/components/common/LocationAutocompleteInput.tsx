@@ -143,7 +143,7 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
   const isOrigin = iconType === 'origin';
 
   return (
-    <div ref={containerRef} className={`relative flex-1 ${className}`}>
+    <div ref={containerRef} className={`relative flex-1 min-w-0 ${className}`}>
       <div 
         className={`flex items-center gap-2.5 bg-white border transition-all duration-200 rounded-xl px-3.5 py-2.5 shadow-xs ${
           isOpen ? 'border-[#1E60F2] ring-2 ring-[#1E60F2]/10' : 'border-[#E2E8F0] hover:border-slate-300'
@@ -177,7 +177,7 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full text-xs font-semibold text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none bg-transparent truncate"
+            className="w-full text-xs font-semibold text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none bg-transparent truncate pr-1.5"
             autoComplete="off"
             aria-autocomplete="list"
             aria-expanded={isOpen}
@@ -225,7 +225,7 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
 
       {/* Autocomplete Dropdown List */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden z-[1100] max-h-72 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl overflow-hidden z-[1100] max-h-72 overflow-y-auto w-full min-w-[280px]">
           {isLoading && suggestions.length === 0 && (
             <div className="p-3 text-center text-xs text-[#64748B] flex items-center justify-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1E60F2]" />

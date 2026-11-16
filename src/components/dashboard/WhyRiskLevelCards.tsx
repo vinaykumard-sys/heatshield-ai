@@ -214,7 +214,7 @@ export const WhyRiskLevelCards: React.FC<WhyRiskLevelCardsProps> = ({
           return (
             <div
               key={card.id}
-              className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm shadow-blue-500/5 hover:-translate-y-1 hover:border-blue-200/90 hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+              className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm shadow-blue-500/5 hover:-translate-y-1 hover:border-blue-200/90 hover:shadow-md transition-all duration-300 flex flex-col justify-between group min-w-0"
             >
               {/* Card Header: Icon & Status Badge */}
               <div className="flex items-center justify-between gap-2 mb-3">

@@ -244,7 +244,7 @@ export const OtherCitiesRail: React.FC<OtherCitiesRailProps> = ({ className = ''
       {/* Horizontal Scrolling Rail */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-4 overflow-x-auto pb-2 pt-1 scrollbar-none snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto pb-2 pt-1 scrollbar-none snap-x snap-mandatory min-w-0 max-w-full"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {INDIAN_HEAT_CITIES.map((cityItem) => {

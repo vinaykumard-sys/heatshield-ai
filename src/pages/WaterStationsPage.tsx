@@ -206,15 +206,25 @@ export const WaterStationsPage: React.FC = () => {
         <div className="lg:col-span-5 space-y-4">
           {/* Search & Filter */}
           <div className="bg-white rounded-[20px] border border-[#E5EDF5] p-4 shadow-xs space-y-3">
-            <div className="relative">
+            <div className="relative min-w-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search water points or areas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E5EDF5] text-xs bg-[#F5F8FC] focus:bg-white focus:outline-none input-interactive"
+                className="w-full pl-10 pr-9 py-1.5 rounded-xl border border-[#E5EDF5] text-xs bg-[#F5F8FC] focus:bg-white focus:outline-none input-interactive"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 text-xs">

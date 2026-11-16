@@ -184,11 +184,11 @@ export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
         </div>
       ) : (
         /* 3 PRIMARY CARDS: Water, Cooling, Medical (Real data or category-specific honest empty state) */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 min-w-0">
           
           {/* CARD 1: WATER */}
           {nearestWater ? (
-            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group min-w-0">
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 text-[#1E60F2] flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
@@ -273,7 +273,7 @@ export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
 
           {/* CARD 2: COOLING */}
           {nearestCooling ? (
-            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group min-w-0">
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
@@ -348,7 +348,7 @@ export const NearbyHelpCards: React.FC<NearbyHelpCardsProps> = ({
 
           {/* CARD 3: MEDICAL */}
           {nearestMedical ? (
-            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-3xl border border-slate-100 shadow-sm overflow-hidden bg-white p-5 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md transition-all duration-300 flex flex-col justify-between group min-w-0">
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   FlatList,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { LOCALITIES, HOURLY_FORECASTS, WATER_POINTS } from '../data/mockData';
@@ -44,8 +45,20 @@ export default function DashboardScreen({
   onLogout,
 }: Props) {
   const [selectorVisible, setSelectorVisible] = useState(false);
+  const [localitySearch, setLocalitySearch] = useState('');
   const [waterModalVisible, setWaterModalVisible] = useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+
+  const filteredLocalities = useMemo(() => {
+    if (!localitySearch.trim()) return LOCALITIES;
+    const q = localitySearch.toLowerCase().trim();
+    return LOCALITIES.filter(
+      (loc) =>
+        loc.name.toLowerCase().includes(q) ||
+        loc.city.toLowerCase().includes(q) ||
+        loc.state.toLowerCase().includes(q)
+    );
+  }, [localitySearch]);
 
   // Dynamically derive authenticated user details
   const userMetadata = user?.user_metadata;
@@ -136,17 +149,19 @@ export default function DashboardScreen({
         {/* Top Header / Locality Switcher */}
         <View style={styles.topHeader}>
           <View style={styles.topHeaderLeft}>
-            <Text style={styles.topSubLabel}>CURRENT DEFENSE ZONE</Text>
+            <Text style={styles.topSubLabel} numberOfLines={1}>CURRENT DEFENSE ZONE</Text>
             <TouchableOpacity
               style={styles.localityPickerBtn}
               onPress={() => setSelectorVisible(true)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Current locality: ${selectedLocality.name}. Tap to change.`}
             >
-              <Ionicons name="location" size={18} color="#0284C7" />
-              <Text style={styles.localityPickerText} numberOfLines={1}>
+              <Ionicons name="location" size={17} color="#0284C7" style={{ flexShrink: 0 }} />
+              <Text style={styles.localityPickerText} numberOfLines={1} ellipsizeMode="tail">
                 {selectedLocality.name}
               </Text>
-              <Feather name="chevron-down" size={16} color="#64748B" />
+              <Feather name="chevron-down" size={15} color="#64748B" style={{ flexShrink: 0 }} />
             </TouchableOpacity>
           </View>
 
@@ -156,8 +171,8 @@ export default function DashboardScreen({
               onPress={onNavigateToAssistant}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="robot" size={16} color="#0284C7" />
-              <Text style={styles.assistantBadgeText}>AI Consult</Text>
+              <MaterialCommunityIcons name="robot" size={15} color="#0284C7" style={{ flexShrink: 0 }} />
+              <Text style={styles.assistantBadgeText} numberOfLines={1}>AI Consult</Text>
             </TouchableOpacity>
 
             {/* Profile Avatar / Touch Target: Dynamic Avatar / Name / Role / ▼ */}
@@ -178,7 +193,7 @@ export default function DashboardScreen({
                   {displayRole}
                 </Text>
               </View>
-              <Feather name="chevron-down" size={13} color="#64748B" />
+              <Feather name="chevron-down" size={12} color="#64748B" />
             </TouchableOpacity>
           </View>
         </View>
@@ -192,11 +207,15 @@ export default function DashboardScreen({
         >
           <View style={styles.alertHeaderRow}>
             <View style={[styles.pulseDot, { backgroundColor: riskColors.primary }]} />
-            <Text style={[styles.alertBadgeText, { color: riskColors.primary }]}>
-              {selectedLocality.riskLevel} HEAT DEFENSE PROTOCOL ACTIVE
+            <Text
+              style={[styles.alertBadgeText, { color: riskColors.primary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {selectedLocality.riskLevel} HEAT DEFENSE ACTIVE
             </Text>
             <View style={styles.spacer} />
-            <Text style={styles.alertCity}>{selectedLocality.city}</Text>
+            <Text style={styles.alertCity} numberOfLines={1} ellipsizeMode="tail">{selectedLocality.city}</Text>
           </View>
           <Text style={styles.alertDesc}>
             {selectedLocality.riskLevel === 'EXTREME'
@@ -208,7 +227,7 @@ export default function DashboardScreen({
         {/* Heat Index Hero Card */}
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <Text style={styles.heroLabel}>FEELS LIKE HEAT INDEX</Text>
+            <Text style={styles.heroLabel} numberOfLines={1}>FEELS LIKE HEAT INDEX</Text>
             <TouchableOpacity
               style={[
                 styles.riskTag,
@@ -217,22 +236,22 @@ export default function DashboardScreen({
               onPress={() => setSelectorVisible(true)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.riskTagText, { color: riskColors.primary }]}>
+              <Text style={[styles.riskTagText, { color: riskColors.primary }]} numberOfLines={1}>
                 {selectedLocality.riskLevel}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.tempRow}>
-            <Text style={[styles.heroTemp, { color: riskColors.primary }]}>
+            <Text style={[styles.heroTemp, { color: riskColors.primary }]} numberOfLines={1}>
               {selectedLocality.heatIndex.toFixed(1)}°
             </Text>
             <View style={styles.tempSubCol}>
               <Text style={styles.celsius}>C</Text>
-              <Text style={styles.ambientText}>
+              <Text style={styles.ambientText} numberOfLines={1} ellipsizeMode="tail">
                 Ambient: {selectedLocality.currentTemp.toFixed(1)}°C
               </Text>
-              <Text style={styles.islandText}>
+              <Text style={styles.islandText} numberOfLines={1} ellipsizeMode="tail">
                 UHI Factor: +{selectedLocality.urbanHeatIslandFactor}x
               </Text>
             </View>
@@ -276,33 +295,34 @@ export default function DashboardScreen({
 
           <View style={styles.vitalsRow}>
             <View style={styles.vitalCard}>
-              <MaterialCommunityIcons name="water-thermometer" size={20} color="#0284C7" />
-              <Text style={styles.vitalLabel}>Wet Bulb</Text>
-              <Text style={styles.vitalValue}>{selectedLocality.wetBulb}°C</Text>
+              <MaterialCommunityIcons name="water-thermometer" size={18} color="#0284C7" />
+              <Text style={styles.vitalLabel} numberOfLines={1}>Wet Bulb</Text>
+              <Text style={styles.vitalValue} numberOfLines={1}>{selectedLocality.wetBulb}°C</Text>
               <Text
                 style={[
                   styles.vitalHint,
                   selectedLocality.wetBulb >= 29 && { color: '#DC2626', fontWeight: '700' },
                 ]}
+                numberOfLines={1}
               >
                 {selectedLocality.wetBulb >= 29 ? 'Hazardous' : 'Elevated'}
               </Text>
             </View>
 
             <View style={styles.vitalCard}>
-              <Feather name="sun" size={20} color="#EA580C" />
-              <Text style={styles.vitalLabel}>UV Index</Text>
-              <Text style={styles.vitalValue}>{selectedLocality.uvIndex}</Text>
-              <Text style={styles.vitalHint}>
+              <Feather name="sun" size={18} color="#EA580C" />
+              <Text style={styles.vitalLabel} numberOfLines={1}>UV Index</Text>
+              <Text style={styles.vitalValue} numberOfLines={1}>{selectedLocality.uvIndex}</Text>
+              <Text style={styles.vitalHint} numberOfLines={1}>
                 {selectedLocality.uvIndex >= 10 ? 'Extreme' : 'Very High'}
               </Text>
             </View>
 
             <View style={styles.vitalCard}>
-              <Ionicons name="water" size={20} color="#0284C7" />
-              <Text style={styles.vitalLabel}>Humidity</Text>
-              <Text style={styles.vitalValue}>{selectedLocality.humidity}%</Text>
-              <Text style={styles.vitalHint}>High Moisture</Text>
+              <Ionicons name="water" size={18} color="#0284C7" />
+              <Text style={styles.vitalLabel} numberOfLines={1}>Humidity</Text>
+              <Text style={styles.vitalValue} numberOfLines={1}>{selectedLocality.humidity}%</Text>
+              <Text style={styles.vitalHint} numberOfLines={1}>High Moisture</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -460,19 +480,52 @@ export default function DashboardScreen({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Select Active Locality</Text>
-                <Text style={styles.modalSubTitle}>Switch microclimate monitoring zone</Text>
+              <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                <Text style={styles.modalTitle} numberOfLines={1}>Select Active Locality</Text>
+                <Text style={styles.modalSubTitle} numberOfLines={1}>Switch microclimate monitoring zone</Text>
               </View>
-              <TouchableOpacity onPress={() => setSelectorVisible(false)} style={styles.closeBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectorVisible(false);
+                  setLocalitySearch('');
+                }}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Close locality selector"
+              >
                 <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
+            {/* Locality Search Input */}
+            <View style={styles.localitySearchWrap}>
+              <Ionicons name="search" size={16} color="#64748B" style={styles.localitySearchIcon} />
+              <TextInput
+                style={styles.localitySearchInput}
+                placeholder="Search city, ward, or locality..."
+                placeholderTextColor="#94A3B8"
+                value={localitySearch}
+                onChangeText={setLocalitySearch}
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+              />
+              {localitySearch.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setLocalitySearch('')}
+                  style={styles.localitySearchClearBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="Clear locality search"
+                >
+                  <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <FlatList
-              data={LOCALITIES}
+              data={filteredLocalities}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => {
                 const isSelected = item.id === selectedLocality.id;
                 const rColors = getRiskColors(item.riskLevel);
@@ -482,6 +535,7 @@ export default function DashboardScreen({
                     onPress={() => {
                       onSelectLocality(item);
                       setSelectorVisible(false);
+                      setLocalitySearch('');
                     }}
                   >
                     <View style={styles.localityItemLeft}>
@@ -490,10 +544,12 @@ export default function DashboardScreen({
                           styles.localityItemName,
                           isSelected && { color: '#0284C7', fontWeight: '800' },
                         ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                       >
                         {item.name}
                       </Text>
-                      <Text style={styles.localityItemCity}>
+                      <Text style={styles.localityItemCity} numberOfLines={1} ellipsizeMode="tail">
                         {item.city}, {item.state} • Feels {item.heatIndex.toFixed(1)}°C
                       </Text>
                     </View>
@@ -503,7 +559,7 @@ export default function DashboardScreen({
                         { backgroundColor: rColors.pillBg, borderColor: rColors.border },
                       ]}
                     >
-                      <Text style={[styles.localityItemRisk, { color: rColors.primary }]}>
+                      <Text style={[styles.localityItemRisk, { color: rColors.primary }]} numberOfLines={1}>
                         {item.riskLevel}
                       </Text>
                     </View>
@@ -703,6 +759,8 @@ const styles = StyleSheet.create({
   },
   topHeaderLeft: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   topSubLabel: {
     fontSize: 10,
@@ -714,18 +772,20 @@ const styles = StyleSheet.create({
   localityPickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 1,
   },
   localityPickerText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
-    maxWidth: 200,
+    flexShrink: 1,
   },
   topHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   headerProfileBtn: {
     flexDirection: 'row',
@@ -733,10 +793,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 4,
-    borderRadius: 22,
-    gap: 6,
+    borderRadius: 20,
+    gap: 5,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -938,22 +998,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
+    gap: 6,
   },
   pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: 4,
+    flexShrink: 0,
   },
   alertBadgeText: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   alertCity: {
     fontSize: 11,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
+    flexShrink: 0,
   },
   alertDesc: {
     fontSize: 12,
@@ -996,16 +1060,19 @@ const styles = StyleSheet.create({
   },
   tempRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: 10,
+    alignItems: 'center',
+    marginVertical: 8,
   },
   heroTemp: {
-    fontSize: 54,
+    fontSize: 50,
     fontWeight: '900',
     letterSpacing: -1,
+    flexShrink: 0,
   },
   tempSubCol: {
-    marginLeft: 10,
+    marginLeft: 12,
+    flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
   },
   celsius: {
@@ -1088,13 +1155,15 @@ const styles = StyleSheet.create({
   },
   vitalsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   vitalCard: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    padding: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F1F5F9',
@@ -1360,11 +1429,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     borderRadius: 16,
   },
+  localitySearchWrap: {
+    position: 'relative',
+    height: 38,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  localitySearchIcon: {
+    position: 'absolute',
+    left: 10,
+    zIndex: 2,
+  },
+  localitySearchInput: {
+    flex: 1,
+    paddingLeft: 34,
+    paddingRight: 32,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  localitySearchClearBtn: {
+    position: 'absolute',
+    right: 8,
+    zIndex: 2,
+    padding: 3,
+  },
   localityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 12,
     borderRadius: 12,
     backgroundColor: '#F8FAFC',
@@ -1378,6 +1477,8 @@ const styles = StyleSheet.create({
   },
   localityItemLeft: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 10,
   },
   localityItemName: {
     fontSize: 13,
@@ -1394,6 +1495,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
+    flexShrink: 0,
+    alignSelf: 'center',
   },
   localityItemRisk: {
     fontSize: 10,

@@ -23,6 +23,7 @@ import {
   Trash2,
   Download,
   Copy,
+  X,
   Check,
   Zap,
   Terminal,
@@ -1087,15 +1088,25 @@ export const DeveloperDiagnosticsPage: React.FC = () => {
           </div>
 
           {/* Search Input */}
-          <div className="relative max-w-xs w-full">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative max-w-xs w-full min-w-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={logSearchQuery}
               onChange={(e) => setLogSearchQuery(e.target.value)}
               placeholder="Search sanitized log messages..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E60F2] focus:bg-white transition-all"
+              className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E60F2] focus:bg-white transition-all"
             />
+            {logSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setLogSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 

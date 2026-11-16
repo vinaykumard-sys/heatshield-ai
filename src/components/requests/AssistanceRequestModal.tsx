@@ -254,7 +254,7 @@ export const AssistanceRequestModal: React.FC<AssistanceRequestModalProps> = ({
 
       {/* Floating 3D Modal Box with Depth and Soft Glow */}
       <div 
-        className="relative z-10 w-full max-w-lg sm:max-w-xl md:max-w-2xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35),0_0_0_1px_rgba(255,255,255,0.8)] overflow-hidden transition-all duration-300 animate-scale-in max-h-[90vh] flex flex-col m-3 sm:m-0"
+        className="relative z-10 w-full max-w-lg sm:max-w-xl md:max-w-2xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35),0_0_0_1px_rgba(255,255,255,0.8)] overflow-hidden transition-all duration-300 animate-scale-in max-h-[90vh] flex flex-col"
         style={{
           boxShadow: '0 30px 70px -15px rgba(15, 23, 42, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)'
         }}

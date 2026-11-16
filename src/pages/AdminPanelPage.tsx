@@ -7,7 +7,8 @@ import {
   Database, 
   Check, 
   Save, 
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { mockDb } from '../lib/mockDb';
 import { useAuth } from '../context/AuthContext';
@@ -363,15 +364,25 @@ export const AdminPanelPage: React.FC = () => {
                 Immutable records of check-ins, role changes, alerts, and model threshold adjustments.
               </p>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-64 min-w-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search audit trail..."
                 value={searchLog}
                 onChange={(e) => setSearchLog(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500"
               />
+              {searchLog && (
+                <button
+                  type="button"
+                  onClick={() => setSearchLog('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 

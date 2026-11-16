@@ -854,8 +854,11 @@ export default function SafeRouteScreen() {
               <View style={styles.inputsCol}>
                 {/* Origin Input */}
                 <View style={styles.inputRow}>
+                  <View style={styles.inputLeftIcon}>
+                    <Ionicons name="search" size={15} color="#10B981" />
+                  </View>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, styles.textInputWithIconsOrigin]}
                     value={originText}
                     onChangeText={(t) => handleSearchTextChange(t, true)}
                     placeholder="Search origin location"
@@ -866,32 +869,38 @@ export default function SafeRouteScreen() {
                       if (originText.length >= 2) searchLocations(originText).then(setAutocompleteResults);
                     }}
                   />
-                  {originText.length > 0 && (
+                  <View style={styles.inputRightActions}>
+                    {originText.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setOriginText('');
+                          setAutocompleteResults([]);
+                        }}
+                        style={styles.clearBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel="Clear origin input"
+                      >
+                        <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                      onPress={() => {
-                        setOriginText('');
-                        setAutocompleteResults([]);
-                      }}
-                      style={styles.clearBtn}
+                      onPress={handleUseCurrentLocation}
+                      style={styles.gpsLocateBtn}
+                      accessibilityLabel="Use current location"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                      <Ionicons name="locate" size={16} color="#0284C7" />
                     </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    onPress={handleUseCurrentLocation}
-                    style={styles.gpsLocateBtn}
-                    accessibilityLabel="Use current location"
-                  >
-                    <Ionicons name="locate" size={16} color="#0284C7" />
-                  </TouchableOpacity>
+                  </View>
                 </View>
-
-                <View style={styles.inputDivider} />
 
                 {/* Destination Input */}
                 <View style={styles.inputRow}>
+                  <View style={styles.inputLeftIcon}>
+                    <Ionicons name="location" size={15} color="#EF4444" />
+                  </View>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, styles.textInputWithIconsDest]}
                     value={destText}
                     onChangeText={(t) => handleSearchTextChange(t, false)}
                     placeholder="Search destination"
@@ -902,22 +911,26 @@ export default function SafeRouteScreen() {
                       if (destText.length >= 2) searchLocations(destText).then(setAutocompleteResults);
                     }}
                   />
-                  {destText.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setDestText('');
-                        setAutocompleteResults([]);
-                      }}
-                      style={styles.clearBtn}
-                    >
-                      <Ionicons name="close-circle" size={16} color="#94A3B8" />
-                    </TouchableOpacity>
-                  )}
+                  <View style={styles.inputRightActions}>
+                    {destText.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setDestText('');
+                          setAutocompleteResults([]);
+                        }}
+                        style={styles.clearBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel="Clear destination input"
+                      >
+                        <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
 
               {/* Swap Origin / Destination Button */}
-              <TouchableOpacity style={styles.swapBtn} onPress={handleSwap}>
+              <TouchableOpacity style={styles.swapBtn} onPress={handleSwap} accessibilityLabel="Swap origin and destination">
                 <Ionicons name="swap-vertical" size={18} color="#0284C7" />
               </TouchableOpacity>
             </View>
@@ -1029,11 +1042,11 @@ export default function SafeRouteScreen() {
                         color="#0284C7"
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.autocompletePlaceName} numberOfLines={1}>
+                    <View style={styles.autocompleteTextCol}>
+                      <Text style={styles.autocompletePlaceName} numberOfLines={1} ellipsizeMode="tail">
                         {item.name}
                       </Text>
-                      <Text style={styles.autocompletePlaceDesc} numberOfLines={1}>
+                      <Text style={styles.autocompletePlaceDesc} numberOfLines={1} ellipsizeMode="tail">
                         {item.description}
                       </Text>
                     </View>
@@ -1560,7 +1573,7 @@ const styles = StyleSheet.create({
   },
   indicatorCol: {
     alignItems: 'center',
-    width: 18,
+    width: 14,
     marginRight: 6,
   },
   dot: {
@@ -1570,17 +1583,40 @@ const styles = StyleSheet.create({
   },
   verticalLine: {
     width: 1.5,
-    height: 24,
+    height: 28,
     backgroundColor: '#CBD5E1',
-    marginVertical: 3,
+    marginVertical: 2,
   },
   inputsCol: {
     flex: 1,
+    gap: 6,
   },
   inputRow: {
+    position: 'relative',
+    justifyContent: 'center',
+    height: 38,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  inputLeftIcon: {
+    position: 'absolute',
+    left: 10,
+    zIndex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 20,
+    height: 20,
+  },
+  inputRightActions: {
+    position: 'absolute',
+    right: 8,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 32,
+    gap: 4,
   },
   textInput: {
     flex: 1,
@@ -1588,27 +1624,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     paddingVertical: 0,
+    height: '100%',
+    minWidth: 0,
+  },
+  textInputWithIconsOrigin: {
+    paddingLeft: 38,
+    paddingRight: 64,
+  },
+  textInputWithIconsDest: {
+    paddingLeft: 38,
+    paddingRight: 38,
   },
   clearBtn: {
-    padding: 4,
+    padding: 3,
   },
   gpsLocateBtn: {
-    padding: 4,
-    marginLeft: 4,
+    padding: 3,
   },
   inputDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 2,
+    height: 0,
   },
   swapBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
 
   // Travel Mode Selector Tabs
@@ -1695,6 +1740,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
     overflow: 'hidden',
+    width: '100%',
+    maxHeight: 280,
   },
   autocompleteHeader: {
     flexDirection: 'row',
@@ -1727,6 +1774,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    flexShrink: 0,
+  },
+  autocompleteTextCol: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   autocompletePlaceName: {
     fontSize: 12.5,
@@ -1744,6 +1797,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 6,
     marginLeft: 6,
+    flexShrink: 0,
   },
   autocompleteCityText: {
     fontSize: 9.5,

@@ -1198,6 +1198,8 @@ const styles = StyleSheet.create({
   },
   snippetLeft: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 10,
   },
   snippetTitle: {
     fontSize: 12,
@@ -1211,6 +1213,7 @@ const styles = StyleSheet.create({
   },
   snippetRight: {
     alignItems: 'flex-end',
+    flexShrink: 0,
   },
   snippetUV: {
     fontSize: 11,
@@ -1230,7 +1233,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   metricCard: {
-    width: (SCREEN_WIDTH - 42) / 2,
+    flexBasis: '48%',
+    flexGrow: 1,
+    maxWidth: '50%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
@@ -1243,7 +1248,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   metricCardWide: {
-    width: SCREEN_WIDTH - 32,
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
   },
   metricCardHeader: {
     flexDirection: 'row',
@@ -1348,7 +1355,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
@@ -1356,10 +1363,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0F2FE',
   },
   dailyDayCol: {
-    width: 64,
+    width: 56,
+    flexShrink: 0,
   },
   dailyDayName: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -1370,39 +1378,41 @@ const styles = StyleSheet.create({
   dailyDateSub: {
     fontSize: 10,
     color: '#64748B',
-    marginTop: 2,
+    marginTop: 1,
   },
   dailyCondCol: {
-    width: 80,
+    width: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
   },
   dailyEmoji: {
-    fontSize: 18,
+    fontSize: 17,
   },
   dailyCondText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#475569',
     flex: 1,
   },
   dailyRainText: {
     fontSize: 9,
     color: '#0284C7',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   dailyRangeCol: {
     flex: 1,
+    minWidth: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginHorizontal: 8,
+    gap: 4,
+    marginHorizontal: 6,
   },
   dailyMinTemp: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#64748B',
     fontWeight: '600',
-    width: 22,
+    width: 20,
     textAlign: 'right',
   },
   dailyRangeBarTrack: {
@@ -1411,6 +1421,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     borderRadius: 3,
     position: 'relative',
+    overflow: 'hidden',
   },
   dailyRangeBarFill: {
     position: 'absolute',
@@ -1418,10 +1429,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   dailyMaxTemp: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#0F172A',
     fontWeight: '700',
-    width: 22,
+    width: 20,
   },
   dailyRiskTag: {
     borderWidth: 1,
@@ -1430,6 +1441,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     width: 36,
     alignItems: 'center',
+    flexShrink: 0,
   },
   dailyRiskTagText: {
     fontSize: 9,

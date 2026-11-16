@@ -257,8 +257,12 @@ export default function ProfileScreen({ user, userEmail, onLogout }: ProfileScre
           {contacts.map((contact) => (
             <View key={contact.id} style={styles.contactItem}>
               <View style={styles.contactItemLeft}>
-                <Text style={styles.contactName}>{contact.name}</Text>
-                <Text style={styles.contactPhone}>{contact.phone}</Text>
+                <Text style={styles.contactName} numberOfLines={1} ellipsizeMode="tail">
+                  {contact.name}
+                </Text>
+                <Text style={styles.contactPhone} numberOfLines={1}>
+                  {contact.phone}
+                </Text>
               </View>
 
               <View style={styles.contactActions}>
@@ -563,6 +567,8 @@ const styles = StyleSheet.create({
   },
   contactItemLeft: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   contactName: {
     fontSize: 12,
@@ -578,6 +584,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   notifyToggle: {
     paddingHorizontal: 8,

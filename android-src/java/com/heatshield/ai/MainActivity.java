@@ -8,6 +8,8 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +41,7 @@ public class MainActivity extends Activity {
     private static final int PERMISSION_REQUEST_LOCATION = 1001;
     private static final String APP_URL = "file:///android_asset/www/index.html";
     private static final String FALLBACK_URL = "file:///android_asset/www/index.html";
+    private static final int SPLASH_TIMEOUT_MS = 2500;
 
     private WebView mWebView;
     private FrameLayout mContainer;
@@ -46,6 +49,13 @@ public class MainActivity extends Activity {
     private GeolocationPermissions.Callback mGeoCallback;
     private String mGeoOrigin;
     private long mLastBackPressTime = 0;
+    private final Handler mSplashHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mSplashWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            dismissSplash();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -346,6 +356,15 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 super.onReceivedError(view, errorCode, description, failingUrl);
+                dismissSplash();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && request != null && request.isForMainFrame()) {
+                    dismissSplash();
+                }
             }
         });
 
@@ -386,30 +405,44 @@ public class MainActivity extends Activity {
         mSplashLayout.addView(spinner);
 
         mContainer.addView(mSplashLayout);
+
+        // Failsafe watchdog timer (max 2500ms) to guarantee dismissSplash() runs even if WebView events fail
+        mSplashHandler.postDelayed(mSplashWatchdog, SPLASH_TIMEOUT_MS);
     }
 
     private void dismissSplash() {
-        if (mSplashLayout != null && mSplashLayout.getVisibility() == View.VISIBLE) {
-            AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
-            fadeOut.setDuration(400);
-            fadeOut.setAnimationListener(new Animation.AnimationListener() {
-                @Override
-                public void onAnimationStart(Animation animation) {}
-
-                @Override
-                public void onAnimationEnd(Animation animation) {
-                    if (mSplashLayout != null) {
-                        mSplashLayout.setVisibility(View.GONE);
-                        mContainer.removeView(mSplashLayout);
-                        mSplashLayout = null;
-                    }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mSplashHandler != null && mSplashWatchdog != null) {
+                    mSplashHandler.removeCallbacks(mSplashWatchdog);
                 }
+                if (isFinishing()) return;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && isDestroyed()) return;
 
-                @Override
-                public void onAnimationRepeat(Animation animation) {}
-            });
-            mSplashLayout.startAnimation(fadeOut);
-        }
+                if (mSplashLayout != null && mSplashLayout.getVisibility() == View.VISIBLE) {
+                    AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
+                    fadeOut.setDuration(400);
+                    fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {}
+
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            if (mSplashLayout != null) {
+                                mSplashLayout.setVisibility(View.GONE);
+                                mContainer.removeView(mSplashLayout);
+                                mSplashLayout = null;
+                            }
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {}
+                    });
+                    mSplashLayout.startAnimation(fadeOut);
+                }
+            }
+        });
     }
 
     private void requestLocationPermissionsIfNeeded() {
@@ -552,6 +585,9 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (mSplashHandler != null && mSplashWatchdog != null) {
+            mSplashHandler.removeCallbacks(mSplashWatchdog);
+        }
         if (mWebView != null) {
             mWebView.destroy();
         }

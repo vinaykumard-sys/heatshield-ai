@@ -19,7 +19,8 @@ import {
   Droplets,
   Building2,
   Send,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
@@ -179,15 +180,25 @@ export const AlertsPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="relative sm:w-64">
+        <div className="relative w-full sm:w-64 min-w-0">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search alerts or notices..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none input-interactive"
+            className="w-full bg-[#F5F8FC] border border-[#E5EDF5] rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-900 focus:outline-none input-interactive"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

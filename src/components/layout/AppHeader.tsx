@@ -109,7 +109,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const currentTemperature = currentReading ? Math.round(currentReading.temperature_c) : 32;
 
   return (
-    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-4 z-[1020] max-w-full overflow-visible">
+    <header className="relative h-[72px] shrink-0 bg-white/90 backdrop-blur-xl border-b border-[#E9F0FA] px-2 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-4 z-[1020] max-w-full overflow-visible">
       
       {/* Left: Mobile Toggle & Ward Pin Switcher with GPS Status */}
       <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
@@ -222,14 +222,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       {/* Center: Modern Search Bar matching reference ("Find your place...", pill input, soft search icon, clear button) */}
-      <form onSubmit={handleSearchSubmit} className="relative hidden md:flex items-center flex-1 max-w-md mx-3">
+      <form onSubmit={handleSearchSubmit} className="relative hidden md:flex items-center flex-1 max-w-md mx-3 min-w-0">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
         <input
           type="text"
           placeholder="Find your place..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#EEF3FB]/90 hover:bg-[#E8EFF9] focus:bg-white border border-[#E9F0FA] focus:border-blue-500 rounded-full pl-10 pr-9 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-500/15 transition-all shadow-xs"
+          className="w-full bg-[#EEF3FB]/90 hover:bg-[#E8EFF9] focus:bg-white border border-[#E9F0FA] focus:border-blue-500 rounded-full pl-10 pr-10 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-500/15 transition-all shadow-xs"
         />
         {isSearching ? (
           <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin absolute right-3.5 pointer-events-none" />
