@@ -135,8 +135,8 @@ public class MainActivity extends Activity {
         }
 
         // Dynamically obtain package version information from AndroidManifest
-        String currentVersionName = "1.5.0";
-        int currentVersionCode = 8;
+        String currentVersionName = "1.5.1";
+        int currentVersionCode = 9;
         try {
             android.content.pm.PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             if (pInfo.versionName != null && pInfo.versionName.trim().length() > 0) {
@@ -195,6 +195,12 @@ public class MainActivity extends Activity {
                 if (newProgress >= 90) {
                     dismissSplash();
                 }
+            }
+
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                android.util.Log.d("HeatShieldJS", (consoleMessage.message() != null ? consoleMessage.message() : "") + " -- line " + consoleMessage.lineNumber());
+                return true;
             }
         });
 
@@ -310,20 +316,29 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && request != null && request.getUrl() != null) {
                     Uri uri = request.getUrl();
                     String path = uri.getPath();
-                    if (path != null && (path.startsWith("/_expo/") || path.startsWith("/assets/") || path.equals("/favicon.ico") || path.equals("/favicon.svg") || path.equals("/manifest.json"))) {
-                        try {
-                            String assetPath = "www" + path;
-                            InputStream is = getAssets().open(assetPath);
-                            String mime = "application/octet-stream";
-                            if (path.endsWith(".js")) mime = "application/javascript";
-                            else if (path.endsWith(".css")) mime = "text/css";
-                            else if (path.endsWith(".png")) mime = "image/png";
-                            else if (path.endsWith(".svg")) mime = "image/svg+xml";
-                            else if (path.endsWith(".json")) mime = "application/json";
-                            else if (path.endsWith(".ttf")) mime = "font/ttf";
-                            return new WebResourceResponse(mime, "UTF-8", is);
-                        } catch (Exception e) {
-                            // fall back to default loader
+                    if (path != null) {
+                        String cleanPath = path;
+                        if (cleanPath.startsWith("/android_asset/www/")) {
+                            cleanPath = cleanPath.substring("/android_asset/www/".length());
+                        } else if (cleanPath.startsWith("/android_asset/")) {
+                            cleanPath = cleanPath.substring("/android_asset/".length());
+                        } else if (cleanPath.startsWith("/")) {
+                            cleanPath = cleanPath.substring(1);
+                        }
+                        if (cleanPath.startsWith("_expo/") || cleanPath.startsWith("assets/") || cleanPath.equals("favicon.ico") || cleanPath.equals("manifest.json") || cleanPath.equals("index.html")) {
+                            try {
+                                String assetPath = "www/" + cleanPath;
+                                InputStream is = getAssets().open(assetPath);
+                                String mime = "application/octet-stream";
+                                if (cleanPath.endsWith(".js")) mime = "application/javascript";
+                                else if (cleanPath.endsWith(".css")) mime = "text/css";
+                                else if (cleanPath.endsWith(".png")) mime = "image/png";
+                                else if (cleanPath.endsWith(".svg")) mime = "image/svg+xml";
+                                else if (cleanPath.endsWith(".json")) mime = "application/json";
+                                else if (cleanPath.endsWith(".ttf")) mime = "font/ttf";
+                                else if (cleanPath.endsWith(".html")) mime = "text/html";
+                                return new WebResourceResponse(mime, "UTF-8", is);
+                            } catch (Exception ignored) {}
                         }
                     }
                 }

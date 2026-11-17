@@ -25,7 +25,12 @@ class MobileMemoryStorage {
 }
 
 const memoryStorage = new MobileMemoryStorage();
-const hasLocalStorage = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+let hasLocalStorage = false;
+try {
+  hasLocalStorage = typeof window !== 'undefined' && !!window.localStorage && typeof window.localStorage.getItem === 'function';
+} catch (e) {
+  hasLocalStorage = false;
+}
 
 export const isSupabaseConfigured = Boolean(
   SUPABASE_URL &&

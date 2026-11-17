@@ -1,10 +1,10 @@
 {
-  "version": "1.5.0",
-  "versionCode": 8,
+  "version": "1.5.1",
+  "versionCode": 9,
   "minimumRequiredVersion": "1.5.0",
   "forceUpdate": true,
-  "releaseDate": "2026-11-16",
-  "releaseNotes": "Version 1.5.0: Native mobile architecture isolation, offline Expo mobile application bundling, dynamic user profile mapping, and enhanced OAuth session handoff.",
+  "releaseDate": "2026-11-17",
+  "releaseNotes": "Version 1.5.1: Critical startup fix resolving blank screen, web-safe notification event emitter abstraction, enhanced WebView asset loader, and production stability.",
   "minAndroidVersion": "7.0 (API 24)+",
   "targetAndroidVersion": "14.0 (API 34)",
   "supportedAbis": [
@@ -14,10 +14,10 @@
     "x86"
   ],
   "universal": true,
-  "fileSize": "2.62 MB",
-  "sizeBytes": 2745836,
-  "sha256": "76916efca674a70879847d6ea74c80b929069a47381b366e27aef9672ea74626",
-  "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.0.apk",
+  "fileSize": "2.57 MB",
+  "sizeBytes": 2696684,
+  "sha256": "0caf1d30bc9e3ec235f2ef2254d957ee543c0e0da042e3c0dd97e32983e8127b",
+  "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.1.apk",
   "verifiedSchemes": [
     "v1",
     "v2",
