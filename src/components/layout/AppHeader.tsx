@@ -260,7 +260,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <span className="hidden md:inline">Download App</span>
             <span className="md:hidden text-[11px]">APK</span>
             <span className="hidden lg:inline-flex items-center text-[9px] font-extrabold uppercase bg-white/20 text-white px-1.5 py-0.2 rounded-full ml-0.5">
-              v1.2
+              v1.6
             </span>
           </button>
         )}

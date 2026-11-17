@@ -337,10 +337,10 @@ export default function ProfileScreen({ user, userEmail, onLogout }: ProfileScre
           </Text>
 
           {/* Update Action Row */}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 8 }}>
+          <View style={{ marginTop: 14, marginBottom: 8 }}>
             <TouchableOpacity
               style={{
-                flex: 1,
+                width: '100%',
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -360,28 +360,8 @@ export default function ProfileScreen({ user, userEmail, onLogout }: ProfileScre
                 <Feather name="refresh-cw" size={16} color="#FFFFFF" />
               )}
               <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
-                {checkingUpdate ? 'Checking...' : 'Check Updates'}
+                {checkingUpdate ? 'Checking...' : 'Check for Updates'}
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#EFF6FF',
-                borderWidth: 1,
-                borderColor: '#BFDBFE',
-                paddingVertical: 12,
-                paddingHorizontal: 14,
-                borderRadius: 12,
-                gap: 6,
-              }}
-              onPress={() => Linking.openURL(DEFAULT_APK_URL)}
-              activeOpacity={0.85}
-            >
-              <Feather name="download" size={16} color="#2563EB" />
-              <Text style={{ color: '#2563EB', fontWeight: '700', fontSize: 13 }}>Get APK</Text>
             </TouchableOpacity>
           </View>
 
