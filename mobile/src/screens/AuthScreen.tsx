@@ -54,6 +54,51 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     };
   }, []);
 
+  // Direct Google Identity Services (GIS) ID Token In-App Sign-In
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const scriptId = 'google-gsi-mobile';
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if ((window as any).google?.accounts?.id) {
+            try {
+              (window as any).google.accounts.id.initialize({
+                client_id: '839480231320-4jhbj5hbp31f85k26gkr94c3dluia5oq.apps.googleusercontent.com',
+                callback: async (res: any) => {
+                  if (res?.credential) {
+                    setGoogleLoading(true);
+                    setErrorMessage(null);
+                    try {
+                      const { data, error } = await supabase.auth.signInWithIdToken({
+                        provider: 'google',
+                        token: res.credential,
+                      });
+                      if (error) {
+                        setErrorMessage(error.message);
+                      } else if (data?.session && onAuthSuccess) {
+                        onAuthSuccess(data.session);
+                      }
+                    } catch (e: any) {
+                      setErrorMessage(e?.message || 'Google authentication failed.');
+                    } finally {
+                      setGoogleLoading(false);
+                    }
+                  }
+                },
+              });
+            } catch (e) {}
+          }
+        };
+        document.head.appendChild(script);
+      }
+    }
+  }, [onAuthSuccess]);
+
   const processAuthUrl = async (url: string) => {
     try {
       if (!url.includes('auth/callback') && !url.includes('code=') && !url.includes('access_token=')) {
@@ -127,7 +172,29 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setErrorMessage(null);
       setInfoMessage(null);
 
-      // Create proper redirect URL
+      // If Google Identity Services prompt is ready, trigger direct in-app account picker
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+        try {
+          (window as any).google.accounts.id.prompt((notification: any) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              executeOAuthFallback();
+            }
+          });
+          return;
+        } catch (e) {
+          // Fallback to OAuth redirect
+        }
+      }
+
+      await executeOAuthFallback();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Google authentication encountered an unexpected error.');
+      setGoogleLoading(false);
+    }
+  };
+
+  const executeOAuthFallback = async () => {
+    try {
       const redirectUrl = 'https://heatshield-ai-eight.vercel.app/auth/callback';
 
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -143,29 +210,27 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
 
       if (error) {
         setErrorMessage(error.message || 'Google sign-in could not be initiated.');
+        setGoogleLoading(false);
         return;
       }
 
       if (!data?.url) {
         setErrorMessage('Unable to initialize Google authentication endpoint.');
+        setGoogleLoading(false);
         return;
       }
 
-      // If running inside Android WebView or web browser, navigate to the OAuth endpoint.
-      // MainActivity.java will intercept external OAuth URLs and launch the system browser.
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.location.href = data.url;
         return;
       }
 
-      // On native Expo, open external authentication session (Custom Tabs / System Browser)
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
       if (result.type === 'success' && result.url) {
         await processAuthUrl(result.url);
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Google authentication encountered an unexpected error.');
+    } catch (e: any) {
+      setErrorMessage(e?.message || 'Google authentication encountered an error.');
     } finally {
       setGoogleLoading(false);
     }

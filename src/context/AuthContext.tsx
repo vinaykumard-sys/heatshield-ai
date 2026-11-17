@@ -13,6 +13,7 @@ interface AuthContextType {
   needsPhoneVerification: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogleIdToken: (idToken: string) => Promise<{ success: boolean; error?: string }>;
   loginAsDemoResident: () => Promise<void>;
   signup: (
     email: string, 
@@ -297,6 +298,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  /**
+   * Direct Google Identity Services (GIS) ID Token Sign-In (In-App, zero redirect)
+   */
+  const loginWithGoogleIdToken = async (idToken: string): Promise<{ success: boolean; error?: string }> => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+        if (data?.user) {
+          await handleSessionUser(data.user);
+          return { success: true };
+        }
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Google authentication failed.' };
+      }
+    }
+    return { success: false, error: 'Supabase authentication service unavailable.' };
+  };
+
   const signup = async (
     email: string, 
     password: string, 
@@ -420,6 +445,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         needsPhoneVerification,
         login,
         loginWithGoogle,
+        loginWithGoogleIdToken,
         loginAsDemoResident,
         signup,
         resetPassword,

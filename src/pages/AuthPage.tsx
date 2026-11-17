@@ -26,7 +26,7 @@ import { Button } from '../components/common/Button';
 import { ThermalGlobe3D } from '../components/3d/ThermalGlobe3D';
 
 export const AuthPage: React.FC = () => {
-  const { isAuthenticated, user, needsPhoneVerification, login, loginWithGoogle, loginAsDemoResident, signup, resetPassword } = useAuth();
+  const { isAuthenticated, user, needsPhoneVerification, login, loginWithGoogle, loginWithGoogleIdToken, loginAsDemoResident, signup, resetPassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,6 +105,48 @@ export const AuthPage: React.FC = () => {
     }, 1500);
   }, [from, navigate]);
 
+  // Direct Google Identity Services (GIS) In-App ID Token initialization
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const scriptId = 'google-gsi-client';
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if ((window as any).google?.accounts?.id) {
+            try {
+              (window as any).google.accounts.id.initialize({
+                client_id: '839480231320-4jhbj5hbp31f85k26gkr94c3dluia5oq.apps.googleusercontent.com',
+                callback: async (res: any) => {
+                  if (res?.credential) {
+                    setIsGoogleLoading(true);
+                    setErrorMsg('');
+                    try {
+                      const result = await loginWithGoogleIdToken(res.credential);
+                      if (result.success) {
+                        handleAuthSuccess();
+                      } else {
+                        setErrorMsg(result.error || 'Google login failed.');
+                        setIsGoogleLoading(false);
+                      }
+                    } catch (e: any) {
+                      setErrorMsg(e?.message || 'Google authentication error.');
+                      setIsGoogleLoading(false);
+                    }
+                  }
+                },
+              });
+            } catch (e) {}
+          }
+        };
+        document.head.appendChild(script);
+      }
+    }
+  }, [loginWithGoogleIdToken, handleAuthSuccess]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -168,13 +210,30 @@ export const AuthPage: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setErrorMsg('');
     setIsGoogleLoading(true);
+
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            executeOAuthFallback();
+          }
+        });
+        return;
+      } catch (e) {
+        // Fallback to OAuth redirect below
+      }
+    }
+
+    await executeOAuthFallback();
+  };
+
+  const executeOAuthFallback = async () => {
     try {
       const res = await loginWithGoogle();
       if (!res.success) {
         setErrorMsg(res.error || 'Google authentication encountered an issue.');
         setIsGoogleLoading(false);
       }
-      // Keep loading indicator active while browser redirects to Google OAuth
     } catch (e: any) {
       setErrorMsg(e.message || 'Google authentication error.');
       setIsGoogleLoading(false);
