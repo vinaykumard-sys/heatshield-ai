@@ -226,7 +226,7 @@ export default function MandatoryUpdateModal({
               ) : (
                 <Feather name="download" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
               )}
-              <Text style={styles.updateButtonText}>UPDATE NOW (APK)</Text>
+              <Text style={styles.updateButtonText} numberOfLines={1} adjustsFontSizeToFit>UPDATE NOW (APK)</Text>
             </TouchableOpacity>
 
             {/* Action Buttons: 2. Re-check / I've Updated */}
@@ -241,7 +241,7 @@ export default function MandatoryUpdateModal({
               ) : (
                 <Ionicons name="refresh" size={16} color="#0284C7" style={{ marginRight: 8 }} />
               )}
-              <Text style={styles.checkAgainButtonText}>
+              <Text style={styles.checkAgainButtonText} numberOfLines={1} adjustsFontSizeToFit>
                 {checking ? 'VERIFYING VERSION...' : "I'VE UPDATED / CHECK AGAIN"}
               </Text>
             </TouchableOpacity>
@@ -261,7 +261,7 @@ export default function MandatoryUpdateModal({
               activeOpacity={0.75}
             >
               <Feather name="check-circle" size={15} color="#0369A1" style={{ marginRight: 6 }} />
-              <Text style={styles.dismissButtonText}>
+              <Text style={styles.dismissButtonText} numberOfLines={1} adjustsFontSizeToFit>
                 I've Updated / Continue to HeatShield AI
               </Text>
             </TouchableOpacity>

@@ -152,9 +152,9 @@ export default function ProfileScreen({ user, userEmail, onLogout }: ProfileScre
               <Text style={styles.avatarText}>{profile.name.slice(0, 2).toUpperCase()}</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{profile.name}</Text>
-              <Text style={styles.userPhone}>{profile.phone}</Text>
-              <Text style={styles.userCity}>
+              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">{profile.name}</Text>
+              <Text style={styles.userPhone} numberOfLines={1}>{profile.phone}</Text>
+              <Text style={styles.userCity} numberOfLines={1} ellipsizeMode="tail">
                 {profile.city} • {profile.email}
               </Text>
             </View>
@@ -542,6 +542,7 @@ const styles = StyleSheet.create({
   },
   prefTextCol: {
     flex: 1,
+    minWidth: 0,
     marginRight: 10,
   },
   prefLabel: {

@@ -149,7 +149,9 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
             <MaterialCommunityIcons name="shield-sun" size={22} color="#0284C7" />
           </View>
           <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>HeatShield AI Assistant</Text>
+            <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+              HeatShield AI Assistant
+            </Text>
             <View style={styles.statusRow}>
               <Animated.View
                 style={[
@@ -159,7 +161,7 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
                   },
                 ]}
               />
-              <Text style={styles.statusText}>Live • Urban Heat Intelligence</Text>
+              <Text style={styles.statusText} numberOfLines={1}>Live • Urban Heat Intelligence</Text>
             </View>
           </View>
         </View>
@@ -169,8 +171,8 @@ export default function AssistantScreen({ selectedLocality = LOCALITIES[0], onBa
           onPress={() => handleEmergencyCall('108')}
           activeOpacity={0.8}
         >
-          <Ionicons name="call" size={13} color="#DC2626" />
-          <Text style={styles.sosHeaderText}>108 SOS</Text>
+          <Ionicons name="call" size={13} color="#DC2626" style={{ flexShrink: 0 }} />
+          <Text style={styles.sosHeaderText} numberOfLines={1}>108 SOS</Text>
         </TouchableOpacity>
       </View>
 
@@ -444,10 +446,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   backButton: {
     marginRight: 10,
     padding: 4,
+    flexShrink: 0,
   },
   shieldBadge: {
     width: 38,
@@ -459,9 +464,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    flexShrink: 0,
   },
   headerTextWrap: {
     flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: 16,
@@ -480,11 +487,13 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: '#059669',
+    flexShrink: 0,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#059669',
+    flexShrink: 1,
   },
   sosHeaderBtn: {
     flexDirection: 'row',
@@ -496,6 +505,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
     gap: 4,
+    flexShrink: 0,
   },
   sosHeaderText: {
     fontSize: 12,

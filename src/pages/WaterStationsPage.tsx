@@ -227,7 +227,7 @@ export const WaterStationsPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
               {(['all', 'available', 'limited', 'maintenance'] as const).map(st => (
                 <button
                   key={st}

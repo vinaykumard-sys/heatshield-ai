@@ -109,8 +109,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className = ''
         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600 to-blue-400 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 ring-2 ring-white/80">
           {initials}
         </div>
-        <div className="flex flex-col text-left text-xs leading-none min-w-0">
-          <div className="font-bold text-slate-800 truncate max-w-[65px] xs:max-w-[90px] sm:max-w-[120px]">
+        <div className="hidden sm:flex flex-col text-left text-xs leading-none min-w-0">
+          <div className="font-bold text-slate-800 truncate max-w-[90px] md:max-w-[120px]">
             {displayName}
           </div>
           <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-white text-blue-600 border border-blue-100 shadow-2xs truncate">

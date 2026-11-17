@@ -30,10 +30,10 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>('');
 
-  const apkUrl = '/downloads/HeatShield-AI.apk';
-  const apkFileName = 'HeatShield-AI-v1.1.0.apk';
-  const apkVersion = 'v1.1.0';
-  const apkSize = '1.3 MB';
+  const apkUrl = '/downloads/HeatShield-AI-v1.6.0.apk';
+  const apkFileName = 'HeatShield-AI-v1.6.0.apk';
+  const apkVersion = 'v1.6.0';
+  const apkSize = '2.6 MB';
   const releaseDate = 'November 2026';
 
   // Generate full scannable URL and QR code
@@ -265,8 +265,16 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
                   <Download className="w-5 h-5 text-white group-hover:translate-y-0.5 transition-transform" />
                   <span>Download HeatShield AI APK ({apkSize})</span>
                 </a>
-                <div className="text-center text-[11px] text-slate-400 mt-2">
-                  Direct package installer • Virus &amp; malware verified clean
+                <div className="text-center text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-2">
+                  <span>Direct package installer (v1.6.0)</span>
+                  <span>•</span>
+                  <a
+                    href="/downloads/HeatShield-AI.apk"
+                    download="HeatShield-AI.apk"
+                    className="underline hover:text-blue-600 font-medium text-slate-500"
+                  >
+                    Universal Mirror (HeatShield-AI.apk)
+                  </a>
                 </div>
               </div>
             </div>

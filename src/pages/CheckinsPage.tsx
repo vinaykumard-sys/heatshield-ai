@@ -279,7 +279,7 @@ export const CheckinsPage: React.FC = () => {
         </div>
 
         {/* View Mode Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs overflow-x-auto max-w-full scrollbar-none">
           <button
             onClick={() => setActiveTab('priority_queue')}
             className={`px-3 py-1.5 rounded-md font-semibold btn-press transition-all ${

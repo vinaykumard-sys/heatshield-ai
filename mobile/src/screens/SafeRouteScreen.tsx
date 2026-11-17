@@ -82,8 +82,8 @@ export default function SafeRouteScreen() {
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Collapsible Bottom Sheet Animation
-  // Peek Height: ~140px, Expanded Height: ~68% of screen height
-  const peekHeight = 138;
+  // Peek Height: ~148px, Expanded Height: ~72% of screen height
+  const peekHeight = 148;
   const expandedHeight = Math.min(screenHeight * 0.72, 600);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const sheetHeightAnim = useRef(new Animated.Value(peekHeight)).current;
@@ -1290,6 +1290,8 @@ export default function SafeRouteScreen() {
                                 styles.routeCardTitle,
                                 isSelected && { color: '#0F172A', fontWeight: '800' },
                               ]}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
                             >
                               {r.label}
                             </Text>
@@ -1302,7 +1304,7 @@ export default function SafeRouteScreen() {
                             ]}
                           >
                             <Feather name="umbrella" size={11} color={accentColor} />
-                            <Text style={[styles.shadeBadgeMiniText, { color: accentColor }]}>
+                            <Text style={[styles.shadeBadgeMiniText, { color: accentColor }]} numberOfLines={1}>
                               {r.shade_coverage_pct}% Shade
                             </Text>
                           </View>
@@ -1494,9 +1496,11 @@ export default function SafeRouteScreen() {
                                 color={isCooling ? '#0284C7' : '#0EA5E9'}
                               />
                             </View>
-                            <View style={{ flex: 1, marginLeft: 10 }}>
-                              <Text style={styles.facilityName}>{fac.name}</Text>
-                              <Text style={styles.facilityAddress} numberOfLines={1}>
+                            <View style={{ flex: 1, marginLeft: 10, minWidth: 0, marginRight: 8 }}>
+                              <Text style={styles.facilityName} numberOfLines={1} ellipsizeMode="tail">
+                                {fac.name}
+                              </Text>
+                              <Text style={styles.facilityAddress} numberOfLines={1} ellipsizeMode="tail">
                                 {fac.address}
                               </Text>
                             </View>
@@ -1511,6 +1515,7 @@ export default function SafeRouteScreen() {
                                   styles.facilityOpenText,
                                   { color: fac.isOpen ? '#059669' : '#DC2626' },
                                 ]}
+                                numberOfLines={1}
                               >
                                 {fac.isOpen ? 'Open Now' : 'Closed'}
                               </Text>
@@ -2077,17 +2082,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   routeRadioDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#94A3B8',
+    flexShrink: 0,
   },
   routeCardTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: '#475569',
+    flexShrink: 1,
   },
   shadeBadgeMini: {
     flexDirection: 'row',
@@ -2096,6 +2106,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 2.5,
     borderRadius: 6,
+    flexShrink: 0,
   },
   shadeBadgeMiniText: {
     fontSize: 10.5,
@@ -2293,6 +2304,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   facilityName: {
     fontSize: 12,
@@ -2308,6 +2320,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+    flexShrink: 0,
   },
   facilityOpenText: {
     fontSize: 9.5,

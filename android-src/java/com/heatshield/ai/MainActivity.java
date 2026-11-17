@@ -135,8 +135,8 @@ public class MainActivity extends Activity {
         }
 
         // Dynamically obtain package version information from AndroidManifest
-        String currentVersionName = "1.5.1";
-        int currentVersionCode = 9;
+        String currentVersionName = "1.6.0";
+        int currentVersionCode = 10;
         try {
             android.content.pm.PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             if (pInfo.versionName != null && pInfo.versionName.trim().length() > 0) {

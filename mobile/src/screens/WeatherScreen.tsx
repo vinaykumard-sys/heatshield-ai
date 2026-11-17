@@ -196,10 +196,10 @@ export default function WeatherScreen({
               <View style={styles.heroTopRow}>
                 <View style={styles.liveBadge}>
                   <View style={[styles.liveDot, { backgroundColor: '#059669' }]} />
-                  <Text style={styles.liveBadgeText}>
+                  <Text style={styles.liveBadgeText} numberOfLines={1} ellipsizeMode="tail">
                     {weatherData?.source === 'Open-Meteo Live' ? 'OPEN-METEO LIVE' : 'STATION TELEMETRY'}
                   </Text>
-                  <Text style={styles.liveTimeText}>• {current?.updated_at || 'Now'}</Text>
+                  <Text style={styles.liveTimeText} numberOfLines={1}>• {current?.updated_at || 'Now'}</Text>
                 </View>
 
                 <View
@@ -216,7 +216,7 @@ export default function WeatherScreen({
                     size={14}
                     color={activeRiskColor}
                   />
-                  <Text style={[styles.riskBadgeText, { color: activeRiskColor }]}>
+                  <Text style={[styles.riskBadgeText, { color: activeRiskColor }]} numberOfLines={1}>
                     {current?.risk_level || selectedLocality.riskLevel} RISK
                   </Text>
                 </View>
@@ -596,14 +596,16 @@ export default function WeatherScreen({
                       {/* Emoji & Weather Condition */}
                       <View style={styles.dailyCondCol}>
                         <Text style={styles.dailyEmoji}>{d.emoji}</Text>
-                        <Text style={styles.dailyCondText} numberOfLines={1}>
-                          {d.condition}
-                        </Text>
-                        {d.precipitation_prob_max > 15 && (
-                          <Text style={styles.dailyRainText}>
-                            💧 {d.precipitation_prob_max}%
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.dailyCondText} numberOfLines={1} ellipsizeMode="tail">
+                            {d.condition}
                           </Text>
-                        )}
+                          {d.precipitation_prob_max > 15 && (
+                            <Text style={styles.dailyRainText} numberOfLines={1}>
+                              💧 {d.precipitation_prob_max}%
+                            </Text>
+                          )}
+                        </View>
                       </View>
 
                       {/* Temperature Range Bar */}
@@ -946,21 +948,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   liveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    flexShrink: 0,
   },
   liveBadgeText: {
     color: '#059669',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   liveTimeText: {
     color: '#64748B',
     fontSize: 11,
+    flexShrink: 0,
   },
   riskBadge: {
     flexDirection: 'row',
@@ -970,6 +978,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     gap: 4,
+    flexShrink: 0,
   },
   riskBadgeText: {
     fontSize: 11,
@@ -1248,6 +1257,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   metricCardWide: {
+    flexBasis: '100%',
     width: '100%',
     minWidth: '100%',
     maxWidth: '100%',
@@ -1381,7 +1391,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   dailyCondCol: {
-    width: 70,
+    width: 78,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

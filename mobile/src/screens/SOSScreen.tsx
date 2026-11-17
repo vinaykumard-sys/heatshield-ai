@@ -58,10 +58,10 @@ export default function SOSScreen({ selectedLocality, onNavigateToAssistance }: 
         <View style={styles.emergencyCard}>
           <View style={styles.emergencyCardHeader}>
             <View style={styles.alertPill}>
-              <MaterialCommunityIcons name="alert-decagram" size={16} color="#DC2626" />
-              <Text style={styles.alertPillText}>HEATSTROKE & RAPID RESCUE</Text>
+              <MaterialCommunityIcons name="alert-decagram" size={16} color="#DC2626" style={{ flexShrink: 0 }} />
+              <Text style={styles.alertPillText} numberOfLines={1} ellipsizeMode="tail">HEATSTROKE & RAPID RESCUE</Text>
             </View>
-            <Text style={styles.gpsLabel}>
+            <Text style={styles.gpsLabel} numberOfLines={1}>
               GPS: {selectedLocality.latitude.toFixed(3)}, {selectedLocality.longitude.toFixed(3)}
             </Text>
           </View>
@@ -269,17 +269,22 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 14,
     gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
+    marginRight: 6,
   },
   alertPillText: {
     fontSize: 10,
     fontWeight: '800',
     color: '#DC2626',
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   gpsLabel: {
     fontSize: 10,
     color: '#64748B',
     fontWeight: '600',
+    flexShrink: 0,
   },
   emergencyTitle: {
     fontSize: 18,
@@ -348,6 +353,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFFEE',
     textAlign: 'center',
     marginTop: 2,
+    lineHeight: 12,
     paddingHorizontal: 4,
   },
   smsButton: {

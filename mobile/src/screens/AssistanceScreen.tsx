@@ -184,7 +184,11 @@ export default function AssistanceScreen({ selectedLocality, onBack }: Props) {
                   activeOpacity={0.8}
                 >
                   <View style={[styles.urgencyDot, { backgroundColor: uColor }]} />
-                  <Text style={[styles.urgencyBtnText, isSel && { color: uColor, fontWeight: '800' }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.urgencyBtnText, isSel && { color: uColor, fontWeight: '800' }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     {label}
                   </Text>
                 </TouchableOpacity>

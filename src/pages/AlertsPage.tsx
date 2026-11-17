@@ -147,7 +147,7 @@ export const AlertsPage: React.FC = () => {
 
       {/* Tabs and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-[20px] border border-[#E5EDF5] shadow-xs">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setMainTab('warnings')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${

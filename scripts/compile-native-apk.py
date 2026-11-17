@@ -74,8 +74,8 @@ def main():
         "--manifest", manifest,
         "--min-sdk-version", "21",
         "--target-sdk-version", "34",
-        "--version-code", "9",
-        "--version-name", "1.5.1",
+        "--version-code", "10",
+        "--version-name", "1.6.0",
         "-o", base_apk,
         "--java", gen_dir,
         "--auto-add-overlay",
@@ -242,12 +242,12 @@ def main():
         apk_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     version_info = {
-        "version": "1.5.1",
-        "versionCode": 9,
+        "version": "1.6.0",
+        "versionCode": 10,
         "minimumRequiredVersion": "1.5.0",
         "forceUpdate": True,
         "releaseDate": time.strftime("%Y-%m-%d"),
-        "releaseNotes": "Version 1.5.1: Critical startup fix resolving blank screen, web-safe notification event emitter abstraction, enhanced WebView asset loader, and production stability.",
+        "releaseNotes": "Version 1.6.0: Critical startup fix resolving blank screen, web-safe notification event emitter abstraction, enhanced WebView asset loader, and production stability.",
         "minAndroidVersion": "7.0 (API 24)+",
         "targetAndroidVersion": "14.0 (API 34)",
         "supportedAbis": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],
@@ -255,15 +255,17 @@ def main():
         "fileSize": f"{apk_stat.st_size / (1024 * 1024):.2f} MB",
         "sizeBytes": apk_stat.st_size,
         "sha256": apk_sha256,
-        "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.1.apk",
+        "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.6.0.apk",
         "verifiedSchemes": ["v1", "v2", "v3"]
     }
 
     # Also save explicitly versioned APK copies
-    versioned_apk_path = os.path.join(ROOT_DIR, "public", "downloads", "HeatShield-AI-v1.5.1.apk")
+    versioned_apk_path = os.path.join(ROOT_DIR, "public", "downloads", "HeatShield-AI-v1.6.0.apk")
     shutil.copy2(OUTPUT_APK, versioned_apk_path)
     legacy_versioned_apk = os.path.join(ROOT_DIR, "public", "downloads", "HeatShield-AI-v1.5.0.apk")
     shutil.copy2(OUTPUT_APK, legacy_versioned_apk)
+    legacy_v151_apk = os.path.join(ROOT_DIR, "public", "downloads", "HeatShield-AI-v1.5.1.apk")
+    shutil.copy2(OUTPUT_APK, legacy_v151_apk)
 
     version_path = os.path.join(ROOT_DIR, "public", "downloads", "version.json")
     with open(version_path, "w", encoding="utf-8") as f:

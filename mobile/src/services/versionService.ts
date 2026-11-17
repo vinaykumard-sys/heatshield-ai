@@ -35,9 +35,9 @@ export interface VersionCheckResult {
   source?: 'supabase' | 'remote_json' | 'cache' | 'offline_fallback';
 }
 
-export const CURRENT_APP_VERSION = '1.5.1';
-export const CURRENT_VERSION_CODE = 9;
-export const DEFAULT_APK_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI.apk';
+export const CURRENT_APP_VERSION = '1.6.0';
+export const CURRENT_VERSION_CODE = 10;
+export const DEFAULT_APK_URL = 'https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.6.0.apk';
 export const VERSION_JSON_URL = 'https://heatshield-ai-eight.vercel.app/downloads/version.json';
 
 // In-memory cache to prevent infinite re-checking loops
@@ -90,7 +90,7 @@ export function clearVersionCache(): void {
  * 1. Native JavascriptInterface: window.HeatShieldNative.getVersion()
  * 2. Injected window global: window.__HEATSHIELD_NATIVE_VERSION__
  * 3. User-Agent parsing for HeatShieldApp/X.Y.Z
- * 4. Fallback: CURRENT_APP_VERSION (1.5.0)
+ * 4. Fallback: CURRENT_APP_VERSION (1.6.0)
  */
 export function getInstalledVersion(): string {
   if (typeof window !== 'undefined') {

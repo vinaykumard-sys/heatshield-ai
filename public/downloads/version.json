@@ -1,10 +1,10 @@
 {
-  "version": "1.5.1",
-  "versionCode": 9,
+  "version": "1.6.0",
+  "versionCode": 10,
   "minimumRequiredVersion": "1.5.0",
   "forceUpdate": true,
   "releaseDate": "2026-11-17",
-  "releaseNotes": "Version 1.5.1: Critical startup fix resolving blank screen, web-safe notification event emitter abstraction, enhanced WebView asset loader, and production stability.",
+  "releaseNotes": "Version 1.6.0: Critical startup fix resolving blank screen, web-safe notification event emitter abstraction, enhanced WebView asset loader, and production stability.",
   "minAndroidVersion": "7.0 (API 24)+",
   "targetAndroidVersion": "14.0 (API 34)",
   "supportedAbis": [
@@ -16,8 +16,8 @@
   "universal": true,
   "fileSize": "2.57 MB",
   "sizeBytes": 2696684,
-  "sha256": "0caf1d30bc9e3ec235f2ef2254d957ee543c0e0da042e3c0dd97e32983e8127b",
-  "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.5.1.apk",
+  "sha256": "97163eefa28afab8c7d2b09110464b544d8ea443e3d7e8dd5c035d088fc4760b",
+  "downloadUrl": "https://heatshield-ai-eight.vercel.app/downloads/HeatShield-AI-v1.6.0.apk",
   "verifiedSchemes": [
     "v1",
     "v2",

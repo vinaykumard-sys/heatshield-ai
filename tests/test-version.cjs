@@ -54,6 +54,10 @@ assert(compareSemver('1.3.0', '1.4.0') === -1, '1.3.0 < 1.4.0 -> -1');
 assert(compareSemver('1.4.0', '1.4.0') === 0, '1.4.0 === 1.4.0 -> 0');
 assert(compareSemver('1.4.0', '1.5.0') === -1, '1.4.0 < 1.5.0 -> -1');
 assert(compareSemver('1.5.0', '1.5.0') === 0, '1.5.0 === 1.5.0 -> 0');
+assert(compareSemver('1.5.1', '1.6.0') === -1, '1.5.1 < 1.6.0 -> -1');
+assert(compareSemver('1.6.0', '1.6.0') === 0, '1.6.0 === 1.6.0 -> 0');
+assert(compareSemver('v1.6.0', '1.6.0') === 0, 'v1.6.0 === 1.6.0 -> 0');
+assert(compareSemver('1.6.1', '1.6.0') === 1, '1.6.1 > 1.6.0 -> 1');
 assert(compareSemver('2.0.0', '1.9.9') === 1, '2.0.0 > 1.9.9 -> 1');
 
 // Test outdated detection rules:
@@ -71,5 +75,13 @@ const minRequiredV15 = '1.5.0';
 assert(compareSemver('1.4.0', minRequiredV15) < 0 === true, 'Installed 1.4.0 must be flagged outdated when min is 1.5.0');
 assert(compareSemver('1.5.0', minRequiredV15) < 0 === false, 'Installed 1.5.0 must NOT be flagged outdated when min is 1.5.0');
 assert(compareSemver('1.5.1', minRequiredV15) < 0 === false, 'Installed 1.5.1 must NOT be flagged outdated when min is 1.5.0');
+
+// Section 1.6.0 release assertions:
+const currentReleaseV16 = '1.6.0';
+assert(compareSemver('1.4.0', currentReleaseV16) < 0 === true, 'Installed 1.4.0 must be flagged outdated when target is 1.6.0');
+assert(compareSemver('1.5.0', currentReleaseV16) < 0 === true, 'Installed 1.5.0 is older than current release 1.6.0');
+assert(compareSemver('1.5.1', currentReleaseV16) < 0 === true, 'Installed 1.5.1 is older than current release 1.6.0');
+assert(compareSemver('1.6.0', currentReleaseV16) < 0 === false, 'Installed 1.6.0 is current');
+assert(compareSemver('1.6.0', minRequiredV15) < 0 === false, 'Installed 1.6.0 satisfies minimum required 1.5.0');
 
 console.log('\nAll semver and version update tests PASSED!');

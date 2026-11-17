@@ -172,7 +172,7 @@ export default function DashboardScreen({
               activeOpacity={0.8}
             >
               <MaterialCommunityIcons name="robot" size={15} color="#0284C7" style={{ flexShrink: 0 }} />
-              <Text style={styles.assistantBadgeText} numberOfLines={1}>AI Consult</Text>
+              <Text style={styles.assistantBadgeText} numberOfLines={1} ellipsizeMode="tail">AI Consult</Text>
             </TouchableOpacity>
 
             {/* Profile Avatar / Touch Target: Dynamic Avatar / Name / Role / ▼ */}
@@ -186,14 +186,14 @@ export default function DashboardScreen({
                 <Text style={styles.headerProfileAvatarText}>{initials}</Text>
               </View>
               <View style={styles.headerProfileTextWrap}>
-                <Text style={styles.headerProfileName} numberOfLines={1}>
+                <Text style={styles.headerProfileName} numberOfLines={1} ellipsizeMode="tail">
                   {displayName.split(' ')[0]}
                 </Text>
-                <Text style={styles.headerProfileRole} numberOfLines={1}>
+                <Text style={styles.headerProfileRole} numberOfLines={1} ellipsizeMode="tail">
                   {displayRole}
                 </Text>
               </View>
-              <Feather name="chevron-down" size={12} color="#64748B" />
+              <Feather name="chevron-down" size={12} color="#64748B" style={{ flexShrink: 0 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -340,8 +340,8 @@ export default function DashboardScreen({
               <View style={[styles.actionIconCircle, { backgroundColor: '#ECFDF5' }]}>
                 <MaterialCommunityIcons name="map-marker-path" size={22} color="#059669" />
               </View>
-              <Text style={styles.actionGridTitle}>Safe Route</Text>
-              <Text style={styles.actionGridSub}>Canopy Shade</Text>
+              <Text style={styles.actionGridTitle} numberOfLines={1} adjustsFontSizeToFit>Safe Route</Text>
+              <Text style={styles.actionGridSub} numberOfLines={1} adjustsFontSizeToFit>Canopy Shade</Text>
             </TouchableOpacity>
 
             {/* Cooling Shelter */}
@@ -353,8 +353,8 @@ export default function DashboardScreen({
               <View style={[styles.actionIconCircle, { backgroundColor: '#E0F2FE' }]}>
                 <Ionicons name="snow" size={22} color="#0284C7" />
               </View>
-              <Text style={styles.actionGridTitle}>Cool Shelter</Text>
-              <Text style={styles.actionGridSub}>Air-Cooled Hubs</Text>
+              <Text style={styles.actionGridTitle} numberOfLines={1} adjustsFontSizeToFit>Cool Shelter</Text>
+              <Text style={styles.actionGridSub} numberOfLines={1} adjustsFontSizeToFit>Air-Cooled</Text>
             </TouchableOpacity>
 
             {/* Water Point */}
@@ -366,8 +366,8 @@ export default function DashboardScreen({
               <View style={[styles.actionIconCircle, { backgroundColor: '#EFF6FF' }]}>
                 <Ionicons name="water" size={22} color="#2563EB" />
               </View>
-              <Text style={styles.actionGridTitle}>Water Point</Text>
-              <Text style={styles.actionGridSub}>Purified Kiosks</Text>
+              <Text style={styles.actionGridTitle} numberOfLines={1} adjustsFontSizeToFit>Water Point</Text>
+              <Text style={styles.actionGridSub} numberOfLines={1} adjustsFontSizeToFit>Purified Kiosks</Text>
             </TouchableOpacity>
 
             {/* Request Aid */}
@@ -379,8 +379,8 @@ export default function DashboardScreen({
               <View style={[styles.actionIconCircle, { backgroundColor: '#FEF2F2' }]}>
                 <MaterialCommunityIcons name="hand-heart" size={22} color="#DC2626" />
               </View>
-              <Text style={styles.actionGridTitle}>Request Aid</Text>
-              <Text style={styles.actionGridSub}>Tanker / Medic</Text>
+              <Text style={styles.actionGridTitle} numberOfLines={1} adjustsFontSizeToFit>Request Aid</Text>
+              <Text style={styles.actionGridSub} numberOfLines={1} adjustsFontSizeToFit>Tanker / Medic</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -633,14 +633,14 @@ export default function DashboardScreen({
                 <View style={styles.profileSheetAvatar}>
                   <Text style={styles.profileSheetAvatarText}>{initials}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.profileSheetName}>{displayName}</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={styles.profileSheetName} numberOfLines={1} ellipsizeMode="tail">{displayName}</Text>
                     <View style={styles.profileSheetRoleBadge}>
                       <Text style={styles.profileSheetRoleBadgeText}>{displayRole}</Text>
                     </View>
                   </View>
-                  <Text style={styles.profileSheetEmail} numberOfLines={1}>
+                  <Text style={styles.profileSheetEmail} numberOfLines={1} ellipsizeMode="tail">
                     {currentEmail || 'Active Citizen'}
                   </Text>
                 </View>
@@ -658,9 +658,13 @@ export default function DashboardScreen({
             <View style={styles.profileStatusCard}>
               <View style={styles.profileStatusLeft}>
                 <View style={styles.profileStatusDot} />
-                <Text style={styles.profileStatusText}>Active Heat Defense Protocol</Text>
+                <Text style={styles.profileStatusText} numberOfLines={1} ellipsizeMode="tail">
+                  Active Heat Defense Protocol
+                </Text>
               </View>
-              <Text style={styles.profileStatusZone}>{selectedLocality.name}</Text>
+              <Text style={styles.profileStatusZone} numberOfLines={1} ellipsizeMode="tail">
+                {selectedLocality.name}
+              </Text>
             </View>
 
             {/* Menu Options: Profile, Settings, Weather, AI Assistant */}
@@ -785,7 +789,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flexShrink: 0,
+    flexShrink: 1,
   },
   headerProfileBtn: {
     flexDirection: 'row',
@@ -797,6 +801,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 20,
     gap: 5,
+    flexShrink: 1,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -810,6 +815,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   headerProfileAvatarText: {
     fontSize: 10,
@@ -818,7 +824,8 @@ const styles = StyleSheet.create({
   },
   headerProfileTextWrap: {
     justifyContent: 'center',
-    maxWidth: 62,
+    maxWidth: 68,
+    minWidth: 0,
   },
   headerProfileName: {
     fontSize: 11,
@@ -838,10 +845,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0F2FE',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     borderRadius: 20,
-    gap: 6,
+    gap: 5,
+    flexShrink: 1,
   },
   assistantBadgeText: {
     fontSize: 11,
@@ -915,22 +923,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   profileStatusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#10B981',
+    flexShrink: 0,
   },
   profileStatusText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#334155',
+    flexShrink: 1,
   },
   profileStatusZone: {
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
+    flexShrink: 0,
   },
   profileSheetMenu: {
     gap: 8,
